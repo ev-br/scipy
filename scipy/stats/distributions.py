@@ -427,7 +427,16 @@ class rv_frozen(object):
     def __init__(self, dist, *args, **kwds):
         self.args = args
         self.kwds = kwds
-        self.dist = dist
+
+        #deepcopy won't work (vectorize?), so create an instance anew
+        self.dist = dist.__class__(**dist._ctor_param)
+        # now patch up self.dist
+        self.dist._temps = self.dist._produce_temporaries(*args, **kwds)
+        def _produce_temps(self, *args, **kwds):
+            #print(self.name, ": frozen temps")
+            return self._temps
+        self.dist._produce_temporaries = instancemethod(_produce_temps, 
+                self.dist, self.dist.__class__)
 
     def pdf(self, x):    # raises AttributeError in frozen discrete distribution
         return self.dist.pdf(x, *self.args, **self.kwds)
@@ -628,6 +637,9 @@ class rv_generic(object):
             # allows more general subclassing with *args
             self.numargs = len(shapes)
 
+    def _produce_temporaries(self, *args, **kwds):
+        # to be overridden by subclasses
+        return None
 
     # These are actually called, and should not be overwritten if you
     # want to keep error checking.
@@ -1038,6 +1050,11 @@ class rv_continuous(rv_generic):
                  shapes=None, extradoc=None):
 
         rv_generic.__init__(self)
+
+        # save the ctor parameters, cf generic freeze
+        self._ctor_param = dict(momtype=momtype, a=a, b=b, xtol=xtol,
+                badvalue=badvalue, name=name, longname=longname,
+                shapes=shapes, extradoc=extradoc)
 
         if badvalue is None:
             badvalue = nan
@@ -4187,9 +4204,13 @@ class gausshyper_gen(rv_continuous):
     def _argcheck(self, a, b, c, z):
         return (a > 0) & (b > 0) & (c == c) & (z == z)
 
+    def _produce_temporaries(self, a, b, c, z):
+        return 1.0/gam(a)*gam(b)/gam(a+b)*special.hyp2f1(c,a,a+b,-z)
+
     def _pdf(self, x, a, b, c, z):
-        Cinv = gam(a)*gam(b)/gam(a+b)*special.hyp2f1(c,a,a+b,-z)
-        return 1.0/Cinv * x**(a-1.0) * (1.0-x)**(b-1.0) / (1.0+z*x)**c
+        #Cinv = gam(a)*gam(b)/gam(a+b)*special.hyp2f1(c,a,a+b,-z)
+        Cinv1 = self._produce_temporaries(a, b, c, z)
+        return Cinv1 * x**(a-1.0) * (1.0-x)**(b-1.0) / (1.0+z*x)**c
 
     def _munp(self, n, a, b, c, z):
         fac = special.beta(n+a,b) / special.beta(a,b)
@@ -4993,15 +5014,20 @@ class t_gen(rv_continuous):
     def _rvs(self, df):
         return mtrand.standard_t(df, size=self._size)
 
-    def _pdf(self, x, df):
+    def _produce_temporaries(self, df):
         r = asarray(df*1.0)
-        Px = exp(gamln((r+1)/2)-gamln(r/2))
+        lPx = gamln((r+1)/2)-gamln(r/2)
+        return r, exp(lPx), lPx
+
+    def _pdf(self, x, df):
+        r, Px, _ = self._produce_temporaries(df)
         Px /= sqrt(r*pi)*(1+(x**2)/r)**((r+1)/2)
         return Px
 
     def _logpdf(self, x, df):
-        r = df*1.0
-        lPx = gamln((r+1)/2)-gamln(r/2)
+        r, _, lPx = self._produce_temporaries(df)
+        #r = df*1.0
+        #lPx = gamln((r+1)/2)-gamln(r/2)
         lPx -= 0.5*log(r*pi) + (r+1)/2*log(1+(x**2)/r)
         return lPx
 
@@ -5049,20 +5075,29 @@ class nct_gen(rv_continuous):
     def _rvs(self, df, nc):
         return norm.rvs(loc=nc,size=self._size)*sqrt(df) / sqrt(chi2.rvs(df,size=self._size))
 
-    def _pdf(self, x, df, nc):
+    def _produce_temporaries(self, df, nc):
         n = df*1.0
         nc = nc*1.0
+        trm1 = n/2.*log(n) + gamln(n+1) - n*log(2) - nc*nc/2. - gamln(n/2.)
+        gam12, gam21 = gam((n+1)/2), gam(n/2+1)
+        return n, nc, exp(trm1), gam12, gam21
+
+    def _pdf(self, x, df, nc):
+        n, nc, Px, gam12, gam21 = self._produce_temporaries(df, nc)
+
         x2 = x*x
         ncx2 = nc*nc*x2
         fac1 = n + x2
-        trm1 = n/2.*log(n) + gamln(n+1)
-        trm1 -= n*log(2)+nc*nc/2.+(n/2.)*log(fac1)+gamln(n/2.)
-        Px = exp(trm1)
+        Px /= np.power(fac1, n/2)
+
         valF = ncx2 / (2*fac1)
-        trm1 = sqrt(2)*nc*x*special.hyp1f1(n/2+1,1.5,valF)
-        trm1 /= asarray(fac1*special.gamma((n+1)/2))
-        trm2 = special.hyp1f1((n+1)/2,0.5,valF)
-        trm2 /= asarray(sqrt(fac1)*special.gamma(n/2+1))
+        trm1 = sqrt(2)*nc*x*special.hyp1f1(n/2+1, 1.5, valF)
+#        trm1 /= asarray(fac1*special.gamma((n+1)/2))
+        trm1 /= asarray(fac1*gam12)
+
+        trm2 = special.hyp1f1((n+1)/2, 0.5, valF)
+#        trm2 /= asarray(sqrt(fac1)*special.gamma(n/2+1))
+        trm2 /= asarray(sqrt(fac1)*gam21)
         Px *= trm1+trm2
         return Px
 
@@ -6363,10 +6398,14 @@ class rv_discrete(rv_generic):
     """
 
     def __init__(self, a=0, b=inf, name=None, badvalue=None,
-                 moment_tol=1e-8,values=None,inc=1,longname=None,
+                 moment_tol=1e-8, values=None, inc=1, longname=None,
                  shapes=None, extradoc=None):
 
         super(rv_generic,self).__init__()
+
+        self._ctor_param = dict(a=a, b=b, name=name, badvalue=badvalue,
+                 moment_tol=moment_tol, values=values, inc=inc, longname=longname,
+                 shapes=shapes, extradoc=extradoc)
 
         if badvalue is None:
             badvalue = nan
@@ -7682,13 +7721,21 @@ class boltzmann_gen(rv_discrete):
     %(example)s
 
     """
+    def _produce_temporaries(self, lambda_, N):
+        el = exp(-lambda_)
+        denom = 1 - el**N
+        return el, denom
+
     def _pmf(self, k, lambda_, N):
-        fact = (1-exp(-lambda_))/(1-exp(-lambda_*N))
-        return fact*exp(-lambda_*k)
+        el, denom = self._produce_temporaries(lambda_, N)
+        fact = (1 - el)/denom
+        return fact * el**k
 
     def _cdf(self, x, lambda_, N):
         k = floor(x)
-        return (1-exp(-lambda_*(k+1)))/(1-exp(-lambda_*N))
+        el, denom = self._produce_temporaries(lambda_, N)
+        return (1 - el**(k+1))/denom
+        #return (1-exp(-lambda_*(k+1)))/(1-exp(-lambda_*N))
 
     def _ppf(self, q, lambda_, N):
         qnew = q*(1-exp(-lambda_*N))
