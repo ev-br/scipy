@@ -728,6 +728,17 @@ class TestPPoly(TestCase):
         assert_allclose(pp1(xi1), pp_comb(xi1))
         assert_allclose(pp2(xi2), pp_comb(xi2))
 
+    def test_fill_function(self):
+        def f(x):
+            return np.log(1. + np.exp(x*x))
+        def f_lim(x):
+            return x*x
+        x = np.linspace(0, 5, 50)
+        spl = splrep(x, f(x))
+        pp = PPoly.from_spline(spl, fill_value=f_lim)
+        assert_allclose(pp(100.), 1e4)
+
+
 
 class TestPpform(TestCase):
     def test_shape(self):

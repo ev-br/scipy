@@ -10,10 +10,11 @@ from numpy import shape, sometrue, array, transpose, searchsorted, \
                   dot, poly1d, asarray, intp
 import numpy as np
 import scipy.special as spec
+from scipy.integrate import quad
 import math
 import warnings
 
-from scipy.lib.six import xrange
+from scipy.lib.six import xrange, callable
 
 from . import fitpack
 from . import dfitpack
@@ -541,9 +542,12 @@ class PPoly(_Interpolator1D):
 
         self.c = np.asarray(c)
         self.x = np.ascontiguousarray(x, dtype=np.float64)
-        if fill_value is None:
-            fill_value = np.nan
-        self.fill_value = fill_value
+        if callable(fill_value):
+            self.fill = fill_value
+        else:
+            if fill_value is None:
+                fill_value = np.nan
+            self.fill = lambda _: fill_value
 
         if self.x.ndim != 1:
             raise ValueError("x must be 1-dimensional")
@@ -630,7 +634,8 @@ class PPoly(_Interpolator1D):
         self._ensure_c_contiguous()
         has_out_of_bounds = _ppoly.evaluate(self.c, self.x, x, nu, out)
         if has_out_of_bounds:
-            out[~((x >= self.x[0]) & (x <= self.x[-1]))] = self.fill_value
+            mask = ~((x >= self.x[0]) & (x <= self.x[-1]))
+            out[mask] = self.fill(x[mask])
         return out
 
     def derivative(self, nu=1):
@@ -671,7 +676,7 @@ class PPoly(_Interpolator1D):
         c2 *= factor[:,None,None]
 
         # construct a compatible polynomial
-        pp = PPoly(c2, self.x, fill_value=self.fill_value)
+        pp = PPoly(c2, self.x, fill_value=self.fill)
         pp._y_extra_shape = self._y_extra_shape
         return pp
 
@@ -717,7 +722,7 @@ class PPoly(_Interpolator1D):
         _ppoly.fix_continuity(c, self.x, nu)
 
         # construct a compatible polynomial
-        pp = PPoly(c, self.x, fill_value=self.fill_value)
+        pp = PPoly(c, self.x, fill_value=self.fill)
         pp._y_extra_shape = self._y_extra_shape
 
         return pp
@@ -748,11 +753,11 @@ class PPoly(_Interpolator1D):
 
         # Deal with integrals over fill values
         if a < self.x[0]:
-            below_int = self.fill_value * (self.x[0] - a)
+            below_int = quad(self.fill, a, self.x[0])[0]
         else:
             below_int = 0
         if b > self.x[-1]:
-            above_int = self.fill_value * (self.x[-1] - a)
+            above_int = quad(self.fill, self.x[-1], b)[0]
         else:
             above_int = 0
 
