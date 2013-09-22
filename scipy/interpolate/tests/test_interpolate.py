@@ -738,6 +738,18 @@ class TestPPoly(TestCase):
         pp = PPoly.from_spline(spl, fill_value=f_lim)
         assert_allclose(pp(100.), 1e4)
 
+    def test_fill_function_split(self):
+        def f(x):
+            return np.log(1. + np.exp(x*x*x))
+        def f_left(x):
+            return -8.   # bogus
+        def f_right(x):
+            return x*x*x
+        x = np.linspace(0, 5, 50)
+        spl = splrep(x, f(x))
+        pp = PPoly.from_spline(spl, fill_value=(f_left, f_right))
+        assert_allclose(pp(100.), 1e6)
+        assert_allclose(pp(-100.), -8.)
 
 
 class TestPpform(TestCase):
