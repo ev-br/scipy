@@ -10,7 +10,8 @@ import warnings
 from scipy.lib.six import xrange
 
 from scipy.interpolate import (interp1d, interp2d, lagrange, PPoly, BPoly,
-         ppform, splrep, splev, splantider, splint, sproot)
+         bpoly_from_derivatives, ppform, splrep, splev, splantider,
+         splint, sproot)
 
 from scipy.interpolate import _ppoly
 
@@ -521,8 +522,11 @@ class TestPolySubclassing(TestCase):
     def test_from_derivatives(self):
         x = [0, 1, 2]
         y = [[1], [2], [3]]
-        bp = self.B.from_derivatives(x, y)
-        assert_equal(bp.__class__, self.B)
+        bp = bpoly_from_derivatives(x, y)
+        assert_equal(bp.__class__, BPoly)
+
+        bp = bpoly_from_derivatives(x, y, cls=self.P)
+        assert_equal(bp.__class__, self.P)
 
 
 class TestPPoly(TestCase):
@@ -1028,17 +1032,17 @@ class TestBPolyFromDerivatives(TestCase):
         assert_allclose(bp(xp), bp1(xp))
 
     def test_xi_yi(self):
-        assert_raises(ValueError, BPoly.from_derivatives, [0, 1], [0])
+        assert_raises(ValueError, bpoly_from_derivatives, [0, 1], [0])
 
     def test_coords_order(self):
         xi = [0, 0, 1]
         yi = [[0], [0], [0]]
-        assert_raises(ValueError, BPoly.from_derivatives, xi, yi)
+        assert_raises(ValueError, bpoly_from_derivatives, xi, yi)
 
     def test_zeros(self):
         xi = [0, 1, 2, 3]
         yi = [[0, 0], [0], [0, 0], [0, 0]]  # NB: will have to raise the degree
-        pp = BPoly.from_derivatives(xi, yi)
+        pp = bpoly_from_derivatives(xi, yi)
         assert_(pp.c.shape == (4, 3))
 
         ppd = pp.derivative()
@@ -1055,7 +1059,7 @@ class TestBPolyFromDerivatives(TestCase):
     def test_random_12(self):
         m, k = 5, 12
         xi, yi = self._make_random_mk(m, k)
-        pp = BPoly.from_derivatives(xi, yi)
+        pp = bpoly_from_derivatives(xi, yi)
 
         for order in range(k//2):
             assert_allclose(pp(xi), [yy[order]  for yy in yi])
@@ -1064,15 +1068,15 @@ class TestBPolyFromDerivatives(TestCase):
     def test_order_zero(self):
         m, k = 5, 12
         xi, yi = self._make_random_mk(m, k)
-        assert_raises(ValueError, BPoly.from_derivatives, 
+        assert_raises(ValueError, bpoly_from_derivatives, 
                 **dict(xi=xi, yi=yi, orders=0))
 
     def test_orders_too_high(self):
         m, k = 5, 12
         xi, yi = self._make_random_mk(m, k)
 
-        pp = BPoly.from_derivatives(xi, yi, orders=2*k-1)   # this is still ok
-        assert_raises(ValueError, BPoly.from_derivatives,   # but this is not
+        pp = bpoly_from_derivatives(xi, yi, orders=2*k-1)   # this is still ok
+        assert_raises(ValueError, bpoly_from_derivatives,   # but this is not
                 **dict(xi=xi, yi=yi, orders=2*k))
 
     def test_orders_global(self):
@@ -1082,7 +1086,7 @@ class TestBPolyFromDerivatives(TestCase):
         # ok, this is confusing. Local polynomials will be of the order 5
         # which means that up to the 2nd derivatives will be used at each point
         order = 5
-        pp = BPoly.from_derivatives(xi, yi, orders=order)
+        pp = bpoly_from_derivatives(xi, yi, orders=order)
 
         for j in range(order//2+1):
             assert_allclose(pp(xi[1:-1] - 1e-12), pp(xi[1:-1] + 1e-12))
@@ -1093,7 +1097,7 @@ class TestBPolyFromDerivatives(TestCase):
         # order//2 'derivatives' @ the right-hand endpoint and
         # order//2+1 @ 'derivatives' the left-hand endpoint
         order = 6
-        pp = BPoly.from_derivatives(xi, yi, orders=order)
+        pp = bpoly_from_derivatives(xi, yi, orders=order)
         for j in range(order//2):
             assert_allclose(pp(xi[1:-1] - 1e-12), pp(xi[1:-1] + 1e-12))
             pp = pp.derivative()    
@@ -1105,7 +1109,7 @@ class TestBPolyFromDerivatives(TestCase):
 
         orders = [o + 1 for o in range(m)]
         for i, x in enumerate(xi[1:-1]):
-            pp = BPoly.from_derivatives(xi, yi, orders=orders)
+            pp = bpoly_from_derivatives(xi, yi, orders=orders)
             for j in range(orders[i] // 2 + 1):
                 assert_allclose(pp(x - 1e-12), pp(x + 1e-12))
                 pp = pp.derivative()
@@ -1115,7 +1119,7 @@ class TestBPolyFromDerivatives(TestCase):
         m, k = 7, 5
         xi = np.sort(np.random.random(m+1))
         yi = np.random.random((m+1, k, 6, 7, 8))
-        pp = BPoly.from_derivatives(xi, yi)
+        pp = bpoly_from_derivatives(xi, yi)
         assert_equal(pp.c.shape, (2*k, m, 6, 7, 8))
 
 
