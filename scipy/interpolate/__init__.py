@@ -85,6 +85,12 @@ Functional interface to FITPACK functions:
    splder
    splantider
 
+An alternative set of univariate spline routines:
+
+.. autosummary::
+    :toctree: generated/
+
+   BSpline
 
 2-D Splines
 ===========
@@ -155,6 +161,8 @@ from .polyint import *
 from ._monotone import *
 
 from .ndgriddata import *
+
+from ._bsplines import *
 
 __all__ = [s for s in dir() if not s.startswith('_')]
 from numpy.testing import Tester
