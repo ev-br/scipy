@@ -1426,8 +1426,9 @@ class genpareto_gen(rv_continuous):
     """
     def _argcheck(self, c):
         c = asarray(c)
-        self.b = where(c < 0, 1.0/abs(c), inf)
-        return where(c == 0, 0, 1)
+        self.b = _lazywhere(c < 0, (c,),
+                lambda c: -1. / c, np.inf)
+        return True
 
     def _pdf(self, x, c):
         Px = pow(1+c*x, asarray(-1.0-1.0/c))

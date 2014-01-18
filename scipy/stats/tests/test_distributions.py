@@ -446,6 +446,63 @@ class TestPareto(TestCase):
             assert_allclose(k, 6*(4.5**3 + 4.5**2 - 6*4.5 - 2)/(4.5*1.5*0.5))
 
 
+class TestGenpareto(TestCase):
+    def test_ab(self):
+        # c >= 0: a, b = [0, inf]
+        for c in [1., 0.]:
+            c = np.asarray(c)
+            stats.genpareto._argcheck(c)  # ugh
+            assert_equal(stats.genpareto.a, 0.)
+            assert_(np.isposinf(stats.genpareto.b))
+
+        # c < 0: a=0, b=1/|c|
+        c = np.asarray(-2.)
+        stats.genpareto._argcheck(c)
+        assert_allclose([stats.genpareto.a, stats.genpareto.b], [0., 0.5])
+
+    def test_c0(self):
+        # with c=0, genpareto reduces to the exponential distribution
+        rv = stats.genpareto(c=0.)
+        x = np.linspace(0, 10., 30)
+        assert_allclose(rv.pdf(x), stats.expon.pdf(x))
+        assert_allclose(rv.cdf(x), stats.expon.cdf(x))
+        assert_allclose(rv.sf(x), stats.expon.sf(x))
+
+        q = np.linspace(0., 1., 10)
+        assert_allclose(rv.ppf(q), stats.expon.ppf(q))
+
+    def test_x_inf(self):
+        # make sure x=inf is handled gracefully 
+        rv = stats.genpareto(c=0.1)
+        assert_allclose([rv.pdf(np.inf), rv.cdf(np.inf)], [0., 1.])
+
+        rv = stats.genpareto(c=0.)
+        assert_allclose([rv.pdf(np.inf), rv.cdf(np.inf)], [0., 1.])
+
+    def test_c_continuity(self):
+        # pdf is continuous at c=0
+        x = np.linspace(0, 10, 30)
+        c0 = stats.genpareto.pdf(x, c=0)
+        c1 = stats.genpareto.pdf(x, c=1e-14)
+        cm1 = stats.genpareto.pdf(x, c=-1e-14)
+        assert_allclose(c0, c1)
+        assert_allclose(c0, cm1)
+
+        c0 = stats.genpareto.cdf(x, c=0)
+        c1 = stats.genpareto.cdf(x, c=1e-14)
+        cm1 = stats.genpareto.cdf(x, c=-1e-14)
+        assert_allclose(c0, c1)
+        assert_allclose(c0, cm1)
+
+        # PPF loses accuracy --- FIXME      
+        q = np.linspace(0., 1., 30)
+        c0 = stats.genpareto.ppf(q, c=0)
+        c1 = stats.genpareto.ppf(q, c=1e-14)
+        cm1 = stats.genpareto.ppf(q, c=-1e-14)
+        assert_allclose(c0, c1)
+        assert_allclose(c0, cm1)
+
+
 class TestPearson3(TestCase):
     def test_rvs(self):
         vals = stats.pearson3.rvs(0.1, size=(2, 50))
