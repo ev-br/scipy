@@ -1418,8 +1418,13 @@ class genpareto_gen(rv_continuous):
 
         genpareto.pdf(x, c) = (1 + c * x)**(-1 - 1/c)
 
-    for ``c != 0``, and for ``x >= 0`` for all c,
-    and ``x < 1/abs(c)`` for ``c < 0``.
+    for ``c >= 0`` ``x >= 0``, and 
+    for ``c < 0`` ``0 <= x <= -1/c``
+
+    For ``c == 0``, `genpareto` reduces to the exponential 
+    distribution, `expon`::
+
+        genpareto.pdf(x, c=0) = exp(-x)
 
     %(example)s
 
