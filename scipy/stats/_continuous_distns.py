@@ -11,7 +11,7 @@ from scipy.misc.doccer import inherit_docstring_from
 from scipy import special
 from scipy import optimize
 from scipy import integrate
-from scipy.special import (gammaln as gamln, gamma as gam)
+from scipy.special import (gammaln as gamln, gamma as gam, boxcox)
 
 from numpy import (where, arange, putmask, ravel, sum, shape,
                    log, sqrt, exp, arctanh, tan, sin, arcsin, arctan,
@@ -1431,18 +1431,24 @@ class genpareto_gen(rv_continuous):
         return True
 
     def _pdf(self, x, c):
-        Px = pow(1+c*x, asarray(-1.0-1.0/c))
-        return Px
+        return np.exp(self._logpdf(x, c))
 
     def _logpdf(self, x, c):
-        return (-1.0-1.0/c) * np.log1p(c*x)
+        return -(c + 1.) * self._log1pcx(x, c)
 
     def _cdf(self, x, c):
-        return 1.0 - pow(1+c*x, asarray(-1.0/c))
+        return -np.expm1(self._logsf(x, c))
+
+    def _sf(self, x, c):
+       return np.exp(self._logsf(x, c))
+
+    def _logsf(self, x, c):
+        return -self._log1pcx(x, c)
 
     def _ppf(self, q, c):
-        vals = 1.0/c * (pow(1-q, -c)-1)
-        return vals
+        #vals = (np.power(1 - q, -c) - 1) / c
+        #return vals
+        return -boxcox(1. - q, -c)
 
     def _munp(self, n, c):
         k = arange(0, n+1)
@@ -1455,6 +1461,12 @@ class genpareto_gen(rv_continuous):
         else:
             self.b = -1.0 / c
             return rv_continuous._entropy(self, c)
+
+    def _log1pcx(self, x, c):
+        # log(1+c*x)/c incl c\to 0 limit
+        return _lazywhere(c != 0, (x, c),
+            lambda x, c: np.log1p(c*x) / c,
+            x)
 genpareto = genpareto_gen(a=0.0, name='genpareto')
 
 
