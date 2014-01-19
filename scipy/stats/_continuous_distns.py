@@ -1466,7 +1466,7 @@ class genpareto_gen(rv_continuous):
 
     def _log1pcx(self, x, c):
         # log(1+c*x)/c incl c\to 0 limit
-        return _lazywhere(c != 0, (x, c),
+        return _lazywhere((x==x) & (c != 0), (x, c),
             lambda x, c: np.log1p(c*x) / c,
             x)
 genpareto = genpareto_gen(a=0.0, name='genpareto')
