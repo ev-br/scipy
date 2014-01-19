@@ -1446,20 +1446,22 @@ class genpareto_gen(rv_continuous):
         return -self._log1pcx(x, c)
 
     def _ppf(self, q, c):
-        #vals = (np.power(1 - q, -c) - 1) / c
-        #return vals
         return -boxcox(1. - q, -c)
 
     def _munp(self, n, c):
-        k = arange(0, n+1)
-        val = (-1.0/c)**n * sum(comb(n, k)*(-1)**k / (1.0-c*k), axis=0)
-        return where(c*n < 1, val, inf)
+        # TODO: vectorize
+        if c != 0:
+            k = arange(0, n+1)
+            val = (-1.0/c)**n * sum(comb(n, k)*(-1)**k / (1.0-c*k), axis=0)
+            return where(c*n < 1, val, inf)
+        else:
+            return gam(n+1)
 
     def _entropy(self, c):
-        if (c > 0):
+        # TODO: vectorize
+        if (c >= 0):
             return 1+c
         else:
-            self.b = -1.0 / c
             return rv_continuous._entropy(self, c)
 
     def _log1pcx(self, x, c):
