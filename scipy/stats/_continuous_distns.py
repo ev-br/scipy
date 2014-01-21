@@ -11,7 +11,7 @@ from scipy.misc.doccer import inherit_docstring_from
 from scipy import special
 from scipy import optimize
 from scipy import integrate
-from scipy.special import (gammaln as gamln, gamma as gam, boxcox)
+from scipy.special import (gammaln as gamln, gamma as gam, boxcox, boxcox1p)
 
 from numpy import (where, arange, putmask, ravel, sum, shape,
                    log, sqrt, exp, arctanh, tan, sin, arcsin, arctan,
@@ -1451,7 +1451,10 @@ class genpareto_gen(rv_continuous):
         return -self._log1pcx(x, c)
 
     def _ppf(self, q, c):
-        return -boxcox(1. - q, -c)
+        return -boxcox1p(-q, -c)
+
+    def _isf(self, q, c):
+        return -boxcox(q, -c)
 
     def _munp(self, n, c):
         # TODO: vectorize
