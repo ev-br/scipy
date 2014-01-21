@@ -1457,7 +1457,6 @@ class genpareto_gen(rv_continuous):
         return -boxcox(q, -c)
 
     def _munp(self, n, c):
-        # TODO: vectorize
         if c != 0:
             k = arange(0, n+1)
             val = (-1.0/c)**n * sum(comb(n, k)*(-1)**k / (1.0-c*k), axis=0)
@@ -1466,11 +1465,7 @@ class genpareto_gen(rv_continuous):
             return gam(n+1)
 
     def _entropy(self, c):
-        # TODO: vectorize
-        if (c >= 0):
-            return 1+c
-        else:
-            return rv_continuous._entropy(self, c)
+        return 1. + c
 
     def _log1pcx(self, x, c):
         # log(1+c*x)/c incl c\to 0 limit
