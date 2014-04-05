@@ -9,44 +9,42 @@ __all__ = ["BSpline"]
 class BSpline(object):
     r"""Univariate spline in the B-spline basis.
 
-        S = sum(c_j * B_{j, k; t} for j in range(N))
+    .. math::
 
-    where ``B_{j, k; t}`` are the B-spline basis functions of the order `k`
+        S(x) = \sum_{j=0}^{n-1} c_j  B_{j, k; t}(x)
+
+    where :math:`B_{j, k; t}` are B-spline basis functions of the order `k`
     and knots `t`.
 
     Parameters
     ----------
     t : ndarray, shape (n+k+1,)
         knots
-    c : ndarray, shape (n, ...)
+    c : ndarray, shape (>=n, ...)
         spline coefficients
     k : int
         B-spline order
     extrapolate : bool, optional
-        whether to extrapolate based on the first and last intervals
-        or return nans. Default is `False`.
+        whether to extrapolated beyond the basic interval, ``t[k] .. t[n]``, 
+        or return nans. Default is False.
 
     Methods
     -------
     __call__
     basis_element
-    from_fitpack_tck
-    get_fitpack_tck
-    knots
 
     Notes
     -----
-
     B-spline basis elements are defined via
 
     .. math::
 
-        s(x) = \sum_{j=0}^N c_{j} B^k_{j}(x)
+        S(x) = \sum_{j=0}^{n-1} c_{j} B_{j, k; t}(x)
         \\
-        B^0_i(x) = 1, \textrm{if $t_i \le x < t_{i+1}$, otherwise $0$,}
+        B_{i, 0}(x) = 1, \textrm{if $t_i \le x < t_{i+1}$, otherwise $0$,}
         \\
-        B^k_i(x) = \frac{x - t_i}{t_{i+k} - t_i} B^{k-1}_i(x)
-                 + \frac{t_{i+k+1} - x}{t_{i+k+1} - t_{i+1}} B^{k-1}_{i+1}(x)
+        B_{i, k}(x) = \frac{x - t_i}{t_{i+k} - t_i} B_{i, k-1}(x)
+                 + \frac{t_{i+k+1} - x}{t_{i+k+1} - t_{i+1}} B_{i+1, k-1}(x)
 
     Or, in terms of Python code:
 
@@ -66,33 +64,35 @@ class BSpline(object):
         return c1 + c2
 
     def bspline(x, t, c, k):
-        assert len(t) == len(c) + k + 1
-        return sum(ci * B(x, k, i, t) for (i, ci) in enumerate(c))
+        n = len(t) - (k+1)
+        assert (n >= k+1) and (len(c) >= n)
+        return sum(c[i] * B(x, k, i, t) for i in range(n))
 
     Note that this is an inefficient (if straightforward) way to
     evaluate B-splines --- this spline class does it in a more
-    efficient way:
+    efficient way.
 
-    >>> spl = BSpline(t=[0, 1, 2, 3, 4], c=[2, 3], k=2)
+    >>> spl = BSpline(t=[0, 1, 2, 3, 4, 5], c=[2, 3], k=2)
     >>> spl(2.1)
     array(2.58)
-    >>> bspline(2.1, spl.knots, spl.c, spl.k)
+    >>> bspline(2.1, spl.t, spl.c, spl.k)
     2.58
 
-    Implementation details
-    ----------------------
-    To simplify the implementation, knots are augmented so that an instance 
-    attribute `t` holds both internal knots (accessible via `knots` 
-    attribute), and `2k` 'boundary' knots:
-
-    >>> spl = BSpline(t=[0, 1, 2, 3, 4], c=[2, 3], k=2)
-    >>> assert_equal(spl.knots, [0, 1, 2, 3, 4])
-    >>> assert_equal(len(spl.t), len(spl.knots) + 2*spl.k)
+    ***Implementation details***
+    * At least ``k+1`` coefficients are required for a spline of degree `k`,
+      so that ``n >= k+1``. Additional coefficients, ``c[j]`` with
+      ``j > n``, are ignored.
+    * B-spline basis elements of degree `k` form a partition of unity on the 
+    __base interval__, ``t[k] <= x <= t[n] ``. The behavior for ``x > t[n]``
+    and ``x < t[k]`` is controlled by the `extrapolate` parameter.
+    * The base interval is closed, so that the spline is right-continuous
+    at ``x == t[n]``.
 
     References
     ----------
-    [1]_ Tom Lyche and Knut Morken, Spline Methods,
+    .. [1]_ Tom Lyche and Knut Morken, Spline methods,
         http://www.uio.no/studier/emner/matnat/ifi/INF-MAT5340/v05/undervisningsmateriale/ 
+    .. [2]_ Carl de Boor, A practical guide to splines, Springer, 2001.
 
     """
     def __init__(self, t, c, k, extrapolate=False):
