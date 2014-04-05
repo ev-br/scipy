@@ -25,8 +25,8 @@ class BSpline(object):
     k : int
         B-spline order
     extrapolate : bool, optional
-        whether to extrapolated beyond the basic interval, ``t[k] .. t[n]``, 
-        or return nans. Default is False.
+        whether to extrapolate beyond the basic interval, ``t[k] .. t[n]``, 
+        or to return nans. Default is False.
 
     Methods
     -------
@@ -100,34 +100,36 @@ class BSpline(object):
 
         self.k = int(k)
         self.c = np.asarray(c)
-        self.t = np.asarray(t, dtype=np.float64)
+        self.t = np.ascontiguousarray(t, dtype=np.float64)
         self.extrapolate = bool(extrapolate)
+
+        n = self.t.shape[0] - self.k - 1
 
         if k < 0:
             raise ValueError("Spline order cannot be negative.")
+        if int(k) != k:
+            raise ValueError("Spline order must be integer.")
         if self.t.ndim != 1:
             raise ValueError("Knot vector must be one-dimensional.")
-        if self.t.size < 2:
-            raise ValueError("At least two knots are required.")
+        if n < self.k + 1:
+            raise ValueError("Need at least %d knots for degree %d" %
+                    (2*k+2, k))
         if (np.diff(self.t) < 0).any():
             raise ValueError("Knots must be in a non-decreasing order.")
+        if len(np.unique(self.t[k:n+1])) < 2:
+            raise ValueError("Need at least two internal knots.")
         if not np.isfinite(self.t).all():
             raise ValueError("Knots should not have nans or infs.")
         if self.c.ndim < 1:
             raise ValueError("Coefficients must be at least 1-dimensional.")
-        if self.t.shape[0] != self.c.shape[0] + self.k + 1:
+        if self.c.shape[0] < n:
             raise ValueError("Knots, coefficients and degree are inconsistent.")
-
-        # augment the knots
-        self.t = np.r_[(t[0]-1,)*self.k, self.t, (t[-1]+1,)*self.k]
-        self.t = np.ascontiguousarray(self.t, dtype=np.float64)
 
         dt = self._get_dtype(self.c.dtype)
         self.c = np.ascontiguousarray(self.c, dtype=dt)
 
     def _get_dtype(self, dtype):
-        if np.issubdtype(dtype, np.complexfloating) \
-               or np.issubdtype(self.c.dtype, np.complexfloating):
+        if np.issubdtype(dtype, np.complexfloating):
             return np.complex_
         else:
             return np.float_
@@ -137,6 +139,8 @@ class BSpline(object):
         """Return a B-spline basis element ``B(x|t[0], ..., t[len(t)+2])``.
 
         Is equivalent to ``BSpline(t, c=[1.], k=len(t)-2)``.
+
+        # FIXME
 
         """
         t = np.asarray(t)
@@ -189,53 +193,4 @@ class BSpline(object):
         if not self.c.flags.c_contiguous:
             self.c = self.c.copy()
 
-    def get_fitpack_tck(self):
-        """Return (tck) compatible with fitpack's `splev`.
 
-        Example
-        -------
-        >>> xx = np.linspace(0, 4, 10)
-        >>> b = BSpline(t=[0, 1, 2, 3, 4], c=[2., 3.], k=2)
-        >>> np.allclose(b(xx), splev(xx, b.get_fitpack_tck()))
-        True
-
-        """
-        # `splev` (more specifically, splev.f) expects
-        # len(t) == len(c), and starts using coefficients from the first one
-        # Hence:
-        # 1) append k+1 zeros to c
-        # 2) augment the result with k zeros from left and k from right
-        #    to match the length of self.t
-        # Ref: http://www.netlib.org/dierckx/
-        assert self.c.ndim == 1
-        cc = np.r_[(0.,)*self.k, self.c, (0.,)*(2*self.k+1)]
-        return self.t, cc, self.k
-
-    @classmethod
-    def from_fitpack_tck(cls, tck, extrapolate=False):
-        """Construct a BSpline from fitpack-style tck.
-
-        Example
-        -------
-        >>> x, y = np.random.random((2, 30))
-        >>> x.sort()
-        >>> tck = splrep(x, y)
-        >>> b = BSpline.from_fitpack_tck(tck)
-        >>> xx = np.linspace(-0.5, 0.5, 100)
-        >>> np.allclose(b(xx, extrapolate=True), splev(xx, tck))
-        True
-
-        """
-        t, c, k = tck
-        return cls(t=np.r_[t, (t[-1],)*(k+1)], c=c, k=k, extrapolate=extrapolate)
-
-    @property
-    def knots(self):
-        """A (read-only) getter for the internal knots.
-
-        >>> b = BSpline.basis_element(t=[0, 1, 1], k=1)
-        >>> assert_equal(b.knots, [0, 1, 1])
-        True
-
-        """
-        return self.t[self.k:-self.k]
