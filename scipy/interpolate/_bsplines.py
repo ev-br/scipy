@@ -1,7 +1,7 @@
 from __future__ import division, print_function, absolute_import
 
 import numpy as np
-from . import _ppoly
+from . import _bspl
 
 __all__ = ["BSpline"]
 
@@ -179,7 +179,7 @@ class BSpline(object):
         return out.reshape(x_shape + self.c.shape[1:])
 
     def _evaluate(self, xp, nu, extrapolate, out):
-        _ppoly.evaluate_spline(self.t, self.c.reshape(self.c.shape[0], -1),
+        _bspl.evaluate_spline(self.t, self.c.reshape(self.c.shape[0], -1),
                 self.k, xp, nu, extrapolate, out)
 
     def _ensure_c_contiguous(self):
