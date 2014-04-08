@@ -25,8 +25,8 @@ class BSpline(object):
     k : int
         B-spline order
     extrapolate : bool, optional
-        whether to extrapolate beyond the basic interval, ``t[k] .. t[n]``, 
-        or to return nans. Default is False.
+        whether to extrapolate beyond the basic interval, ``t[k] .. t[n]``,
+        or to return nans. Default is True.
 
     Methods
     -------
@@ -82,7 +82,7 @@ class BSpline(object):
     * At least ``k+1`` coefficients are required for a spline of degree `k`,
       so that ``n >= k+1``. Additional coefficients, ``c[j]`` with
       ``j > n``, are ignored.
-    * B-spline basis elements of degree `k` form a partition of unity on the 
+    * B-spline basis elements of degree `k` form a partition of unity on the
     __base interval__, ``t[k] <= x <= t[n] ``. The behavior for ``x > t[n]``
     and ``x < t[k]`` is controlled by the `extrapolate` parameter.
     * The base interval is closed, so that the spline is right-continuous
@@ -95,7 +95,7 @@ class BSpline(object):
     .. [2]_ Carl de Boor, A practical guide to splines, Springer, 2001.
 
     """
-    def __init__(self, t, c, k, extrapolate=False):
+    def __init__(self, t, c, k, extrapolate=True):
         super(BSpline, self).__init__()
 
         self.k = int(k)
@@ -135,16 +135,14 @@ class BSpline(object):
             return np.float_
 
     @classmethod
-    def basis_element(cls, t, extrapolate=False):
-        """Return a B-spline basis element ``B(x|t[0], ..., t[len(t)+2])``.
-
-        Is equivalent to ``BSpline(t, c=[1.], k=len(t)-2)``.
-
-        # FIXME
-
+    def basis_element(cls, t, extrapolate=True):
+        """Return a B-spline basis element ``B(x | t[0], ..., t[k+1])``.
         """
-        t = np.asarray(t)
-        return cls(t, c=[1.], k=t.size-2, extrapolate=extrapolate)
+        k = len(t) - 2
+        t = np.r_[(t[0]-1,) * k, t, (t[-1]+1,) * k]
+        c = np.zeros_like(t)
+        c[k] = 1.
+        return cls(t, c, k, extrapolate)
 
     def __call__(self, x, nu=0, extrapolate=None):
         """
@@ -192,5 +190,3 @@ class BSpline(object):
             self.x = self.x.copy()
         if not self.c.flags.c_contiguous:
             self.c = self.c.copy()
-
-

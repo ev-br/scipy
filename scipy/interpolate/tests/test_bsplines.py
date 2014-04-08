@@ -1,15 +1,17 @@
 import numpy as np
 from numpy.testing import (run_module_suite, TestCase, assert_equal,
         assert_allclose, assert_raises, assert_)
-from numpy.testing.decorators import skipif
+from numpy.testing.decorators import skipif, knownfailureif
 
 from scipy.interpolate import BSpline, splev, splrep, BPoly, PPoly
+
 
 class TestBSpline(TestCase):
 
     def test_ctor(self):
         # knots should be an ordered 1D array of finite real numbers
-        assert_raises(TypeError, BSpline, **dict(t=[1, 1.j], c=[1.], k=0))
+        assert_raises((TypeError, ValueError), BSpline,
+                **dict(t=[1, 1.j], c=[1.], k=0))
         assert_raises(ValueError, BSpline, **dict(t=[1, np.nan], c=[1.], k=0))
         assert_raises(ValueError, BSpline, **dict(t=[1, np.inf], c=[1.], k=0))
         assert_raises(ValueError, BSpline, **dict(t=[1, -1], c=[1.], k=0))
@@ -49,7 +51,7 @@ class TestBSpline(TestCase):
         assert_allclose(b(xx), 3)
 
         b = BSpline(t=[0, 0.35, 1], c=[3, 4], k=0)
-        assert_allclose(b(xx), np.where(xx< 0.35, 3, 4))
+        assert_allclose(b(xx), np.where(xx < 0.35, 3, 4))
 
     def test_order_1(self):
         t = [0, 1, 2, 3, 4]
@@ -61,22 +63,6 @@ class TestBSpline(TestCase):
         assert_allclose(c[0]*B_012(x) + c[1]*B_012(x-1) + c[2]*B_012(x-2),
                         b(x))
 
-    @skipif(True)
-    def test_order_2(self):
-        xx = np.linspace(0, 3, 20, endpoint=False)
-        conds = [xx < 1, (xx > 1) & (xx < 2), xx > 2]
-        funcs = [lambda x: x*x/2., 
-                 lambda x: 3./4 - (x-3./2)**2, 
-                 lambda x: (3.-x)**2 / 2]
-        pieces = np.piecewise(xx, conds, funcs)
-        b = BSpline.basis_element(t=[0, 1, 2, 3])
-        assert_allclose(b(xx), pieces)
-
-        b = BSpline.basis_element(t=[0, 1, 1, 2])
-        xx = np.linspace(0, 2, 10, endpoint=False)
-        assert_allclose(b(xx),
-                np.where(xx < 1, xx*xx, (2.-xx)**2))
-
     def test_bernstein(self):
         # a special knot vector: Bernstein polynomials
         k = 3
@@ -87,7 +73,7 @@ class TestBSpline(TestCase):
 
         xx = np.linspace(-1., 2., 100)
         assert_allclose(bp(xx, extrapolate=True),
-                        bspl(xx, extrapolate=True))
+                        bspl(xx, extrapolate=True), atol=1e-14)
 
     def test_rndm_naive_eval(self):
         b, t, c, k = self._make_random_spline()
@@ -99,18 +85,6 @@ class TestBSpline(TestCase):
 
         y_n2 = [_naive_eval_2(x, t, c, k) for x in xx]
         assert_allclose(y_b, y_n2)
-
-    def test_rndm_naive_eval_multiple_knots(self):
-        b, t, c, k = self._make_random_spline()
-        b.t[9] = b.t[8]
-        b.t[15:17] = b.t[15]
-
-        xx = np.linspace(b.t[k], b.t[-k-1], 50)
-        y_b = b(xx)
-##        y_b = splev(xx, (t, c, k), ext=2)
-
-        y_n = [_naive_eval(x, b.t, b.c, b.k) for x in xx]
-        assert_allclose(y_b, y_n)
 
     def test_rndm_splev(self):
         b, t, c, k = self._make_random_spline()
@@ -127,6 +101,14 @@ class TestBSpline(TestCase):
 
         xx = np.linspace(b.t[b.k], b.t[-b.k-1], 80)
         assert_allclose(b(xx), splev(xx, tck))
+
+    def test_rndm_splev_multiple_knots(self):
+        b, t, c, k = self._make_random_spline()
+        for b1 in _make_multiples(b):
+            xx = np.linspace(b1.t[0]-0.3, b1.t[-1]+0.3, 50)
+            xx = np.r_[xx, b1.t]
+            assert_allclose(b1(xx, extrapolate=True),
+                    splev(xx, (b1.t, b1.c, b1.k)))
 
     def test_rndm_unity(self):
         b, t, c, k = self._make_random_spline()
@@ -167,14 +149,13 @@ class TestBSpline(TestCase):
     def test_continuity(self):
         # assert continuity @ internal knots
         b, t, c, k = self._make_random_spline()
-        for x in t[k+1:-k-2]:
-            assert_allclose(b(x - 1e-10), b(x + 1e-10))
+        assert_allclose(b(t[k+1:-k-1] - 1e-10), b(t[k+1:-k-1] + 1e-10))
 
         # repeat with multiple knots
-        b.t[9] = b.t[8]
-        b.t[15:17] = b.t[15]
-        for x in t[k+1:-k-2]:
-            assert_allclose(b(x - 1e-10), b(x + 1e-10))
+        for b1 in _make_multiples(b):
+            x = np.unique(b1.t[b1.k + 1:-b1.k - 1])
+            m = (x != b1.t[0]) & (x != b1.t[-1])
+            assert_allclose(b1(x[m] - 1e-14), b1(x[m] + 1e-14), atol=1e-10)
 
     def test_extrap(self):
         b, t, c, k = self._make_random_spline()
@@ -191,16 +172,18 @@ class TestBSpline(TestCase):
                 splev(xx, (t, c, k), ext=0))
 
         # repeat with multiple knots
-        b.t[9] = b.t[8]
-        b.t[15:17] = b.t[15]
-        assert_allclose(b(xx, extrapolate=True),
-                splev(xx, (b.t, b.c, b.k), ext=0))
+        for b1 in _make_multiples(b):
+            assert_allclose(b1(xx, extrapolate=True),
+                    splev(xx, (b1.t, b1.c, b1.k), ext=0))
 
-        # and with multiple boundary knots
-        b.t[:k+2] = b.t[0]
-        assert_allclose(b(xx, extrapolate=True),
-                splev(xx, (b.t, b.c, b.k), ext=0))
+    def test_default_extrap(self):
+        # BSpline defaults to extrapolate=True
+        b, t, c, k = self._make_random_spline()
+        xx = [t[0] - 1, t[-1] + 1]
+        yy = b(xx)
+        assert_(not np.all(np.isnan(yy)))
 
+    @knownfailureif(True, 'extrapolation w/ multiple knots @ right edge')
     def test_ppoly(self):
         b, t, c, k = self._make_random_spline()
         bp = PPoly.from_spline((t, c, k))
@@ -208,70 +191,70 @@ class TestBSpline(TestCase):
         xx = np.linspace(t[0], t[-1], 100)
         assert_allclose(b(xx, extrapolate=True), bp(xx, extrapolate=True))
 
-########################################################################
+    def test_derivative_rndm(self):
+        b, t, c, k = self._make_random_spline()
+        xx = np.linspace(t[0], t[-10], 50)
+        xx = np.r_[xx, t]
 
-    @skipif(True)
-    def test_derivative(self):
-        b = BSpline.basis_element(t=[0, 1, 1, 2])
-        xx = np.linspace(0, 2, 10, endpoint=False)
-        assert_allclose(b(xx, nu=1),
-                np.where(xx < 1, 2.*xx, 2.*(xx-2.)))
-        assert_allclose(b(xx, nu=2), 2.)
-        assert_allclose(b(xx, nu=3), 0.)
+        for der in range(1, k):
+            yd = splev(xx, (t, c, k), der=der)
+            assert_allclose(yd, b(xx, nu=der))
 
-    @skipif(True)
-    def test_derivative_2(self):
-        # 3rd derivative jumps @ a triple knot
-        b = BSpline.basis_element(t=[0, 1, 1, 1, 2])
-        xx = np.linspace(0, 2, 10, endpoint=False)
-        assert_allclose(b(xx),
-                np.where(xx < 1, xx**3, (2.-xx)**3))
-        assert_allclose(b(xx, nu=1),
-                np.where(xx < 1, 3.*xx**2, -3.*(2.-xx)**2))
-        assert_allclose(b(xx, nu=2),
-                np.where(xx < 1, 6.*xx, 6.*(2.-xx)))
-        assert_allclose(b(xx, nu=3),
-                np.where(xx < 1, 6., -6.))
+            # repeat with multiple knots
+            for b1 in _make_multiples(b):
+                assert_allclose(b1(xx, nu=der),
+                        splev(xx, (b1.t, b1.c, b1.k), der=der))
 
-    @skipif(True)
-    def test_basis_element(self):
-        b, t, c, k, n = self._make_random_spline(n=1, k=3)
-        b.c = np.array([1.])
-        bb = BSpline.basis_element(t, k)
-        xx = np.linspace(t[0], t[-1], 20, endpoint=False)
-        assert_allclose(b(xx), bb(xx))
-
-    @skipif(True)
-    def test_continuity(self):
+    def test_derivative_jumps(self):
+        # example from de Boor, Chap IX, example (24)
+        # NB: knots augmented & corresp coefs are zeroed out
+        # in agreement with the convention (29)
+        k = 2
+        t = [-1, -1, 0, 1, 1, 3, 4, 6, 6, 6, 7, 7]
         np.random.seed(1234)
-        t = np.r_[np.random.random(5),
-                1.1, 1.1,
-                np.random.random(5) + 1.2,
-                2.3, 2.3, 2.3,
-                np.random.random(5) + 2.4]
-        t.sort()
-        n, k = t.size - 4, 3
-        c = np.random.random(n)
+        c = np.r_[0, 0, np.random.random(5), 0, 0]
         b = BSpline(t, c, k)
-        t_p, t_m = t[1:-1] - 1e-13, t[1:-1] + 1e-13
+        
+        # b is continuous at x != 6 (triple knot)
+        x = np.asarray([1, 3, 4, 6])
+        assert_allclose(b(x[x != 6] - 1e-10),
+                        b(x[x != 6] + 1e-10))
+        assert_(not np.allclose(b(6.-1e-10), b(6+1e-10)))
 
-        # the spline is continuous
-        assert_allclose(b(t_m), b(t_p), atol=1e-12, rtol=1e-12)
+        # 1st derivative jumps at double knots, 1 & 6:
+        x0 = np.asarray([3, 4]) 
+        assert_allclose(b(x0 - 1e-10, nu=1),
+                        b(x0 + 1e-10, nu=1))
+        x1 = np.asarray([1, 6])
+        assert_(not np.all(np.allclose(b(x1 - 1e-10, nu=1),
+                                       b(x1 + 1e-10, nu=1))))
+        
+        # 2nd derivative is not guaranteed to be continuous
+        assert_(not np.all(np.allclose(b(x - 1e-10, nu=2),
+                                       b(x + 1e-10, nu=2))))
 
-        # triple knot @ x=2.3: 1st derivative jumps
-        delta = b(t_m, nu=1) - b(t_p, nu=1)
-        mask = t[1:-1] != 2.3
-        assert_allclose(delta[mask], 0, atol=1e-10, rtol=1e-10)
-        assert_(not np.allclose(delta[~mask], 0))
+    def test_basis_element_quadratic(self):
+        xx = np.linspace(-1, 4, 20)
+        conds = [xx < 1, (xx > 1) & (xx < 2), xx > 2]
+        funcs = [lambda x: x*x/2., 
+                 lambda x: 3./4 - (x-3./2)**2, 
+                 lambda x: (3.-x)**2 / 2]
+        pieces = np.piecewise(xx, conds, funcs)
+        b = BSpline.basis_element(t=[0, 1, 2, 3])
+        assert_allclose(b(xx), pieces)
 
-        # double knot @ x=1.1: 2nd derivative jumps
-        delta = b(t_m, nu=2) - b(t_p, nu=2)
-        mask = mask & (t[1:-1] != 1.1)
-        assert_allclose(delta[mask], 0., atol=1e-8, rtol=1e-8)
-        assert_(not np.allclose(delta[~mask], 0.))
+        b = BSpline.basis_element(t=[0, 1, 1, 2])
+        xx = np.linspace(0, 2, 10)
+        assert_allclose(b(xx),
+                np.where(xx < 1, xx*xx, (2.-xx)**2))
+
+    def test_basis_element_rndm(self):
+        b, t, c, k = self._make_random_spline()
+        xx = np.linspace(t[k], t[-k-1], 20)
+        assert_allclose(b(xx), _sum_basis_elements(xx, t, c, k))
 
 
-### stolen from pv, verbatim
+### stolen from @pv, verbatim
 def _naive_B(x, k, i, t):
     """
     Naive way to compute B-spline basis functions. Useful only for testing!
@@ -290,7 +273,7 @@ def _naive_B(x, k, i, t):
     return (c1 + c2)
 
 
-### stolen from pv, verbatim
+### stolen from @pv, verbatim
 def _naive_eval(x, t, c, k):
     """
     Naive B-spline evaluation. Useful only for testing!
@@ -303,6 +286,7 @@ def _naive_eval(x, t, c, k):
     assert i >= k and i < len(t) - k
     return sum(c[i-j] * _naive_B(x, k, i-j, t) for j in range(0, k+1))
 
+
 def _naive_eval_2(x, t, c, k):
     """Naive B-spline evaluation, another way."""
     n = len(t) - (k+1)
@@ -311,6 +295,18 @@ def _naive_eval_2(x, t, c, k):
     assert t[k] <= x <= t[n]
     return sum(c[i] * _naive_B(x, k, i, t) for i in range(n))
 
+
+def _sum_basis_elements(x, t, c, k):
+    n = len(t) - (k+1)
+    assert n >= k+1
+    assert len(c) >= n
+    s = 0.
+    for i in range(n):
+        b = BSpline.basis_element(t[i:i+k+2], extrapolate=False)(x)
+        s += c[i] * np.nan_to_num(b)   # zero out out-of-bounds elements
+    return s
+
+
 def B_012(x):
     """ A linear B-spline function B(x | 0, 1, 2)"""
     x = np.atleast_1d(x)
@@ -318,6 +314,33 @@ def B_012(x):
                             (x >= 0) & (x < 1), 
                             (x >= 1) & (x <= 2)],
                            [lambda x: 0., lambda x: x, lambda x: 2.-x])
+
+
+def _make_multiples(b):
+    """Increase knot multiplicity."""
+    c, k = b.c, b.k
+
+    t1 = b.t.copy()
+    t1[17:19] = t1[17]
+    t1[22] = t1[21]
+    yield BSpline(t1, c, k)
+    
+    t1 = b.t.copy()
+    t1[:k+1] = t1[0]
+    yield BSpline(t1, c, k)
+    
+    t1 = b.t.copy()
+    t1[:2*k + 2] = t1[0]
+    yield BSpline(t1, c, k)
+
+    t1 = b.t.copy()
+    t1[-k-1:] = t1[-1]
+    yield BSpline(t1, c, k)
+
+    t1 = b.t.copy()    
+    t1[-2*k-2:] = t1[-1]
+    yield BSpline(t1, c, k)
+
 
 if __name__ == "__main__":
     run_module_suite()

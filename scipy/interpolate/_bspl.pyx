@@ -57,8 +57,7 @@ def evaluate_spline(double[::1] t,
 
     """
 
-    cdef int ip, jp, n
-    cdef int a, amin, amax, km
+    cdef int ip, jp, n, a
     cdef int i, interval
     cdef double xval
 
@@ -81,32 +80,25 @@ def evaluate_spline(double[::1] t,
         xval = xp[ip]
 
         # Find correct interval
-        i = find_interval(t[k:n+2*k+1], xval, interval, extrapolate)
-        # multiple knots at the edges confuse find_interval w/ extrapolate=True
-        if xval >= t[n+2*k]:
-            while t[i+k+1] == t[i+k]:
-                i -= 1
-        elif xval <= t[k]:
-            while t[i+k+1] == t[i+k]:
-                i += 1
+        i = find_interval(t[k:t.shape[0]-k], xval, interval, extrapolate)
+
         if i < 0:
             # xval was nan etc
             for jp in range(c.shape[1]):
-                out[ip, jp] = 0.
+                out[ip, jp] = nan
             continue
         else:
             interval = i + k
 
-        # Evaluate the local polynomial(s)
+        # Evaluate (k+1) b-splines which are non-zero on the interval
+        # returns work = B_{m-k},..., B_{m}, 0
+        evaluate_bspl(t, k, xval, interval, der, work)
+
+        # Form linear combinations
         for jp in range(c.shape[1]):
-            # returns work = B_{m-k},..., B_{m}, 0
-            evaluate_bspl(t, k, xval, interval, der, work)
             out[ip, jp] = 0.
-            km = 2*k - interval
-            amin = max(0, km)
-            amax = min(k + 1, n + km) # inclusive
-            for a in range(amin, amax):
-                out[ip, jp] += c[a - km, jp] * work[a]
+            for a in range(k+1):
+                out[ip, jp] += c[interval + a - k, jp] * work[a]
 
 
 @cython.wraparound(False)
