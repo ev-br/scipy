@@ -91,7 +91,7 @@ class BSpline(object):
     References
     ----------
     .. [1]_ Tom Lyche and Knut Morken, Spline methods,
-        http://www.uio.no/studier/emner/matnat/ifi/INF-MAT5340/v05/undervisningsmateriale/ 
+        http://www.uio.no/studier/emner/matnat/ifi/INF-MAT5340/v05/undervisningsmateriale/
     .. [2]_ Carl de Boor, A practical guide to splines, Springer, 2001.
 
     """
@@ -178,7 +178,7 @@ class BSpline(object):
 
     def _evaluate(self, xp, nu, extrapolate, out):
         _bspl.evaluate_spline(self.t, self.c.reshape(self.c.shape[0], -1),
-                self.k, xp, nu, extrapolate, out)
+                self.k, xp, nu, extrapolate, out, out.dtype)
 
     def _ensure_c_contiguous(self):
         """

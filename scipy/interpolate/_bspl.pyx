@@ -30,12 +30,13 @@ ctypedef fused double_or_complex:
 @cython.boundscheck(False)
 @cython.cdivision(True)
 def evaluate_spline(double[::1] t,
-             double[:,::1] c,
+             double_or_complex[:,::1] c,
              int k,
              double[::1] xp,
              int der,
              int extrapolate,
-             double[:,::1] out):
+             double_or_complex[:,::1] out,
+             cnp.dtype dt):
     """
     Evaluate a spline in the B-spline basis.
 
@@ -72,7 +73,7 @@ def evaluate_spline(double[::1] t,
         raise NotImplementedError("Cannot do derivative order %s." % der)
 
     n = c.shape[0]
-    cdef double[::1] work = np.empty(k+2, dtype=np.float_)
+    cdef double_or_complex[::1] work = np.empty(k+2, dtype=dt)
 
     # evaluate
     interval = 0
@@ -98,7 +99,7 @@ def evaluate_spline(double[::1] t,
         for jp in range(c.shape[1]):
             out[ip, jp] = 0.
             for a in range(k+1):
-                out[ip, jp] += c[interval + a - k, jp] * work[a]
+                out[ip, jp] = out[ip, jp] + c[interval + a - k, jp] * work[a]
 
 
 @cython.wraparound(False)
@@ -109,7 +110,7 @@ cdef void evaluate_bspl(double[::1] t,
                        double xval,
                        int m,
                        int nu, 
-                       double [::1] bbb) nogil:
+                       double_or_complex [::1] bbb) nogil:
     """ Evaluate k+1 B-splines which are non-zero on interval `m`.
 
     On exit, the `bbb` array contains `[B_{m-k}(x), ..., B_{m}(x), 0]`
@@ -130,7 +131,7 @@ cdef void evaluate_bspl(double[::1] t,
     """
     cdef int i, j, deg
     cdef double w0, w1
-    cdef double queue[2]
+    cdef double_or_complex queue[2]
 
     for i in range(k+2):
         bbb[i] = 0.

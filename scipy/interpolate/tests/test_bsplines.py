@@ -253,6 +253,18 @@ class TestBSpline(TestCase):
         xx = np.linspace(t[k], t[-k-1], 20)
         assert_allclose(b(xx), _sum_basis_elements(xx, t, c, k))
 
+    def test_cmplx(self):
+        b, t, c, k = self._make_random_spline()
+        cc = c * (1. + 3.j)
+
+        b = BSpline(t, cc, k)
+        b_re = BSpline(t, b.c.real, k)
+        b_im = BSpline(t, b.c.imag, k)
+
+        xx = np.linspace(t[k], t[-k-1], 20)
+        assert_allclose(b(xx).real, b_re(xx))
+        assert_allclose(b(xx).imag, b_im(xx))
+
 
 ### stolen from @pv, verbatim
 def _naive_B(x, k, i, t):
