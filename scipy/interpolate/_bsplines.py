@@ -1,9 +1,10 @@
 from __future__ import division, print_function, absolute_import
 
 import numpy as np
+from scipy.linalg import solve_banded, inv
 from . import _bspl
 
-__all__ = ["BSpline"]
+__all__ = ["BSpline", "make_interp_spline", "make_interp_periodic_spline"]
 
 
 class BSpline(object):
@@ -113,7 +114,7 @@ class BSpline(object):
             raise ValueError("Knot vector must be one-dimensional.")
         if n < self.k + 1:
             raise ValueError("Need at least %d knots for degree %d" %
-                    (2*k+2, k))
+                    (2*k + 2, k))
         if (np.diff(self.t) < 0).any():
             raise ValueError("Knots must be in a non-decreasing order.")
         if len(np.unique(self.t[k:n+1])) < 2:
@@ -178,7 +179,7 @@ class BSpline(object):
 
     def _evaluate(self, xp, nu, extrapolate, out):
         _bspl.evaluate_spline(self.t, self.c.reshape(self.c.shape[0], -1),
-                self.k, xp, nu, extrapolate, out, out.dtype)
+                self.k, xp, nu, extrapolate, out)
 
     def _ensure_c_contiguous(self):
         """
@@ -190,3 +191,214 @@ class BSpline(object):
             self.x = self.x.copy()
         if not self.c.flags.c_contiguous:
             self.c = self.c.copy()
+
+
+#################################
+#  Interpolating spline helpers #
+#################################
+
+def _check_xytk(x, y, t, k):
+    if x.ndim != 1 or np.any(x[1:] - x[:-1] <= 0):
+        raise ValueError("Expect x to be a 1-D sorted array_like.")
+    if x.shape[0] < k+1:
+        raise("Need more x points.")
+    if k <= 0:
+        raise ValueError("Expect positive k.")
+    if t.ndim != 1 or np.any(t[1:] - t[:-1] < 0):
+        raise ValueError("Expect t to be a 1-D sorted array_like.")
+    if x.size != y.shape[0]:
+        raise ValueError('x & y are incompatible.')
+    if t.size < x.size + k + 1:
+        raise ValueError('Got %d knots, need at least %d.' % (t.size, x.size + k + 1))
+    if np.any((x < t[k]) | (x > t[-k])):
+        raise ValueError('Out of bounds w/ x = %s.' % x)
+
+
+def make_interp_spline(x, y, t, k, deriv_l=None, deriv_r=None,
+                       check_finite=True):
+    """Compute the (coefficients of) interpolating B-spline.
+
+    Parameters
+    ----------
+    x : ndarray, shape (n,)
+        Abscissas.
+    y : ndarray, shape (n, ...)
+        Ordinatas.
+    t : ndarray, shape (nt + k + 1,)
+        Knots.
+        The number of knots need to agree with the number of datapoints and
+        the number of derivatives at the edges. Specifically, ``nt - n`` must
+        equal ``len(deriv_l) + len(deriv_r)``.
+    k : int
+        B-spline degree
+    deriv_l : iterable of pairs (int, float) or None
+        Derivatives known at ``x[0]`` (order, value)
+        Default is None.
+    deriv_r : iterable of pairs (int, float) or None
+        Derivatives known at ``x[-1]``.
+        Default is None.
+    check_finite : bool
+        This forwards directly to the lin. algebra routines [solve_banded].
+        Default is True.
+
+    Returns
+    -------
+    c : ndarray, shape(n, ...)
+        The coefficients of the B-spline of degree `k` with knots `t`, which
+        interpolates `x` and `y`.
+
+    Examples
+    --------
+    >>> c = make_interp_spline(x, y, t, k)
+    >>> b = BSpline(t, c, k)
+    >>> assert b(x) == y
+
+    """
+    x, y, t = map(np.asarray, (x, y, t))
+    k = int(k)
+
+    _check_xytk(x, y, t, k)
+
+    # Here : deriv_l, r = [(nu, value), ...]
+    if deriv_l is not None:
+        deriv_l_ords, deriv_l_vals = zip(*deriv_l)
+    else:
+        deriv_l_ords, deriv_l_vals = [], []
+    deriv_l_ords, deriv_l_vals = map(np.atleast_1d, (deriv_l_ords, deriv_l_vals))
+    nleft = deriv_l_ords.shape[0]
+
+    if deriv_r is not None:
+        deriv_r_ords, deriv_r_vals = zip(*deriv_r)
+    else:
+        deriv_r_ords, deriv_r_vals = [], []
+    deriv_r_ords, deriv_r_vals = map(np.atleast_1d, (deriv_r_ords, deriv_r_vals))
+    nright = deriv_r_ords.shape[0]
+
+    # have `n` conditions for `nt` coefficients; need nt-n derivatives
+    n = x.size
+    nt = t.size - k - 1
+
+    if nt - n != nleft + nright:
+        raise ValueError("number of derivatives at boundaries.")
+
+    # set up the LHS: the collocation matrix + derivatives @boundaries
+    Ab, kl_ku = _bspl._colloc(x, t, k, offset=nleft)
+    if nleft > 0:
+        _bspl._handle_lhs_derivatives(t, k, x[0], Ab, kl_ku, deriv_l_ords)
+    if nright > 0:
+        _bspl._handle_lhs_derivatives(t, k, x[-1], Ab, kl_ku, deriv_r_ords,
+                                offset=nt-nright)
+
+    # RHS
+    extradim = int(np.prod(y.shape[1:]))
+    rhs = np.empty((nt, extradim))
+    if nleft > 0:
+        rhs[:nleft] = deriv_l_vals.reshape(-1, extradim)
+    rhs[nleft:nt - nright] = y.reshape(-1, extradim)
+    if nright > 0:
+        rhs[nt - nright:] = deriv_r_vals.reshape(-1, extradim)
+
+    c = solve_banded(kl_ku, Ab, rhs, overwrite_ab=True,
+                     overwrite_b=True, check_finite=check_finite)
+    return c.reshape((nt,) + y.shape[1:])
+
+
+def make_interp_periodic_spline(x, y, t, k, check_finite=True):
+    """Compute the (coefficients of) interpolating B-spline assuming
+    periodicity on the closed interval ``x[0]..x[-1]``.
+
+    Works by matching the first k-1 derivatives at x[0] and x[-1].
+
+    Parameters
+    ----------
+    x : ndarray, shape (n,)
+        Abscissas.
+    y : ndarray, shape (n, ...)
+        Ordinatas.
+    t : ndarray, shape (nt + k + 1,)
+        Knots.
+        The number of knots need to agree with the number of datapoints:
+        ``nt - n`` must be equal to `k`-1.
+    k : int
+        B-spline degree
+    check_finite : bool
+        This forwards directly to the lin. algebra routines [solve_banded].
+        Default is True.
+
+    Returns
+    -------
+    c : ndarray, shape(n, ...)
+        The coefficients of the B-spline of degree `k` with knots `t`, which
+        interpolates `x` and `y`.
+
+    Examples
+    --------
+    >>> c = make_interp_periodic_spline(x, y, t, k)
+    >>> b = BSpline(t, c, k)
+    >>> assert b(x) == y
+
+    Notes
+    -----
+
+    To enforce periodicity we require that k-1 derivatives match at x[0] and x[-1].
+
+    This leads to the *almost* banded linear system for the spline coefficients:
+    the lhs matrix has extra elements in the top right corner. To handle this, we
+    write the collocation matrix as
+
+        A + u @ v.T,
+
+    where A is banded, and use the Woodbury formula to handle the u @ v.T
+    correction (see eg NR book, Chap 2.7.3.)
+
+    Specifically, use the fact that
+
+        inv(A + u @ v.T) = inv(A) - inv(A) @ u @ inv(Z) v.T @ inv(A)
+
+    where Z = 1 + v.T @ inv(A) @ u
+
+    """
+    x, y, t = map(np.asarray, (x, y, t))
+    k = int(k)
+    _check_xytk(x, y, t, k)
+
+    # have `n` conditions for `nt` coefficients; need nt-n derivatives
+    n = x.size
+    nt = t.size - k - 1
+
+    if nt - n != k - 1:
+        raise ValueError("knots not consistent with data.")
+
+    # LHS: the collocation matrix + derivatives @edges
+    Ab, (kl, ku) = _bspl._colloc(x, t, k, offset=k-1)
+
+    # derivatives @ x[0] fit into the banded part of the matrix:
+    _bspl._handle_lhs_derivatives(t, k, x[0], Ab, (kl, ku),
+                            deriv_ords=np.arange(1, k))
+
+    # derivatives @ x[-1]: These form a Woodbury formula correction matrix `U`,
+    # while V is simply a rectangular unit matrix, whose job is to only bring
+    # the elements of `U` into proper parts of the lhs matrix:
+    # explicitly, its transpose is vT = np.eye(k+1, nt, k=nt-k-1).
+    # We don't actually allocate it since we can get the results of
+    # multiplications with vT by just slicing, see below.
+    u = np.zeros((nt, k+1), dtype=np.float_)
+    _bspl._fill_woodbury_U(t, k, x[-1], u)
+
+    # RHS
+    extradim = int(np.prod(y.shape[1:]))
+    rhs = np.empty((nt, extradim))
+    rhs[:k-1] = 0.
+    rhs[k-1:] = y.reshape(-1, extradim)
+
+    # Solve the linear system:
+    # (2.7.17) + (2.7.19)
+    z = solve_banded((kl, ku), Ab, u, check_finite=check_finite)
+    h = np.eye(k+1, dtype=np.float_) + z[-k-1:, -k-1:]  # was np.dot(vT, z)
+    h = inv(h)
+
+    yy = solve_banded((kl, ku), Ab, rhs, check_finite=check_finite)   # (2.7.20)
+    #c = yy - np.dot(z, np.dot(h, np.dot(vT, yy)))
+    c = yy - np.dot(z, np.dot(h, yy[-k-1:]))   # was np.dot(vT, yy)
+
+    return c.reshape((nt,) + y.shape[1:])

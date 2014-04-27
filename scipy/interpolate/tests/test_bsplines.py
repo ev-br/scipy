@@ -3,7 +3,9 @@ from numpy.testing import (run_module_suite, TestCase, assert_equal,
         assert_allclose, assert_raises, assert_)
 from numpy.testing.decorators import skipif, knownfailureif
 
-from scipy.interpolate import BSpline, splev, splrep, BPoly, PPoly
+from scipy.interpolate import (BSpline, splev, splrep, BPoly, PPoly,
+        make_interp_spline, make_interp_periodic_spline, _bspl)
+import scipy.linalg as sl
 
 
 class TestBSpline(TestCase):
@@ -352,6 +354,225 @@ def _make_multiples(b):
     t1 = b.t.copy()    
     t1[-2*k-2:] = t1[-1]
     yield BSpline(t1, c, k)
+
+
+class TestInterp(TestCase):
+    #
+    # Test basic ways of constructing interpolating splines.
+    #
+    xx = np.linspace(0., 2.*np.pi)
+    yy = np.sin(xx)
+
+    def test_linear(self):
+        k = 1
+        t = np.r_[self.xx[0], self.xx, self.xx[-1]]
+        c = make_interp_spline(self.xx, self.yy, t=t, k=k)
+        b = BSpline(t, c, k)
+        assert_allclose(b(self.xx), self.yy, atol=1e-14, rtol=1e-14)
+
+    def test_not_a_knot(self):
+        for k in [3, 5]:
+            t = _not_a_knot(self.xx, k)
+            c = make_interp_spline(self.xx, self.yy, t, k)
+            b = BSpline(t, c, k)
+            assert_allclose(b(self.xx), self.yy, atol=1e-14, rtol=1e-14)
+
+    def test_quadratic_deriv(self):
+        k = 2
+        der = [(1, 8.)]  # order, value: f'(x[-1]) = 8.
+        t = _augknt(self.xx, k)
+
+        # derivative @ right-hand edge
+        c = make_interp_spline(self.xx, self.yy, t, k, deriv_r=der)
+        b = BSpline(t, c, k)
+        assert_allclose(b(self.xx), self.yy, atol=1e-14, rtol=1e-14)
+        assert_allclose(b(self.xx[-1], 1), der[0][1], atol=1e-14, rtol=1e-14)
+
+        # derivative @ left-hand edge
+        c = make_interp_spline(self.xx, self.yy, t, k, deriv_l=der)
+        b = BSpline(t, c, k)
+        assert_allclose(b(self.xx), self.yy, atol=1e-14, rtol=1e-14)
+        assert_allclose(b(self.xx[0], 1), der[0][1], atol=1e-14, rtol=1e-14)
+
+    def test_cubic_deriv(self):
+        k = 3
+        t = _augknt(self.xx, k)
+
+        # first derivatives @ left & right edges:
+        der_l, der_r = [(1, 3.)], [(1, 4.)]
+        c = make_interp_spline(self.xx, self.yy, t, k,
+                deriv_l=der_l, deriv_r=der_r)
+        b = BSpline(t, c, k)
+        assert_allclose(b(self.xx), self.yy, atol=1e-14, rtol=1e-14)
+        assert_allclose([b(self.xx[0], 1), b(self.xx[-1], 1)],
+                        [der_l[0][1], der_r[0][1]], atol=1e-14, rtol=1e-14)
+
+        # 'natural' cubic spline, zero out 2nd derivatives @ the boundaries
+        der_l, der_r = [(2, 0)], [(2, 0)]
+        c = make_interp_spline(self.xx, self.yy, t, k, der_l, der_r)
+        b = BSpline(t, c, k)
+        assert_allclose(b(self.xx), self.yy, atol=1e-14, rtol=1e-14)
+
+    def test_quintic_derivs(self):
+        k, n = 5, 7
+        x = np.arange(n).astype(np.float_)
+        y = np.sin(x)
+        t = _augknt(x, k)
+        der_l = [(1, -12.), (2, 1)]
+        der_r = [(1, 8.), (2, 3.)]
+        c = make_interp_spline(x, y, t, k, der_l, der_r)
+        b = BSpline(t, c, k)
+        assert_allclose(b(x), y, atol=1e-14, rtol=1e-14)
+        assert_allclose([b(x[0], 1), b(x[0], 2)],
+                        [val for (nu, val) in der_l])
+        assert_allclose([b(x[-1], 1), b(x[-1], 2)],
+                        [val for (nu, val) in der_r])
+
+    @knownfailureif(True, 'unstable')
+    def test_cubic_deriv_unstable(self):
+        # 1st and 2nd derivative @ x[0], no derivative information @ x[-1]
+        # The problem is not that it fails [who would use this anyway],
+        # the problem is that it fails *silently*, and I've no idea
+        # how to detect this sort of instability.
+        k = 3
+        t = _augknt(self.xx, k)
+
+        der_l = [(1, 3.), (2, 4.)]
+        c = make_interp_spline(self.xx, self.yy, t, k, deriv_l=der_l)
+        b = BSpline(t, c, k)
+        assert_allclose(b(self.xx), self.yy, atol=1e-14, rtol=1e-14)
+
+    def test_knots_not_data_sites(self):
+        # Knots need not coincide with the data sites.
+        # use a quadratic spline, knots are @ data averages, 
+        # two additional constraints are zero 2nd derivs @ edges
+        k, n = 2, 8
+        t = np.r_[(self.xx[0],)*(k+1),
+                  (self.xx[1:] + self.xx[:-1]) / 2.,
+                  (self.xx[-1],)*(k+1)]
+        c = make_interp_spline(self.xx, self.yy, t, k,
+                deriv_l=[(2, 0)], deriv_r=[(2, 0)])
+        b = BSpline(t, c, k)
+
+        assert_allclose(b(self.xx), self.yy, atol=1e-14, rtol=1e-14)
+        assert_allclose([b(self.xx[0], 2), b(self.xx[-1], 2)], [0., 0.],
+                atol=1e-14)
+
+    def test_periodic(self):
+        # TODO: numerical stability does not seem too good.
+        k, n = 3, 7
+        x = np.linspace(0., 2.*np.pi, n)
+
+        y = np.sin(x) + np.cos(x)
+        t = _augknt(x, k)
+
+        c = make_interp_periodic_spline(x, y, t, k)
+        b = BSpline(t, c, k)
+        assert_allclose(b(x), y, atol=1e-13, rtol=1e-13)
+        assert_allclose([b(x[0], j) for j in range(k)],
+                        [b(x[-1], j) for j in range(k)],
+                        atol=1e-10)
+
+        # multiple rhs
+        y = np.c_[np.sin(x), np.cos(x)]
+        c = make_interp_periodic_spline(x, y, t, k)
+        b = BSpline(t, c, k)
+        assert_allclose(b(x), y, atol=1e-12, rtol=1e-12)
+        assert_allclose([b(x[0], j) for j in range(k)],
+                        [b(x[-1], j) for j in range(k)],
+                        atol=1e-9)
+
+    def test_multiple_rhs(self):
+        yy = np.c_[np.sin(self.xx), np.cos(self.xx)]
+        k = 3
+        t = _augknt(self.xx, k)
+        der_l = [(1, [1., 2.])]
+        der_r = [(1, [3., 4.])]
+
+        c = make_interp_spline(self.xx, yy, t, k, deriv_l=der_l, deriv_r=der_r)
+        b = BSpline(t, c, k)
+        assert_allclose(b(self.xx), yy, atol=1e-14, rtol=1e-14)
+        assert_allclose(b(self.xx[0], 1), der_l[0][1], atol=1e-14, rtol=1e-14)
+        assert_allclose(b(self.xx[-1], 1), der_r[0][1], atol=1e-14, rtol=1e-14)
+
+    def test_shapes(self):
+        np.random.seed(1234)
+        k, n = 3, 22
+        x = np.sort(np.random.random(size=n))
+        y = np.random.random(size=(n, 5, 6, 7))
+
+        t = _not_a_knot(x, k)
+        c = make_interp_spline(x, y, t, k)
+        assert_equal(c.shape, (n, 5, 6, 7))
+
+        # now throw in some derivatives
+        t = _augknt(x, k)
+        d_l = [(1, np.random.random((5, 6, 7)))]
+        d_r = [(1, np.random.random((5, 6, 7)))]
+        c = make_interp_spline(x, y, t, k, deriv_l=d_l, deriv_r=d_r)
+        assert_equal(c.shape, (n + k - 1, 5, 6, 7))
+
+        # periodic
+        t = _augknt(x, k)
+        c = make_interp_periodic_spline(x, y, t, k)
+        assert_equal(c.shape, (n + k - 1, 5, 6, 7))
+
+    def test_full_matrix(self):
+        np.random.seed(1234)
+        k, n = 3, 22
+        x = np.sort(np.random.random(size=n))
+        y = np.random.random(size=n)
+        t = _not_a_knot(x, k)
+
+        cb = make_interp_spline(x, y, t, k)
+        cf = make_interp_full_matr(x, y, t, k)
+
+        assert_allclose(cb, cf, atol=1e-14, rtol=1e-14)
+
+
+def _not_a_knot(x, k):
+    """Given data x, construct the knot vector w/ not-a-knot BC.
+    cf de Boor, XIII(12)."""
+    x = np.asarray(x)
+    if k % 2 != 1:
+        raise ValueError("Odd degree for now only.")
+    
+    m = (k - 1) // 2
+    t = x[m+1:-m-1]
+    t = np.r_[(x[0],)*(k+1), t, (x[-1],)*(k+1)]
+    return t
+
+
+def _augknt(x, k):
+    return np.r_[(x[0],)*(k), x, (x[-1],)*k]
+
+
+def make_interp_full_matr(x, y, t, k):
+    """Assemble an spline order k with knots t to interpolate
+    y(x) using full matrices.
+    Not-a-knot BC only.
+
+    This routine is here for testing only (even though it's functional).
+    """
+    assert x.size == y.size
+    assert t.size == x.size + k + 1
+    n = x.size
+
+    A = np.zeros((n, n), dtype=np.float_)
+    
+    for j in range(n):
+        xval = x[j]
+        if xval == t[k]:
+            left = k
+        else:
+            left = np.searchsorted(t, xval) - 1
+
+        # fill a row
+        bb = _bspl.evaluate_all_bspl(t, k, xval, left)
+        A[j, left-k:left+1] = bb
+    
+    c = sl.solve(A, y)
+    return c
 
 
 if __name__ == "__main__":
