@@ -232,7 +232,7 @@ def make_interp_spline(x, y, t, k, deriv_l=None, deriv_r=None,
     k : int
         B-spline degree
     deriv_l : iterable of pairs (int, float) or None
-        Derivatives known at ``x[0]`` (order, value)
+        Derivatives known at ``x[0]``: (order, value)
         Default is None.
     deriv_r : iterable of pairs (int, float) or None
         Derivatives known at ``x[-1]``.

@@ -520,7 +520,7 @@ class TestInterp(TestCase):
 
     def test_full_matrix(self):
         np.random.seed(1234)
-        k, n = 3, 22
+        k, n = 3, 7
         x = np.sort(np.random.random(size=n))
         y = np.random.random(size=n)
         t = _not_a_knot(x, k)
@@ -528,6 +528,15 @@ class TestInterp(TestCase):
         _, cb, _ = make_interp_spline(x, y, t, k)
         cf = make_interp_full_matr(x, y, t, k)
         assert_allclose(cb, cf, atol=1e-14, rtol=1e-14)
+
+        # periodic: TODO stability?
+        t = _augknt(x, k)
+
+        _, cb, _ = make_interp_periodic_spline(x, y, t, k)
+        cf = make_interp_per_full_matr(x, y, t, k)
+
+        #print('>>>>>>', cb - cf)
+        assert_allclose(cb, cf, atol=1e-8, rtol=1e-14)
 
 
 def _not_a_knot(x, k):
@@ -570,6 +579,62 @@ def make_interp_full_matr(x, y, t, k):
         # fill a row
         bb = _bspl.evaluate_all_bspl(t, k, xval, left)
         A[j, left-k:left+1] = bb
+    
+    c = sl.solve(A, y)
+    return c
+
+
+def make_interp_per_full_matr(x, y, t, k):
+    x, y, t = map(np.asarray, (x, y, t))
+
+    n = x.size
+    nt = t.size - k - 1
+
+    # have `n` conditions for `nt` coefficients; need nt-n derivatives 
+    assert nt - n ==  k - 1
+
+    # LHS: the collocation matrix + derivatives @edges
+    A = np.zeros((nt, nt), dtype=np.float_)
+    
+    # derivatives @ x[0]:
+    offset = 0
+    
+    if x[0] == t[k]:
+        left = k
+    else:
+        left = np.searchsorted(t, x[0]) - 1
+
+    if x[-1] == t[k]:
+        left2 = k
+    else:
+        left2 = np.searchsorted(t, x[-1]) - 1
+
+    for i in range(k-1):
+        bb = _bspl.evaluate_all_bspl(t, k, x[0], left, nu=i+1)
+        A[i, left-k:left+1] = bb
+        bb = _bspl.evaluate_all_bspl(t, k, x[-1], left2, nu=i+1)
+        A[i, left2-k:left2+1] = -bb
+        offset += 1
+
+    # RHS
+    y = np.r_[[0]*(k-1), y]
+    
+    # collocation matrix
+    for j in range(n):
+        xval = x[j]
+        # find interval
+        if xval == t[k]:
+            left = k
+        else:
+            left = np.searchsorted(t, xval) - 1
+
+        # fill a row
+        bb = _bspl.evaluate_all_bspl(t, k, xval, left)
+        A[j + offset, left-k:left+1] = bb
+
+    #np.set_printoptions(precision=6, linewidth=150)
+    #print("\n periodic A: ")
+    #print(A)
     
     c = sl.solve(A, y)
     return c
