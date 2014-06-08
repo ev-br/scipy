@@ -1,5 +1,6 @@
       SUBROUTINE ZUNI2(ZR, ZI, FNU, KODE, N, YR, YI, NZ, NLAST, FNUL,
      * TOL, ELIM, ALIM)
+      implicit none
 C***BEGIN PROLOGUE  ZUNI2
 C***REFER TO  ZBESI,ZBESK
 C

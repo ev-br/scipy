@@ -1,5 +1,6 @@
       SUBROUTINE ZACAI(ZR, ZI, FNU, KODE, MR, N, YR, YI, NZ, RL, TOL,
      * ELIM, ALIM)
+      implicit none
 C***BEGIN PROLOGUE  ZACAI
 C***REFER TO  ZAIRY
 C

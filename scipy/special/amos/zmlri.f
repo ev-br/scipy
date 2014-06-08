@@ -1,4 +1,5 @@
       SUBROUTINE ZMLRI(ZR, ZI, FNU, KODE, N, YR, YI, NZ, TOL)
+      implicit none
 C***BEGIN PROLOGUE  ZMLRI
 C***REFER TO  ZBESI,ZBESK
 C

@@ -1,5 +1,6 @@
       SUBROUTINE ZWRSK(ZRR, ZRI, FNU, KODE, N, YR, YI, NZ, CWR, CWI,
      * TOL, ELIM, ALIM)
+      implicit none
 C***BEGIN PROLOGUE  ZWRSK
 C***REFER TO  ZBESI,ZBESK
 C

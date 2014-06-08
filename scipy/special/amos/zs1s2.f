@@ -1,5 +1,6 @@
       SUBROUTINE ZS1S2(ZRR, ZRI, S1R, S1I, S2R, S2I, NZ, ASCLE, ALIM,
      * IUF)
+      implicit none
 C***BEGIN PROLOGUE  ZS1S2
 C***REFER TO  ZBESK,ZAIRY
 C

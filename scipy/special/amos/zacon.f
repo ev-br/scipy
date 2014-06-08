@@ -1,5 +1,6 @@
       SUBROUTINE ZACON(ZR, ZI, FNU, KODE, MR, N, YR, YI, NZ, RL, FNUL,
      * TOL, ELIM, ALIM)
+      implicit none
 C***BEGIN PROLOGUE  ZACON
 C***REFER TO  ZBESK,ZBESH
 C

@@ -1,5 +1,6 @@
       SUBROUTINE ZSERI(ZR, ZI, FNU, KODE, N, YR, YI, NZ, TOL, ELIM,
      * ALIM)
+      implicit none
 C***BEGIN PROLOGUE  ZSERI
 C***REFER TO  ZBESI,ZBESK
 C

@@ -1,5 +1,6 @@
       SUBROUTINE ZUNK2(ZR, ZI, FNU, KODE, MR, N, YR, YI, NZ, TOL, ELIM,
      * ALIM)
+      implicit none
 C***BEGIN PROLOGUE  ZUNK2
 C***REFER TO  ZBESK
 C

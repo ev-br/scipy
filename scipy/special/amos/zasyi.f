@@ -1,5 +1,6 @@
       SUBROUTINE ZASYI(ZR, ZI, FNU, KODE, N, YR, YI, NZ, RL, TOL, ELIM,
      * ALIM)
+      implicit none
 C***BEGIN PROLOGUE  ZASYI
 C***REFER TO  ZBESI,ZBESK
 C

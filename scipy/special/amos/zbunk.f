@@ -1,5 +1,6 @@
       SUBROUTINE ZBUNK(ZR, ZI, FNU, KODE, MR, N, YR, YI, NZ, TOL, ELIM,
      * ALIM)
+      implicit none
 C***BEGIN PROLOGUE  ZBUNK
 C***REFER TO  ZBESK,ZBESH
 C
