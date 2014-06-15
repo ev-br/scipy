@@ -2,6 +2,7 @@
      * nxest,nyest,tol,maxit,nc,nx,tx,ny,ty,c,fp,fp0,fpold,reducx,
      * reducy,fpintx,fpinty,lastdi,nplusx,nplusy,nrx,nry,nrdatx,nrdaty,
      * wrk,lwrk,ier)
+      implicit none
 c  ..
 c  ..scalar arguments..
       real*8 xb,xe,yb,ye,s,tol,fp,fp0,fpold,reducx,reducy

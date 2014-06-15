@@ -1,5 +1,6 @@
       subroutine fpcons(iopt,idim,m,u,mx,x,w,ib,ie,k,s,nest,tol,maxit,
      * k1,k2,n,t,nc,c,fp,fpint,z,a,b,g,q,nrdata,ier)
+      implicit none
 c  ..
 c  ..scalar arguments..
       real*8 s,tol,fp
@@ -13,6 +14,7 @@ c  ..local scalars..
      * half,one,p,pinv,piv,p1,p2,p3,rn,sin,store,term,ui,wi
       integer i,ich1,ich3,it,iter,i1,i2,i3,j,jb,je,jj,j1,j2,j3,kbe,
      * l,li,lj,l0,mb,me,mm,new,nk1,nmax,nmin,nn,nplus,npl1,nrint,n8
+      integer mmin
 c  ..local arrays..
       real*8 h(7),xi(10)
 c  ..function references

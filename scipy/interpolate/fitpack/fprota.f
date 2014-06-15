@@ -1,4 +1,5 @@
       subroutine fprota(cos,sin,a,b)
+      implicit none
 c  subroutine fprota applies a givens rotation to a and b.
 c  ..
 c  ..scalar arguments..

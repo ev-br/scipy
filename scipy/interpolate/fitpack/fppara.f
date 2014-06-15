@@ -1,5 +1,6 @@
       subroutine fppara(iopt,idim,m,u,mx,x,w,ub,ue,k,s,nest,tol,maxit,
      * k1,k2,n,t,nc,c,fp,fpint,z,a,b,g,q,nrdata,ier)
+      implicit none
 c  ..
 c  ..scalar arguments..
       real*8 ub,ue,s,tol,fp

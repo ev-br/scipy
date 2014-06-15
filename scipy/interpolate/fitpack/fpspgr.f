@@ -2,6 +2,7 @@
      * tol,maxit,nc,nu,tu,nv,tv,c,fp,fp0,fpold,reducu,reducv,fpintu,
      * fpintv,dr,step,lastdi,nplusu,nplusv,lastu0,lastu1,nru,nrv,
      * nrdatu,nrdatv,wrk,lwrk,ier)
+      implicit none
 c  ..
 c  ..scalar arguments..
       integer mu,mv,mr,nuest,nvest,maxit,nc,nu,nv,lastdi,nplusu,nplusv,

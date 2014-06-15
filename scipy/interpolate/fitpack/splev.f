@@ -1,4 +1,5 @@
       subroutine splev(t,n,c,k,x,y,m,e,ier)
+      implicit none
 c  subroutine splev evaluates in a number of points x(i),i=1,2,...,m
 c  a spline s(x) of degree k, given in its b-spline representation.
 c

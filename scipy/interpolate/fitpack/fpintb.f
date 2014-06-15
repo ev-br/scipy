@@ -1,4 +1,5 @@
       subroutine fpintb(t,n,bint,nk1,x,y)
+      implicit none
 c  subroutine fpintb calculates integrals of the normalized b-splines
 c  nj,k+1(x) of degree k, defined on the set of knots t(j),j=1,2,...n.
 c  it makes use of the formulae of gaffney for the calculation of

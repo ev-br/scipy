@@ -2,6 +2,7 @@
      *
      * ib1,ib3,nc,ncc,intest,nrest,nt,tt,np,tp,c,fp,sup,fpint,coord,f,
      * ff,row,coco,cosi,a,q,bt,bp,spt,spp,h,index,nummer,wrk,lwrk,ier)
+      implicit none
 c  ..
 c  ..scalar arguments..
       integer iopt,m,ntest,npest,maxit,ib1,ib3,nc,ncc,intest,nrest,
