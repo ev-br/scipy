@@ -303,11 +303,16 @@ def make_interp_spline(x, y, t, k, deriv_l=None, deriv_r=None,
     return c.reshape((nt,) + y.shape[1:])
 
 
-def make_interp_periodic_spline(x, y, t, k, check_finite=True):
-    """Compute the (coefficients of) interpolating B-spline assuming
-    periodicity on the closed interval ``x[0]..x[-1]``.
+def make_interp_periodic_spline(x, y, t, k, alpha=1., check_finite=True):
+    """Compute the (coefficients of) interpolating B-spline. 
+ 
+    Contrains the values of the first k-1 derivatives at ``x[0]..x[-1]`` via
 
-    Works by matching the first k-1 derivatives at x[0] and x[-1].
+    ..math::
+
+        y^{j}(x_0) = alpha * y^{j}(x_1)
+
+    where y(x) is the B-spline interpolant, and ``j = 1..k-1``
 
     Parameters
     ----------
@@ -321,7 +326,11 @@ def make_interp_periodic_spline(x, y, t, k, check_finite=True):
         ``nt - n`` must be equal to `k`-1.
     k : int
         B-spline degree
-    check_finite : bool
+    alpha : float
+        Periodicity factor: alpha = 1 means periodic boundary condition, 
+        alpha = -1 means antiperiodic etc.
+        Default is 1. 
+    check_finite : bool, optional
         This forwards directly to the lin. algebra routines [solve_banded].
         Default is True.
 
@@ -383,7 +392,7 @@ def make_interp_periodic_spline(x, y, t, k, check_finite=True):
     # We don't actually allocate it since we can get the results of
     # multiplications with vT by just slicing, see below.
     u = np.zeros((nt, k+1), dtype=np.float_)
-    _bspl._fill_woodbury_U(t, k, x[-1], u)
+    _bspl._fill_woodbury_U(t, k, x[-1], alpha, u)
 
     # RHS
     extradim = int(np.prod(y.shape[1:]))

@@ -296,7 +296,7 @@ def _handle_lhs_derivatives(double[::1]t, int k, double xval, ab,
             ab[ku + offset + row - clmn, clmn] = out[a]
 
 
-def _fill_woodbury_U(double[::1] t, int k, double xval, u):
+def _fill_woodbury_U(double[::1] t, int k, double xval, double alpha, u):
     """Fill the U matrix for the Woodbury correction, see
        make_periodic_interp_spline.
     """
@@ -306,4 +306,4 @@ def _fill_woodbury_U(double[::1] t, int k, double xval, u):
     left = k + find_interval(t[k:-k], xval, 0, extrapolate=False)
     for i in range(k-1):
         eval_all_bspl(t, k, xval, left, nu=i+1, out=out)
-        u[i] = -out[:k+1]
+        u[i] = -out[:k+1] * alpha

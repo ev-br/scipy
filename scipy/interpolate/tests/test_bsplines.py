@@ -466,12 +466,13 @@ class TestInterp(TestCase):
         y = np.sin(x) + np.cos(x)
         t = _augknt(x, k)
 
-        c = make_interp_periodic_spline(x, y, t, k)
-        b = BSpline(t, c, k)
-        assert_allclose(b(x), y, atol=1e-13, rtol=1e-13)
-        assert_allclose([b(x[0], j) for j in range(k)],
-                        [b(x[-1], j) for j in range(k)],
-                        atol=1e-10)
+        for alpha in [1., -1, np.pi]:
+            c = make_interp_periodic_spline(x, y, t, k, alpha=alpha)
+            b = BSpline(t, c, k)
+            assert_allclose(b(x), y, atol=1e-12, rtol=1e-13)
+            assert_allclose([b(x[0], j) for j in range(1, k)],
+                            [b(x[-1], j) * alpha for j in range(1, k)],
+                            atol=1e-10)
 
         # multiple rhs
         y = np.c_[np.sin(x), np.cos(x)]
