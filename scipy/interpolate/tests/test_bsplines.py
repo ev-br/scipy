@@ -366,15 +366,15 @@ class TestInterp(TestCase):
     def test_linear(self):
         k = 1
         t = np.r_[self.xx[0], self.xx, self.xx[-1]]
-        c = make_interp_spline(self.xx, self.yy, t=t, k=k)
-        b = BSpline(t, c, k)
+        tck = make_interp_spline(self.xx, self.yy, t=t, k=k)
+        b = BSpline(*tck)
         assert_allclose(b(self.xx), self.yy, atol=1e-14, rtol=1e-14)
 
     def test_not_a_knot(self):
         for k in [3, 5]:
             t = _not_a_knot(self.xx, k)
-            c = make_interp_spline(self.xx, self.yy, t, k)
-            b = BSpline(t, c, k)
+            tck = make_interp_spline(self.xx, self.yy, t, k)
+            b = BSpline(*tck)
             assert_allclose(b(self.xx), self.yy, atol=1e-14, rtol=1e-14)
 
     def test_quadratic_deriv(self):
@@ -383,14 +383,14 @@ class TestInterp(TestCase):
         t = _augknt(self.xx, k)
 
         # derivative @ right-hand edge
-        c = make_interp_spline(self.xx, self.yy, t, k, deriv_r=der)
-        b = BSpline(t, c, k)
+        tck = make_interp_spline(self.xx, self.yy, t, k, deriv_r=der)
+        b = BSpline(*tck)
         assert_allclose(b(self.xx), self.yy, atol=1e-14, rtol=1e-14)
         assert_allclose(b(self.xx[-1], 1), der[0][1], atol=1e-14, rtol=1e-14)
 
         # derivative @ left-hand edge
-        c = make_interp_spline(self.xx, self.yy, t, k, deriv_l=der)
-        b = BSpline(t, c, k)
+        tck = make_interp_spline(self.xx, self.yy, t, k, deriv_l=der)
+        b = BSpline(*tck)
         assert_allclose(b(self.xx), self.yy, atol=1e-14, rtol=1e-14)
         assert_allclose(b(self.xx[0], 1), der[0][1], atol=1e-14, rtol=1e-14)
 
@@ -400,17 +400,17 @@ class TestInterp(TestCase):
 
         # first derivatives @ left & right edges:
         der_l, der_r = [(1, 3.)], [(1, 4.)]
-        c = make_interp_spline(self.xx, self.yy, t, k,
+        tck = make_interp_spline(self.xx, self.yy, t, k,
                 deriv_l=der_l, deriv_r=der_r)
-        b = BSpline(t, c, k)
+        b = BSpline(*tck)
         assert_allclose(b(self.xx), self.yy, atol=1e-14, rtol=1e-14)
         assert_allclose([b(self.xx[0], 1), b(self.xx[-1], 1)],
                         [der_l[0][1], der_r[0][1]], atol=1e-14, rtol=1e-14)
 
         # 'natural' cubic spline, zero out 2nd derivatives @ the boundaries
         der_l, der_r = [(2, 0)], [(2, 0)]
-        c = make_interp_spline(self.xx, self.yy, t, k, der_l, der_r)
-        b = BSpline(t, c, k)
+        tck = make_interp_spline(self.xx, self.yy, t, k, der_l, der_r)
+        b = BSpline(*tck)
         assert_allclose(b(self.xx), self.yy, atol=1e-14, rtol=1e-14)
 
     def test_quintic_derivs(self):
@@ -420,8 +420,8 @@ class TestInterp(TestCase):
         t = _augknt(x, k)
         der_l = [(1, -12.), (2, 1)]
         der_r = [(1, 8.), (2, 3.)]
-        c = make_interp_spline(x, y, t, k, der_l, der_r)
-        b = BSpline(t, c, k)
+        tck = make_interp_spline(x, y, t, k, der_l, der_r)
+        b = BSpline(*tck)
         assert_allclose(b(x), y, atol=1e-14, rtol=1e-14)
         assert_allclose([b(x[0], 1), b(x[0], 2)],
                         [val for (nu, val) in der_l])
@@ -438,8 +438,8 @@ class TestInterp(TestCase):
         t = _augknt(self.xx, k)
 
         der_l = [(1, 3.), (2, 4.)]
-        c = make_interp_spline(self.xx, self.yy, t, k, deriv_l=der_l)
-        b = BSpline(t, c, k)
+        tck = make_interp_spline(self.xx, self.yy, t, k, deriv_l=der_l)
+        b = BSpline(*tck)
         assert_allclose(b(self.xx), self.yy, atol=1e-14, rtol=1e-14)
 
     def test_knots_not_data_sites(self):
@@ -450,9 +450,9 @@ class TestInterp(TestCase):
         t = np.r_[(self.xx[0],)*(k+1),
                   (self.xx[1:] + self.xx[:-1]) / 2.,
                   (self.xx[-1],)*(k+1)]
-        c = make_interp_spline(self.xx, self.yy, t, k,
+        tck = make_interp_spline(self.xx, self.yy, t, k,
                 deriv_l=[(2, 0)], deriv_r=[(2, 0)])
-        b = BSpline(t, c, k)
+        b = BSpline(*tck)
 
         assert_allclose(b(self.xx), self.yy, atol=1e-14, rtol=1e-14)
         assert_allclose([b(self.xx[0], 2), b(self.xx[-1], 2)], [0., 0.],
@@ -467,7 +467,7 @@ class TestInterp(TestCase):
         t = _augknt(x, k)
 
         for alpha in [1., -1, np.pi]:
-            c = make_interp_periodic_spline(x, y, t, k, alpha=alpha)
+            t, c, k = make_interp_periodic_spline(x, y, t, k, alpha=alpha)
             b = BSpline(t, c, k)
             assert_allclose(b(x), y, atol=1e-12, rtol=1e-13)
             assert_allclose([b(x[0], j) for j in range(1, k)],
@@ -476,8 +476,8 @@ class TestInterp(TestCase):
 
         # multiple rhs
         y = np.c_[np.sin(x), np.cos(x)]
-        c = make_interp_periodic_spline(x, y, t, k)
-        b = BSpline(t, c, k)
+        tck = make_interp_periodic_spline(x, y, t, k)
+        b = BSpline(*tck)
         assert_allclose(b(x), y, atol=1e-12, rtol=1e-12)
         assert_allclose([b(x[0], j) for j in range(k)],
                         [b(x[-1], j) for j in range(k)],
@@ -490,8 +490,8 @@ class TestInterp(TestCase):
         der_l = [(1, [1., 2.])]
         der_r = [(1, [3., 4.])]
 
-        c = make_interp_spline(self.xx, yy, t, k, deriv_l=der_l, deriv_r=der_r)
-        b = BSpline(t, c, k)
+        tck = make_interp_spline(self.xx, yy, t, k, deriv_l=der_l, deriv_r=der_r)
+        b = BSpline(*tck)
         assert_allclose(b(self.xx), yy, atol=1e-14, rtol=1e-14)
         assert_allclose(b(self.xx[0], 1), der_l[0][1], atol=1e-14, rtol=1e-14)
         assert_allclose(b(self.xx[-1], 1), der_r[0][1], atol=1e-14, rtol=1e-14)
@@ -503,19 +503,19 @@ class TestInterp(TestCase):
         y = np.random.random(size=(n, 5, 6, 7))
 
         t = _not_a_knot(x, k)
-        c = make_interp_spline(x, y, t, k)
+        t, c, k = make_interp_spline(x, y, t, k)
         assert_equal(c.shape, (n, 5, 6, 7))
 
         # now throw in some derivatives
         t = _augknt(x, k)
         d_l = [(1, np.random.random((5, 6, 7)))]
         d_r = [(1, np.random.random((5, 6, 7)))]
-        c = make_interp_spline(x, y, t, k, deriv_l=d_l, deriv_r=d_r)
+        t, c, k = make_interp_spline(x, y, t, k, deriv_l=d_l, deriv_r=d_r)
         assert_equal(c.shape, (n + k - 1, 5, 6, 7))
 
         # periodic
         t = _augknt(x, k)
-        c = make_interp_periodic_spline(x, y, t, k)
+        t, c, k = make_interp_periodic_spline(x, y, t, k)
         assert_equal(c.shape, (n + k - 1, 5, 6, 7))
 
     def test_full_matrix(self):
@@ -525,9 +525,8 @@ class TestInterp(TestCase):
         y = np.random.random(size=n)
         t = _not_a_knot(x, k)
 
-        cb = make_interp_spline(x, y, t, k)
+        _, cb, _ = make_interp_spline(x, y, t, k)
         cf = make_interp_full_matr(x, y, t, k)
-
         assert_allclose(cb, cf, atol=1e-14, rtol=1e-14)
 
 

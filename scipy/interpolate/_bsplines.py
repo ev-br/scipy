@@ -243,9 +243,11 @@ def make_interp_spline(x, y, t, k, deriv_l=None, deriv_r=None,
 
     Returns
     -------
-    c : ndarray, shape(n, ...)
-        The coefficients of the B-spline of degree `k` with knots `t`, which
-        interpolates `x` and `y`.
+    tck : tuple
+        Here ``c`` is an ndarray, shape(n, ...), representing the coefficients 
+        of the B-spline of degree `k` with knots `t`, which interpolates 
+        `x` and `y`.
+        `t` and `k`  are returned unchanged.
 
     Examples
     --------
@@ -300,7 +302,7 @@ def make_interp_spline(x, y, t, k, deriv_l=None, deriv_r=None,
 
     c = solve_banded(kl_ku, Ab, rhs, overwrite_ab=True,
                      overwrite_b=True, check_finite=check_finite)
-    return c.reshape((nt,) + y.shape[1:])
+    return t, c.reshape((nt,) + y.shape[1:]), k
 
 
 def make_interp_periodic_spline(x, y, t, k, alpha=1., check_finite=True):
@@ -336,14 +338,16 @@ def make_interp_periodic_spline(x, y, t, k, alpha=1., check_finite=True):
 
     Returns
     -------
-    c : ndarray, shape(n, ...)
-        The coefficients of the B-spline of degree `k` with knots `t`, which
-        interpolates `x` and `y`.
+    t, c, k : tuple
+        Here ``c`` is an ndarray, shape(n, ...), representing the coefficients 
+        of the B-spline of degree `k` with knots `t`, which interpolates 
+        `x` and `y`.
+        `t` and `k`  are returned unchanged.
 
     Examples
     --------
-    >>> c = make_interp_periodic_spline(x, y, t, k)
-    >>> b = BSpline(t, c, k)
+    >>> tck = make_interp_periodic_spline(x, y, t, k)
+    >>> b = BSpline(tck)
     >>> assert b(x) == y
 
     Notes
@@ -410,4 +414,4 @@ def make_interp_periodic_spline(x, y, t, k, alpha=1., check_finite=True):
     #c = yy - np.dot(z, np.dot(h, np.dot(vT, yy)))
     c = yy - np.dot(z, np.dot(h, yy[-k-1:]))   # was np.dot(vT, yy)
 
-    return c.reshape((nt,) + y.shape[1:])
+    return t, c.reshape((nt,) + y.shape[1:]), k
