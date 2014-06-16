@@ -223,10 +223,10 @@ def make_interp_spline(x, y, t, k, deriv_l=None, deriv_r=None,
     x : ndarray, shape (n,)
         Abscissas.
     y : ndarray, shape (n, ...)
-        Ordinatas.
+        Ordinates.
     t : ndarray, shape (nt + k + 1,)
         Knots.
-        The number of knots need to agree with the number of datapoints and
+        The number of knots needs to agree with the number of datapoints and
         the number of derivatives at the edges. Specifically, ``nt - n`` must
         equal ``len(deriv_l) + len(deriv_r)``.
     k : int
@@ -308,9 +308,9 @@ def make_interp_spline(x, y, t, k, deriv_l=None, deriv_r=None,
 def make_interp_periodic_spline(x, y, t, k, alpha=1., check_finite=True):
     """Compute the (coefficients of) interpolating B-spline. 
  
-    Contrains the values of the first k-1 derivatives at ``x[0]..x[-1]`` via
+    Constrains the values of the first k-1 derivatives at ``x[0]..x[-1]`` via
 
-    ..math::
+    .. math::
 
         y^{j}(x_0) = alpha * y^{j}(x_1)
 
@@ -321,15 +321,15 @@ def make_interp_periodic_spline(x, y, t, k, alpha=1., check_finite=True):
     x : ndarray, shape (n,)
         Abscissas.
     y : ndarray, shape (n, ...)
-        Ordinatas.
+        Ordinates.
     t : ndarray, shape (nt + k + 1,)
         Knots.
-        The number of knots need to agree with the number of datapoints:
+        The number of knots needs to agree with the number of datapoints:
         ``nt - n`` must be equal to `k`-1.
     k : int
         B-spline degree
     alpha : float
-        Periodicity factor: alpha = 1 means periodic boundary condition, 
+        Constraint factor: alpha = 1 means periodic boundary conditions, 
         alpha = -1 means antiperiodic etc.
         Default is 1. 
     check_finite : bool, optional
