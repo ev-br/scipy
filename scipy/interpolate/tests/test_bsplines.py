@@ -529,6 +529,25 @@ class TestInterp(TestCase):
         #print('>>>>>>', cb - cf)
         assert_allclose(cb, cf, atol=1e-8, rtol=1e-14)
 
+    def test_periodic_full_2(self):
+        ## XXX: this is numerically unstable; Combine Woodbury & some pivoting?
+        np.random.seed(12345)
+
+        n, k = 27, 3
+        x = np.arange(n, dtype=np.float)
+        y = np.random.random(n)
+        t = _augknt(x, k)
+
+        tck = make_interp_periodic_spline(x, y, t, k)
+        b = BSpline(*tck)
+
+        c_f = make_interp_per_full_matr(x, y, t, k)
+        b_f = BSpline(t, c_f, k)
+
+        xx = np.linspace(x[0], x[-1], 100)
+        assert_allclose(b(x), y, atol=1e-14, rtol=1e-14)
+        assert_allclose(b(xx), b_f(xx), atol=1e-14, rtol=1e-14)
+
 
 def make_interp_full_matr(x, y, t, k):
     """Assemble an spline order k with knots t to interpolate
