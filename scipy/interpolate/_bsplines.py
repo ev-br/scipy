@@ -214,7 +214,25 @@ def _check_xytk(x, y, t, k):
         raise ValueError('Out of bounds w/ x = %s.' % x)
 
 
-def make_interp_spline(x, y, t, k, deriv_l=None, deriv_r=None,
+def _not_a_knot(x, k):
+    """Given data x, construct the knot vector w/ not-a-knot BC.
+    cf de Boor, XIII(12)."""
+    x = np.asarray(x)
+    if k % 2 != 1:
+        raise ValueError("Odd degree for now only.")
+    
+    m = (k - 1) // 2
+    t = x[m+1:-m-1]
+    t = np.r_[(x[0],)*(k+1), t, (x[-1],)*(k+1)]
+    return t
+
+
+def _augknt(x, k):
+    """Construct a knot vector appropriate for the order-k interpolation."""
+    return np.r_[(x[0],)*k, x, (x[-1],)*k]
+
+
+def make_interp_spline(x, y, k=3, t=None, deriv_l=None, deriv_r=None,
                        check_finite=True):
     """Compute the (coefficients of) interpolating B-spline.
 
@@ -224,13 +242,13 @@ def make_interp_spline(x, y, t, k, deriv_l=None, deriv_r=None,
         Abscissas.
     y : ndarray, shape (n, ...)
         Ordinates.
-    t : ndarray, shape (nt + k + 1,)
+    t : ndarray, shape (nt + k + 1,), optional.
         Knots.
         The number of knots needs to agree with the number of datapoints and
         the number of derivatives at the edges. Specifically, ``nt - n`` must
-        equal ``len(deriv_l) + len(deriv_r)``.
-    k : int
-        B-spline degree
+        equal ``len(deriv_l) + len(deriv_r)``. 
+    k : int, optional
+        B-spline degree. Default is cubic, k=3.
     deriv_l : iterable of pairs (int, float) or None
         Derivatives known at ``x[0]``: (order, value)
         Default is None.
@@ -256,6 +274,12 @@ def make_interp_spline(x, y, t, k, deriv_l=None, deriv_r=None,
     >>> assert b(x) == y
 
     """
+    if t is None:
+        if deriv_l is None and deriv_r is None:
+            t = _not_a_knot(x, k)
+        else:
+            t = _augknt(x, k)
+
     x, y, t = map(np.asarray, (x, y, t))
     k = int(k)
 
