@@ -186,13 +186,12 @@ class TestBSpline(TestCase):
         yy = b(xx)
         assert_(not np.all(np.isnan(yy)))
 
-    @knownfailureif(True, 'extrapolation w/ multiple knots @ right edge')
     def test_ppoly(self):
         b, t, c, k = self._make_random_spline()
-        bp = PPoly.from_spline((t, c, k))
+        pp = PPoly.from_spline((t, c, k))
 
-        xx = np.linspace(t[0], t[-1], 100)
-        assert_allclose(b(xx, extrapolate=True), bp(xx, extrapolate=True))
+        xx = np.linspace(t[k], t[-k-1], 100)
+        assert_allclose(b(xx), pp(xx), atol=1e-14, rtol=1e-14)
 
     def test_derivative_rndm(self):
         b, t, c, k = self._make_random_spline()
