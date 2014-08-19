@@ -197,29 +197,12 @@ class BSpline(object):
 #  Interpolating spline helpers #
 #################################
 
-def _check_xytk(x, y, t, k):
-    if x.ndim != 1 or np.any(x[1:] - x[:-1] <= 0):
-        raise ValueError("Expect x to be a 1-D sorted array_like.")
-    if x.shape[0] < k+1:
-        raise("Need more x points.")
-    if k <= 0:
-        raise ValueError("Expect positive k.")
-    if t.ndim != 1 or np.any(t[1:] - t[:-1] < 0):
-        raise ValueError("Expect t to be a 1-D sorted array_like.")
-    if x.size != y.shape[0]:
-        raise ValueError('x & y are incompatible.')
-    if t.size < x.size + k + 1:
-        raise ValueError('Got %d knots, need at least %d.' % (t.size, x.size + k + 1))
-    if np.any((x < t[k]) | (x > t[-k])):
-        raise ValueError('Out of bounds w/ x = %s.' % x)
-
-
 def _not_a_knot(x, k):
     """Given data x, construct the knot vector w/ not-a-knot BC.
     cf de Boor, XIII(12)."""
     x = np.asarray(x)
     if k % 2 != 1:
-        raise ValueError("Odd degree for now only.")
+        raise ValueError("Odd degree for now only. Got %s." % k)
     
     m = (k - 1) // 2
     t = x[m+1:-m-1]
@@ -230,6 +213,14 @@ def _not_a_knot(x, k):
 def _augknt(x, k):
     """Construct a knot vector appropriate for the order-k interpolation."""
     return np.r_[(x[0],)*k, x, (x[-1],)*k]
+
+
+def _as_float_array(x):
+    """Convert the input into a C contiguous float array."""
+    x = np.ascontiguousarray(x)
+    if not np.issubdtype(x.dtype, np.inexact):
+        x = x.astype(float)
+    return x
 
 
 def make_interp_spline(x, y, k=3, t=None, deriv_l=None, deriv_r=None,
@@ -274,28 +265,45 @@ def make_interp_spline(x, y, k=3, t=None, deriv_l=None, deriv_r=None,
     >>> assert b(x) == y
 
     """
+    # special-case k=0 right away
+    if k == 0:
+        if any(_ is not None for _ in (t, deriv_l, deriv_r)):
+            raise ValueError("Too much info for k=0.")
+        t = np.r_[x, x[-1]]
+        c = y
+        return t, c, k
+
+    # come up with a sensible knot vector, if needed
     if t is None:
         if deriv_l is None and deriv_r is None:
-            t = _not_a_knot(x, k)
+            if k == 2:
+                # OK, it's a bit ad hoc: Greville sites + omit
+                # 2nd and 2nd-to-last points, a la not-a-knot
+                t = (x[1:] + x[:-1]) / 2.
+                t = np.r_[(x[0],)*(k+1),
+                           t[1:-1],
+                           (x[-1],)*(k+1)]
+            else:
+                t = _not_a_knot(x, k)
         else:
             t = _augknt(x, k)
 
-    x, y, t = map(np.asarray, (x, y, t))
+    x, y, t = map(_as_float_array, (x, y, t))
     k = int(k)
 
     if x.ndim != 1 or np.any(x[1:] - x[:-1] <= 0):
         raise ValueError("Expect x to be a 1-D sorted array_like.")
     if x.shape[0] < k+1:
         raise("Need more x points.")
-    if k <= 0:
-        raise ValueError("Expect positive k.")
+    if k < 0:
+        raise ValueError("Expect non-negative k.")
     if t.ndim != 1 or np.any(t[1:] - t[:-1] < 0):
         raise ValueError("Expect t to be a 1-D sorted array_like.")
     if x.size != y.shape[0]:
         raise ValueError('x & y are incompatible.')
     if t.size < x.size + k + 1:
         raise ValueError('Got %d knots, need at least %d.' % (t.size, x.size + k + 1))
-    if np.any((x < t[k]) | (x > t[-k])):
+    if k > 0 and np.any((x < t[k]) | (x > t[-k])):
         raise ValueError('Out of bounds w/ x = %s.' % x)
 
     # Here : deriv_l, r = [(nu, value), ...]
@@ -330,7 +338,7 @@ def make_interp_spline(x, y, k=3, t=None, deriv_l=None, deriv_r=None,
 
     # RHS
     extradim = int(np.prod(y.shape[1:]))
-    rhs = np.empty((nt, extradim))
+    rhs = np.empty((nt, extradim), dtype=y.dtype)
     if nleft > 0:
         rhs[:nleft] = deriv_l_vals.reshape(-1, extradim)
     rhs[nleft:nt - nright] = y.reshape(-1, extradim)

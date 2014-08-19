@@ -363,6 +363,11 @@ class TestInterp(TestCase):
     xx = np.linspace(0., 2.*np.pi)
     yy = np.sin(xx)
 
+    def test_order_0(self):
+        tck = make_interp_spline(self.xx, self.yy, k=0)
+        b = BSpline(*tck)
+        assert_allclose(b(self.xx), self.yy, atol=1e-14, rtol=1e-14)
+
     def test_linear(self):
         tck = make_interp_spline(self.xx, self.yy, k=1)
         b = BSpline(*tck)
@@ -451,6 +456,36 @@ class TestInterp(TestCase):
         assert_allclose(b(self.xx), self.yy, atol=1e-14, rtol=1e-14)
         assert_allclose([b(self.xx[0], 2), b(self.xx[-1], 2)], [0., 0.],
                 atol=1e-14)
+
+    def test_complex(self):
+        k = 3
+        xx = self.xx
+        yy = self.yy + 1.j*self.yy
+
+        # first derivatives @ left & right edges:
+        der_l, der_r = [(1, 3.j)], [(1, 4.+2.j)]
+        tck = make_interp_spline(xx, yy, k,
+                deriv_l=der_l, deriv_r=der_r)
+        b = BSpline(*tck)
+        assert_allclose(b(xx), yy, atol=1e-14, rtol=1e-14)
+        assert_allclose([b(xx[0], 1), b(xx[-1], 1)],
+                        [der_l[0][1], der_r[0][1]], atol=1e-14, rtol=1e-14)
+
+    def test_int_xy(self):
+        x = np.arange(10).astype(np.int_)
+        y = np.arange(10).astype(np.int_)
+
+        # cython chokes on "buffer type mismatch"
+        tck = make_interp_spline(x, y, k=1)
+
+    def test_sliced_input(self):
+        # cython code chokes on non C contiguous arrays
+        xx = np.linspace(-1, 1, 100)
+        
+        x = xx[::5]
+        y = xx[::5]
+
+        tck = make_interp_spline(x, y, k=1)
 
     def test_multiple_rhs(self):
         yy = np.c_[np.sin(self.xx), np.cos(self.xx)]
