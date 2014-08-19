@@ -30,7 +30,7 @@ from .polyint import _Interpolator1D
 from . import _ppoly
 from .fitpack2 import RectBivariateSpline
 from .interpnd import _ndim_coords_from_arrays
-
+from ._bsplines import BSpline, make_interp_spline
 
 NUMPY_LT_160 = NumpyVersion(np.__version__) < '1.6.0'
 
@@ -430,7 +430,8 @@ class interp1d(_Interpolator1D):
                 self._call = self.__class__._call_linear
         else:
             minval = order + 1
-            self._spline = splmake(x, y, order=order)
+            tck = make_interp_spline(x, y, k=order)
+            self._spline = BSpline(*tck)
             self._call = self.__class__._call_spline
 
         if len(x) < minval:
@@ -488,7 +489,8 @@ class interp1d(_Interpolator1D):
         return y_new
 
     def _call_spline(self, x_new):
-        return spleval(self._spline, x_new)
+        #return spleval(self._spline, x_new)
+        return self._spline(x_new)
 
     def _evaluate(self, x_new):
         # 1. Handle values in x_new that are outside of x.  Throw error,

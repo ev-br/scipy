@@ -3,7 +3,6 @@ from __future__ import division, print_function, absolute_import
 import numpy as np
 from scipy.linalg import solve_banded, inv
 from . import _bspl
-from .interpolate import prod
 
 __all__ = ["BSpline", "make_interp_spline"]
 
@@ -172,7 +171,7 @@ class BSpline(object):
         x = np.asarray(x)
         x_shape = x.shape
         x = np.ascontiguousarray(x.ravel(), dtype=np.float_)
-        out = np.empty((len(x), int(prod(self.c.shape[1:]))),
+        out = np.empty((len(x), int(np.prod(self.c.shape[1:]))),
                 dtype=self.c.dtype)
         self._ensure_c_contiguous()
         self._evaluate(x, nu, extrapolate, out)
@@ -330,7 +329,7 @@ def make_interp_spline(x, y, k=3, t=None, deriv_l=None, deriv_r=None,
                                 offset=nt-nright)
 
     # RHS
-    extradim = int(prod(y.shape[1:]))
+    extradim = int(np.prod(y.shape[1:]))
     rhs = np.empty((nt, extradim))
     if nleft > 0:
         rhs[:nleft] = deriv_l_vals.reshape(-1, extradim)
