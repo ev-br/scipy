@@ -3,8 +3,9 @@ from __future__ import division, print_function, absolute_import
 import numpy as np
 from scipy.linalg import solve_banded, inv
 from . import _bspl
+from .interpolate import prod
 
-__all__ = ["BSpline", "make_interp_spline", "make_interp_periodic_spline"]
+__all__ = ["BSpline", "make_interp_spline"]
 
 
 class BSpline(object):
@@ -171,7 +172,7 @@ class BSpline(object):
         x = np.asarray(x)
         x_shape = x.shape
         x = np.ascontiguousarray(x.ravel(), dtype=np.float_)
-        out = np.empty((len(x), int(np.prod(self.c.shape[1:]))),
+        out = np.empty((len(x), int(prod(self.c.shape[1:]))),
                 dtype=self.c.dtype)
         self._ensure_c_contiguous()
         self._evaluate(x, nu, extrapolate, out)
@@ -283,7 +284,20 @@ def make_interp_spline(x, y, k=3, t=None, deriv_l=None, deriv_r=None,
     x, y, t = map(np.asarray, (x, y, t))
     k = int(k)
 
-    _check_xytk(x, y, t, k)
+    if x.ndim != 1 or np.any(x[1:] - x[:-1] <= 0):
+        raise ValueError("Expect x to be a 1-D sorted array_like.")
+    if x.shape[0] < k+1:
+        raise("Need more x points.")
+    if k <= 0:
+        raise ValueError("Expect positive k.")
+    if t.ndim != 1 or np.any(t[1:] - t[:-1] < 0):
+        raise ValueError("Expect t to be a 1-D sorted array_like.")
+    if x.size != y.shape[0]:
+        raise ValueError('x & y are incompatible.')
+    if t.size < x.size + k + 1:
+        raise ValueError('Got %d knots, need at least %d.' % (t.size, x.size + k + 1))
+    if np.any((x < t[k]) | (x > t[-k])):
+        raise ValueError('Out of bounds w/ x = %s.' % x)
 
     # Here : deriv_l, r = [(nu, value), ...]
     if deriv_l is not None:
@@ -316,7 +330,7 @@ def make_interp_spline(x, y, k=3, t=None, deriv_l=None, deriv_r=None,
                                 offset=nt-nright)
 
     # RHS
-    extradim = int(np.prod(y.shape[1:]))
+    extradim = int(prod(y.shape[1:]))
     rhs = np.empty((nt, extradim))
     if nleft > 0:
         rhs[:nleft] = deriv_l_vals.reshape(-1, extradim)
@@ -326,116 +340,4 @@ def make_interp_spline(x, y, k=3, t=None, deriv_l=None, deriv_r=None,
 
     c = solve_banded(kl_ku, Ab, rhs, overwrite_ab=True,
                      overwrite_b=True, check_finite=check_finite)
-    return t, c.reshape((nt,) + y.shape[1:]), k
-
-
-def make_interp_periodic_spline(x, y, t, k, alpha=1., check_finite=True):
-    """Compute the (coefficients of) interpolating B-spline. 
- 
-    Constrains the values of the first k-1 derivatives at ``x[0]..x[-1]`` via
-
-    .. math::
-
-        y^{j}(x_0) = alpha * y^{j}(x_1)
-
-    where y(x) is the B-spline interpolant, and ``j = 1..k-1``
-
-    Parameters
-    ----------
-    x : ndarray, shape (n,)
-        Abscissas.
-    y : ndarray, shape (n, ...)
-        Ordinates.
-    t : ndarray, shape (nt + k + 1,)
-        Knots.
-        The number of knots needs to agree with the number of datapoints:
-        ``nt - n`` must be equal to `k`-1.
-    k : int
-        B-spline degree
-    alpha : float
-        Constraint factor: alpha = 1 means periodic boundary conditions, 
-        alpha = -1 means antiperiodic etc.
-        Default is 1. 
-    check_finite : bool, optional
-        This forwards directly to the lin. algebra routines [solve_banded].
-        Default is True.
-
-    Returns
-    -------
-    t, c, k : tuple
-        Here ``c`` is an ndarray, shape(n, ...), representing the coefficients 
-        of the B-spline of degree `k` with knots `t`, which interpolates 
-        `x` and `y`.
-        `t` and `k`  are returned unchanged.
-
-    Examples
-    --------
-    >>> tck = make_interp_periodic_spline(x, y, t, k)
-    >>> b = BSpline(tck)
-    >>> assert b(x) == y
-
-    Notes
-    -----
-
-    To enforce periodicity we require that k-1 derivatives match at x[0] and x[-1].
-
-    This leads to the *almost* banded linear system for the spline coefficients:
-    the lhs matrix has extra elements in the top right corner. To handle this, we
-    write the collocation matrix as
-
-        A + u @ v.T,
-
-    where A is banded, and use the Woodbury formula to handle the u @ v.T
-    correction (see eg NR book, Chap 2.7.3.)
-
-    Specifically, use the fact that
-
-        inv(A + u @ v.T) = inv(A) - inv(A) @ u @ inv(Z) v.T @ inv(A)
-
-    where Z = 1 + v.T @ inv(A) @ u
-
-    """
-    x, y, t = map(np.asarray, (x, y, t))
-    k = int(k)
-    _check_xytk(x, y, t, k)
-
-    # have `n` conditions for `nt` coefficients; need nt-n derivatives
-    n = x.size
-    nt = t.size - k - 1
-
-    if nt - n != k - 1:
-        raise ValueError("knots not consistent with data.")
-
-    # LHS: the collocation matrix + derivatives @edges
-    Ab, (kl, ku) = _bspl._colloc(x, t, k, offset=k-1)
-
-    # derivatives @ x[0] fit into the banded part of the matrix:
-    _bspl._handle_lhs_derivatives(t, k, x[0], Ab, (kl, ku),
-                            deriv_ords=np.arange(1, k))
-
-    # derivatives @ x[-1]: These form a Woodbury formula correction matrix `U`,
-    # while V is simply a rectangular unit matrix, whose job is to only bring
-    # the elements of `U` into proper parts of the lhs matrix:
-    # explicitly, its transpose is vT = np.eye(k+1, nt, k=nt-k-1).
-    # We don't actually allocate it since we can get the results of
-    # multiplications with vT by just slicing, see below.
-    u = np.zeros((nt, k+1), dtype=np.float_)
-    _bspl._fill_woodbury_U(t, k, x[-1], alpha, u)
-
-    # RHS
-    extradim = int(np.prod(y.shape[1:]))
-    rhs = np.empty((nt, extradim))
-    rhs[:k-1] = 0.
-    rhs[k-1:] = y.reshape(-1, extradim)
-
-    # Solve the linear system:
-    # (2.7.17) + (2.7.19)
-    z = solve_banded((kl, ku), Ab, u, check_finite=check_finite)
-    h = np.eye(k+1, dtype=np.float_) + z[-k-1:, -k-1:]  # was np.dot(vT, z)
-    h = inv(h)
-
-    yy = solve_banded((kl, ku), Ab, rhs, check_finite=check_finite)   # (2.7.20)
-    #c = yy - np.dot(z, np.dot(h, np.dot(vT, yy)))
-    c = yy - np.dot(z, np.dot(h, yy[-k-1:]))   # was np.dot(vT, yy)
-
     return t, c.reshape((nt,) + y.shape[1:]), k

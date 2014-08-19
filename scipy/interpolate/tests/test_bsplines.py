@@ -4,7 +4,7 @@ from numpy.testing import (run_module_suite, TestCase, assert_equal,
 from numpy.testing.decorators import skipif, knownfailureif
 
 from scipy.interpolate import (BSpline, splev, splrep, BPoly, PPoly,
-        make_interp_spline, make_interp_periodic_spline, _bspl)
+        make_interp_spline, _bspl)
 from scipy.interpolate._bsplines import _not_a_knot, _augknt
 import scipy.linalg as sl
 
@@ -452,31 +452,6 @@ class TestInterp(TestCase):
         assert_allclose([b(self.xx[0], 2), b(self.xx[-1], 2)], [0., 0.],
                 atol=1e-14)
 
-    def test_periodic(self):
-        # TODO: numerical stability does not seem too good.
-        k, n = 3, 7
-        x = np.linspace(0., 2.*np.pi, n)
-
-        y = np.sin(x) + np.cos(x)
-        t = _augknt(x, k)
-
-        for alpha in [1., -1, np.pi]:
-            t, c, k = make_interp_periodic_spline(x, y, t, k, alpha=alpha)
-            b = BSpline(t, c, k)
-            assert_allclose(b(x), y, atol=1e-12, rtol=1e-13)
-            assert_allclose([b(x[0], j) for j in range(1, k)],
-                            [b(x[-1], j) * alpha for j in range(1, k)],
-                            atol=1e-10)
-
-        # multiple rhs
-        y = np.c_[np.sin(x), np.cos(x)]
-        tck = make_interp_periodic_spline(x, y, t, k)
-        b = BSpline(*tck)
-        assert_allclose(b(x), y, atol=1e-12, rtol=1e-12)
-        assert_allclose([b(x[0], j) for j in range(k)],
-                        [b(x[-1], j) for j in range(k)],
-                        atol=1e-9)
-
     def test_multiple_rhs(self):
         yy = np.c_[np.sin(self.xx), np.cos(self.xx)]
         der_l = [(1, [1., 2.])]
@@ -503,11 +478,6 @@ class TestInterp(TestCase):
         t, c, k = make_interp_spline(x, y, k, deriv_l=d_l, deriv_r=d_r)
         assert_equal(c.shape, (n + k - 1, 5, 6, 7))
 
-        # periodic
-        t = _augknt(x, k)
-        t, c, k = make_interp_periodic_spline(x, y, t, k)
-        assert_equal(c.shape, (n + k - 1, 5, 6, 7))
-
     def test_full_matrix(self):
         np.random.seed(1234)
         k, n = 3, 7
@@ -518,35 +488,6 @@ class TestInterp(TestCase):
         _, cb, _ = make_interp_spline(x, y, k, t)
         cf = make_interp_full_matr(x, y, t, k)
         assert_allclose(cb, cf, atol=1e-14, rtol=1e-14)
-
-        # periodic: TODO stability?
-        t = _augknt(x, k)
-
-        _, cb, _ = make_interp_periodic_spline(x, y, t, k)
-        cf = make_interp_per_full_matr(x, y, t, k)
-
-        #print('>>>>>>', cb - cf)
-        assert_allclose(cb, cf, atol=1e-8, rtol=1e-14)
-
-    def test_periodic_full_2(self):
-        ## XXX: this is numerically unstable; Combine Woodbury & some pivoting?
-        np.random.seed(12345)
-
-        n, k = 27, 3
-        x = np.arange(n, dtype=np.float)
-        y = np.random.random(n)
-        t = _augknt(x, k)
-
-        tck = make_interp_periodic_spline(x, y, t, k)
-        b = BSpline(*tck)
-
-        c_f = make_interp_per_full_matr(x, y, t, k)
-        b_f = BSpline(t, c_f, k)
-
-        xx = np.linspace(x[0], x[-1], 100)
-        assert_allclose(b(x), y, atol=1e-14, rtol=1e-14)
-        assert_allclose(b(xx), b_f(xx), atol=1e-14, rtol=1e-14)
-
 
 def make_interp_full_matr(x, y, t, k):
     """Assemble an spline order k with knots t to interpolate
@@ -575,7 +516,7 @@ def make_interp_full_matr(x, y, t, k):
     c = sl.solve(A, y)
     return c
 
-
+### XXX: 'periodic' interp spline using full matrices
 def make_interp_per_full_matr(x, y, t, k):
     x, y, t = map(np.asarray, (x, y, t))
 
@@ -624,10 +565,6 @@ def make_interp_per_full_matr(x, y, t, k):
         bb = _bspl.evaluate_all_bspl(t, k, xval, left)
         A[j + offset, left-k:left+1] = bb
 
-    #np.set_printoptions(precision=6, linewidth=150)
-    #print("\n periodic A: ")
-    #print(A)
-    
     c = sl.solve(A, y)
     return c
 
