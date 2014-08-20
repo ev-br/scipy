@@ -70,6 +70,9 @@ For data on a grid:
    InterpolatedUnivariateSpline
    LSQUnivariateSpline
 
+   BSpline
+   make_interp_spline
+
 The above univariate spline classes have the following methods:
 
 .. autosummary::

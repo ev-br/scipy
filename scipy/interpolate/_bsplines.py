@@ -41,37 +41,39 @@ class BSpline(object):
     .. math::
 
         S(x) = \sum_{j=0}^{n-1} c_{j} B_{j, k; t}(x)
-        \\
+
         B_{i, 0}(x) = 1, \textrm{if $t_i \le x < t_{i+1}$, otherwise $0$,}
-        \\
+
         B_{i, k}(x) = \frac{x - t_i}{t_{i+k} - t_i} B_{i, k-1}(x)
                  + \frac{t_{i+k+1} - x}{t_{i+k+1} - t_{i+1}} B_{i+1, k-1}(x)
 
     Or, in terms of Python code:
 
-    .. code-block::
+    .. code-block:: python
 
-    def B(x, k, i, t):
-        if k == 0:
-           return 1.0 if t[i] <= x < t[i+1] else 0.0
-        if t[i+k] == t[i]:
-           c1 = 0.0
-        else:
-           c1 = (x - t[i])/(t[i+k] - t[i]) * B(x, k-1, i, t)
-        if t[i+k+1] == t[i+1]:
-           c2 = 0.0
-        else:
-           c2 = (t[i+k+1] - x)/(t[i+k+1] - t[i+1]) * B(x, k-1, i+1, t)
-        return c1 + c2
+        def B(x, k, i, t):
+            if k == 0:
+               return 1.0 if t[i] <= x < t[i+1] else 0.0
+            if t[i+k] == t[i]:
+               c1 = 0.0
+            else:
+               c1 = (x - t[i])/(t[i+k] - t[i]) * B(x, k-1, i, t)
+            if t[i+k+1] == t[i+1]:
+               c2 = 0.0
+            else:
+               c2 = (t[i+k+1] - x)/(t[i+k+1] - t[i+1]) * B(x, k-1, i+1, t)
+            return c1 + c2
 
-    def bspline(x, t, c, k):
-        n = len(t) - (k+1)
-        assert (n >= k+1) and (len(c) >= n)
-        return sum(c[i] * B(x, k, i, t) for i in range(n))
+        def bspline(x, t, c, k):
+            n = len(t) - (k+1)
+            assert (n >= k+1) and (len(c) >= n)
+            return sum(c[i] * B(x, k, i, t) for i in range(n))
 
     Note that this is an inefficient (if straightforward) way to
-    evaluate B-splines --- this spline class does it in a more
-    efficient way.
+    evaluate B-splines --- this spline class does it in an equivalent,
+    but much more efficient way.
+
+    For example:
 
     >>> spl = BSpline(t=[0, 1, 2, 3, 4, 5], c=[2, 3], k=2)
     >>> spl(2.1)
@@ -80,20 +82,23 @@ class BSpline(object):
     2.58
 
     ***Implementation details***
-    * At least ``k+1`` coefficients are required for a spline of degree `k`,
+
+    - At least ``k+1`` coefficients are required for a spline of degree `k`,
       so that ``n >= k+1``. Additional coefficients, ``c[j]`` with
       ``j > n``, are ignored.
-    * B-spline basis elements of degree `k` form a partition of unity on the
-    __base interval__, ``t[k] <= x <= t[n] ``. The behavior for ``x > t[n]``
-    and ``x < t[k]`` is controlled by the `extrapolate` parameter.
-    * The base interval is closed, so that the spline is right-continuous
-    at ``x == t[n]``.
+
+    - B-spline basis elements of degree `k` form a partition of unity on the
+      *base interval*, ``t[k] <= x <= t[n]``. The behavior for ``x > t[n]``
+      and ``x < t[k]`` is controlled by the `extrapolate` parameter.
+
+    - The base interval is closed, so that the spline is right-continuous
+      at ``x == t[n]``.
 
     References
     ----------
-    .. [1]_ Tom Lyche and Knut Morken, Spline methods,
+    .. [1] Tom Lyche and Knut Morken, Spline methods,
         http://www.uio.no/studier/emner/matnat/ifi/INF-MAT5340/v05/undervisningsmateriale/
-    .. [2]_ Carl de Boor, A practical guide to splines, Springer, 2001.
+    .. [2] Carl de Boor, A practical guide to splines, Springer, 2001.
 
     """
     def __init__(self, t, c, k, extrapolate=True):
@@ -138,6 +143,53 @@ class BSpline(object):
     @classmethod
     def basis_element(cls, t, extrapolate=True):
         """Return a B-spline basis element ``B(x | t[0], ..., t[k+1])``.
+
+        Parameters
+        ----------
+        t : ndarray, shape (k+1,)
+            internal knots
+        extrapolate : bool, optional
+            whether to extrapolate beyond the basic interval, ``t[0] .. t[k+1]``,
+            or to return nans. Default is True.
+
+        Returns
+        -------
+        basis_element : callable
+            A callable representing a B-spline basis element for the knot
+            vector `t`.
+
+        Notes
+        -----
+        The order of the b-spline, `k`, is inferred from the length of `t` as
+        ``len(t)-2``. The knot vector is constructed by appending and prepending
+        ``k+1`` elements to internal knots `t`.
+
+        Examples
+        --------
+
+        Construct a cubic b-spline:
+
+        >>> from scipy.interpolate import BSpline
+        >>> b = BSpline.basis_element([0, 1, 2, 3, 4])
+        >>> k = b.k
+        >>> b.t[k:-k]
+        array([ 0.,  1.,  2.,  3.,  4.])
+        >>> k
+
+        Construct a second order b-spline on ``[0, 1, 1, 2]``, and compare
+        to its explicit form:
+
+        >>> t = [-1, 0, 1, 1, 2]
+        >>> b = BSpline.basis_element(t[1:])
+        >>> def f(x):
+        ...     return np.where(x < 1, x*x, (2. - x)**2)
+        >>>
+        >>> import matplotlib.pyplot as plt
+        >>> x = np.linspace(0, 2, 200)
+        >>> plt.plot(x, b(x), 'g', lw=3)
+        >>> plt.plot(x, f(x), 'r', lw=8, alpha=0.4)
+        >>> plt.show()
+
         """
         k = len(t) - 2
         t = np.r_[(t[0]-1,) * k, t, (t[-1]+1,) * k]
@@ -233,13 +285,13 @@ def make_interp_spline(x, y, k=3, t=None, deriv_l=None, deriv_r=None,
         Abscissas.
     y : ndarray, shape (n, ...)
         Ordinates.
+    k : int, optional
+        B-spline degree. Default is cubic, k=3.
     t : ndarray, shape (nt + k + 1,), optional.
         Knots.
         The number of knots needs to agree with the number of datapoints and
         the number of derivatives at the edges. Specifically, ``nt - n`` must
         equal ``len(deriv_l) + len(deriv_r)``.
-    k : int, optional
-        B-spline degree. Default is cubic, k=3.
     deriv_l : iterable of pairs (int, float) or None
         Derivatives known at ``x[0]``: (order, value)
         Default is None.
@@ -254,15 +306,35 @@ def make_interp_spline(x, y, k=3, t=None, deriv_l=None, deriv_r=None,
     -------
     tck : tuple
         Here ``c`` is an ndarray, shape(n, ...), representing the coefficients
-        of the B-spline of degree `k` with knots `t`, which interpolates
-        `x` and `y`.
-        `t` and `k` are returned unchanged.
+        of the B-spline of degree ``k`` with knots ``t``, which interpolates
+        ``x`` and ``y``.
+        ``t`` and ``k`` are returned unchanged.
 
     Examples
     --------
-    >>> c = make_interp_spline(x, y, t, k)
-    >>> b = BSpline(t, c, k)
-    >>> assert b(x) == y
+    >>> # use cubic interpolation on Chebyshev nodes
+    >>> from scipy.interpolate import BSpline, make_interp_spline
+    >>> N = 20
+    >>> jj = 2.*np.arange(N) + 1
+    >>> x = np.cos(np.pi * jj / 2 / N)[::-1]
+    >>> y = np.sqrt(1. - x**2)
+    >>>
+    >>> tck = make_interp_spline(x, y)
+    >>> b = BSpline(*tck)
+    >>> np.allclose(b(x), y)
+    True
+    >>> # default is a cubic spline with a not-a-knot boundary condition
+    >>> b.k
+    3
+    >>> # Here we use a 'natural' spline, with zero 2nd derivatives at edges:
+    >>> l, r = [(2, 0)], [(2, 0)]
+    >>> tck_n = make_interp_spline(x, y, deriv_l=l, deriv_r=r)
+    >>> b_n = BSpline(*tck_n)
+    >>> np.allclose(b_n(x), y)
+    True
+    >>> x0, x1 = x[0], x[-1]
+    >>> np.allclose([b_n(x0, 2), b_n(x1, 2)], [0, 0])
+    True
 
     """
     # special-case k=0 right away
