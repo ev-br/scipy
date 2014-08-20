@@ -559,7 +559,7 @@ def make_interp_per_full_matr(x, y, t, k):
     nt = t.size - k - 1
 
     # have `n` conditions for `nt` coefficients; need nt-n derivatives 
-    assert nt - n ==  k - 1
+    assert nt - n == k - 1
 
     # LHS: the collocation matrix + derivatives @edges
     A = np.zeros((nt, nt), dtype=np.float_)

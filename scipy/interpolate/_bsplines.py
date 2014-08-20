@@ -203,7 +203,7 @@ def _not_a_knot(x, k):
     x = np.asarray(x)
     if k % 2 != 1:
         raise ValueError("Odd degree for now only. Got %s." % k)
-    
+
     m = (k - 1) // 2
     t = x[m+1:-m-1]
     t = np.r_[(x[0],)*(k+1), t, (x[-1],)*(k+1)]
@@ -237,7 +237,7 @@ def make_interp_spline(x, y, k=3, t=None, deriv_l=None, deriv_r=None,
         Knots.
         The number of knots needs to agree with the number of datapoints and
         the number of derivatives at the edges. Specifically, ``nt - n`` must
-        equal ``len(deriv_l) + len(deriv_r)``. 
+        equal ``len(deriv_l) + len(deriv_r)``.
     k : int, optional
         B-spline degree. Default is cubic, k=3.
     deriv_l : iterable of pairs (int, float) or None
@@ -253,10 +253,10 @@ def make_interp_spline(x, y, k=3, t=None, deriv_l=None, deriv_r=None,
     Returns
     -------
     tck : tuple
-        Here ``c`` is an ndarray, shape(n, ...), representing the coefficients 
-        of the B-spline of degree `k` with knots `t`, which interpolates 
+        Here ``c`` is an ndarray, shape(n, ...), representing the coefficients
+        of the B-spline of degree `k` with knots `t`, which interpolates
         `x` and `y`.
-        `t` and `k`  are returned unchanged.
+        `t` and `k` are returned unchanged.
 
     Examples
     --------
