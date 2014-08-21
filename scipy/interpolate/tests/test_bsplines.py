@@ -267,6 +267,21 @@ class TestBSpline(TestCase):
         assert_allclose(b(xx).real, b_re(xx))
         assert_allclose(b(xx).imag, b_im(xx))
 
+    def test_derivative(self):
+        b, t, c, k = self._make_random_spline(k=5)
+        b0 = BSpline(t, c, k)
+        xx = np.linspace(t[k], t[-k-1], 20)
+        for j in range(1, k):
+            b = b.derivative()
+            assert_allclose(b0(xx, j), b(xx), atol=1e-12, rtol=1e-12)
+
+    def test_antiderivative(self):
+        b, t, c, k = self._make_random_spline()
+        xx = np.linspace(t[k], t[-k-1], 20)
+        
+        a = b.antiderivative()
+        d = a.derivative()
+        assert_allclose(b(xx), d(xx), atol=1e-14, rtol=1e-14)
 
 ### stolen from @pv, verbatim
 def _naive_B(x, k, i, t):

@@ -3,6 +3,7 @@ from __future__ import division, print_function, absolute_import
 import numpy as np
 from scipy.linalg import solve_banded, inv
 from . import _bspl
+from . import fitpack
 
 __all__ = ["BSpline", "make_interp_spline"]
 
@@ -33,6 +34,8 @@ class BSpline(object):
     -------
     __call__
     basis_element
+    derivative
+    antiderivative
 
     Notes
     -----
@@ -243,6 +246,59 @@ class BSpline(object):
             self.x = self.x.copy()
         if not self.c.flags.c_contiguous:
             self.c = self.c.copy()
+
+    def derivative(self, nu=1):
+        """Return a b-spline representing the derivative.
+
+        Parameters
+        ----------
+        nu : int, optional
+            Derivative order.
+            Default is 1.
+
+        Returns
+        -------
+        b : BSpline object
+            A new instance representing the derivative.
+
+        See Also
+        --------
+        splder, splatinder
+
+        """
+        c = self.c
+        # pad the c array if needed
+        ct = len(self.t) - len(c)
+        if ct > 0:
+            c = np.r_[c, [0]*ct]
+        tck = fitpack.splder((self.t, c, self.k), nu)
+        return self.__class__(*tck, extrapolate=self.extrapolate)
+
+    def antiderivative(self, nu=1):
+        """Return a b-spline representing the antiderivative.
+
+        Parameters
+        ----------
+        nu : int, optional
+            Antiderivative order. Default is 1.
+
+        Returns
+        -------
+        b : BSpline object
+            A new instance representing the antiderivative.
+
+        See Also
+        --------
+        splder, splantider
+
+        """
+        c = self.c
+        # pad the c array if needed
+        ct = len(self.t) - len(c)
+        if ct > 0:
+            c = np.r_[c, [0]*ct]
+        tck = fitpack.splantider((self.t, c, self.k), nu)
+        return self.__class__(*tck, extrapolate=self.extrapolate)
 
 
 #################################
