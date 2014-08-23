@@ -36,6 +36,7 @@ class BSpline(object):
     basis_element
     derivative
     antiderivative
+    integrate
 
     Notes
     -----
@@ -178,6 +179,7 @@ class BSpline(object):
         >>> b.t[k:-k]
         array([ 0.,  1.,  2.,  3.,  4.])
         >>> k
+        3
 
         Construct a second order b-spline on ``[0, 1, 1, 2]``, and compare
         to its explicit form:
@@ -270,7 +272,7 @@ class BSpline(object):
         # pad the c array if needed
         ct = len(self.t) - len(c)
         if ct > 0:
-            c = np.r_[c, [0]*ct]
+            c = np.r_[c, np.zeros((ct,)  + c.shape[1:])]
         tck = fitpack.splder((self.t, c, self.k), nu)
         return self.__class__(*tck, extrapolate=self.extrapolate)
 
@@ -299,6 +301,53 @@ class BSpline(object):
             c = np.r_[c, [0]*ct]
         tck = fitpack.splantider((self.t, c, self.k), nu)
         return self.__class__(*tck, extrapolate=self.extrapolate)
+
+    def integrate(self, a, b, extrapolate=None):
+        """Compute a definite integral of the spline.
+
+        Parameters
+        ----------
+        a : float
+            Lower limit of integration.
+        b : float
+            Upper limit of integration.
+        extrapolate : bool, optional
+            whether to extrapolate beyond the basic interval, ``t[k] .. t[-k-1]``,
+            or to take the spline to be zero outside of the basic interval.
+            Default is True.
+
+        Returns
+        -------
+        I : array_like
+            Definite integral of the spline over the interval ``[a, b]``.
+
+        """
+        if extrapolate is None:
+            extrapolate = self.extrapolate
+
+        if not extrapolate:
+            # shrink the integration interval
+            a, b = self.t[self.k], self.t[-self.k-1]
+
+        # compute the antiderivative
+        c = self.c
+        ct = len(self.t) - len(c)
+        if ct > 0:
+            c = np.r_[c, [0]*ct]
+        t, c, k = fitpack.splantider((self.t, c, self.k), 1)
+
+        # prepare x & c
+        if not c.flags.c_contiguous:
+            c = c.copy()
+
+        # evaluate the diff of antiderivatives
+        x = np.asarray([a, b], dtype=np.float_)
+        out = np.empty((2, int(np.prod(c.shape[1:]))),
+                dtype=c.dtype)
+        _bspl.evaluate_spline(t, c.reshape(c.shape[0], -1),
+                k, x, 0, extrapolate, out)
+        out = out[1] - out[0]
+        return out.reshape(c.shape[1:])
 
 
 #################################

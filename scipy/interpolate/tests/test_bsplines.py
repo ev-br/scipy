@@ -278,10 +278,19 @@ class TestBSpline(TestCase):
     def test_antiderivative(self):
         b, t, c, k = self._make_random_spline()
         xx = np.linspace(t[k], t[-k-1], 20)
-        
-        a = b.antiderivative()
-        d = a.derivative()
-        assert_allclose(b(xx), d(xx), atol=1e-14, rtol=1e-14)
+        assert_allclose(b.antiderivative().derivative()(xx),
+                        b(xx), atol=1e-14, rtol=1e-14)
+
+    def test_integral(self):
+        b = BSpline.basis_element([0, 1, 1, 2]) # x**2 for x < 1 else (x-2)**2
+        assert_allclose(b.integrate(0, 1), 1./3)
+        assert_allclose(b.integrate(1, 0), -1./3)
+
+        # extrapolate or zeros outside of [0, 2]; default is yes
+        assert_allclose(b.integrate(-1, 3), 4./3)
+        assert_allclose(b.integrate(-1, 3, extrapolate=True), 4./3)
+        assert_allclose(b.integrate(-1, 3, extrapolate=False), 2./3)
+
 
 ### stolen from @pv, verbatim
 def _naive_B(x, k, i, t):
