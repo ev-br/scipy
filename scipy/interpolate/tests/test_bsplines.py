@@ -291,6 +291,14 @@ class TestBSpline(TestCase):
         assert_allclose(b.integrate(-1, 3, extrapolate=True), 4./3)
         assert_allclose(b.integrate(-1, 3, extrapolate=False), 2./3)
 
+    def test_subclassing(self):
+        class B(BSpline):
+            pass
+
+        b = B.basis_element([0, 1, 2, 2])
+        assert_equal(b.derivative().__class__, b.__class__)
+        assert_equal(b.antiderivative().__class__, b.__class__)
+
 
 ### stolen from @pv, verbatim
 def _naive_B(x, k, i, t):
@@ -512,14 +520,13 @@ class TestInterp(TestCase):
         tck = make_interp_spline(x, y, k=1)
 
     def test_check_finite(self):
-		# check_finite defaults to True; nans and such trigger a ValueError
+        # check_finite defaults to True; nans and such trigger a ValueError
         x = np.arange(10).astype(float)
         y = x**2
 
         for z in [np.nan, np.inf, -np.inf]:
             y[-1] = z
             assert_raises(ValueError, make_interp_spline, x, y)
-
 
     def test_multiple_rhs(self):
         yy = np.c_[np.sin(self.xx), np.cos(self.xx)]
