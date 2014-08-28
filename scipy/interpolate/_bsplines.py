@@ -272,7 +272,7 @@ class BSpline(object):
         # pad the c array if needed
         ct = len(self.t) - len(c)
         if ct > 0:
-            c = np.r_[c, np.zeros((ct,)  + c.shape[1:])]
+            c = np.r_[c, np.zeros((ct,) + c.shape[1:])]
         tck = fitpack.splder((self.t, c, self.k), nu)
         return self.__class__(*tck, extrapolate=self.extrapolate)
 

@@ -216,7 +216,7 @@ class TestBSpline(TestCase):
         np.random.seed(1234)
         c = np.r_[0, 0, np.random.random(5), 0, 0]
         b = BSpline(t, c, k)
-        
+
         # b is continuous at x != 6 (triple knot)
         x = np.asarray([1, 3, 4, 6])
         assert_allclose(b(x[x != 6] - 1e-10),
@@ -224,13 +224,13 @@ class TestBSpline(TestCase):
         assert_(not np.allclose(b(6.-1e-10), b(6+1e-10)))
 
         # 1st derivative jumps at double knots, 1 & 6:
-        x0 = np.asarray([3, 4]) 
+        x0 = np.asarray([3, 4])
         assert_allclose(b(x0 - 1e-10, nu=1),
                         b(x0 + 1e-10, nu=1))
         x1 = np.asarray([1, 6])
         assert_(not np.all(np.allclose(b(x1 - 1e-10, nu=1),
                                        b(x1 + 1e-10, nu=1))))
-        
+
         # 2nd derivative is not guaranteed to be continuous
         assert_(not np.all(np.allclose(b(x - 1e-10, nu=2),
                                        b(x + 1e-10, nu=2))))
@@ -238,8 +238,8 @@ class TestBSpline(TestCase):
     def test_basis_element_quadratic(self):
         xx = np.linspace(-1, 4, 20)
         conds = [xx < 1, (xx > 1) & (xx < 2), xx > 2]
-        funcs = [lambda x: x*x/2., 
-                 lambda x: 3./4 - (x-3./2)**2, 
+        funcs = [lambda x: x*x/2.,
+                 lambda x: 3./4 - (x-3./2)**2,
                  lambda x: (3.-x)**2 / 2]
         pieces = np.piecewise(xx, conds, funcs)
         b = BSpline.basis_element(t=[0, 1, 2, 3])
@@ -282,7 +282,7 @@ class TestBSpline(TestCase):
                         b(xx), atol=1e-14, rtol=1e-14)
 
     def test_integral(self):
-        b = BSpline.basis_element([0, 1, 1, 2]) # x**2 for x < 1 else (x-2)**2
+        b = BSpline.basis_element([0, 1, 1, 2])  # x**2 for x < 1 else (x-2)**2
         assert_allclose(b.integrate(0, 1), 1./3)
         assert_allclose(b.integrate(1, 0), -1./3)
 
@@ -348,8 +348,8 @@ def _sum_basis_elements(x, t, c, k):
 def B_012(x):
     """ A linear B-spline function B(x | 0, 1, 2)"""
     x = np.atleast_1d(x)
-    return np.piecewise(x, [(x < 0) | (x > 2), 
-                            (x >= 0) & (x < 1), 
+    return np.piecewise(x, [(x < 0) | (x > 2),
+                            (x >= 0) & (x < 1),
                             (x >= 1) & (x <= 2)],
                            [lambda x: 0., lambda x: x, lambda x: 2.-x])
 
@@ -362,11 +362,11 @@ def _make_multiples(b):
     t1[17:19] = t1[17]
     t1[22] = t1[21]
     yield BSpline(t1, c, k)
-    
+
     t1 = b.t.copy()
     t1[:k+1] = t1[0]
     yield BSpline(t1, c, k)
-    
+
     t1 = b.t.copy()
     t1[:2*k + 2] = t1[0]
     yield BSpline(t1, c, k)
@@ -375,7 +375,7 @@ def _make_multiples(b):
     t1[-k-1:] = t1[-1]
     yield BSpline(t1, c, k)
 
-    t1 = b.t.copy()    
+    t1 = b.t.copy()
     t1[-2*k-2:] = t1[-1]
     yield BSpline(t1, c, k)
 
@@ -467,7 +467,7 @@ class TestInterp(TestCase):
 
     def test_knots_not_data_sites(self):
         # Knots need not coincide with the data sites.
-        # use a quadratic spline, knots are @ data averages, 
+        # use a quadratic spline, knots are @ data averages,
         # two additional constraints are zero 2nd derivs @ edges
         k, n = 2, 8
         t = np.r_[(self.xx[0],)*(k+1),
@@ -505,7 +505,7 @@ class TestInterp(TestCase):
     def test_sliced_input(self):
         # cython code chokes on non C contiguous arrays
         xx = np.linspace(-1, 1, 100)
-        
+
         x = xx[::5]
         y = xx[::5]
 
@@ -548,6 +548,7 @@ class TestInterp(TestCase):
         cf = make_interp_full_matr(x, y, t, k)
         assert_allclose(cb, cf, atol=1e-14, rtol=1e-14)
 
+
 def make_interp_full_matr(x, y, t, k):
     """Assemble an spline order k with knots t to interpolate
     y(x) using full matrices.
@@ -560,7 +561,7 @@ def make_interp_full_matr(x, y, t, k):
     n = x.size
 
     A = np.zeros((n, n), dtype=np.float_)
-    
+
     for j in range(n):
         xval = x[j]
         if xval == t[k]:
@@ -571,9 +572,10 @@ def make_interp_full_matr(x, y, t, k):
         # fill a row
         bb = _bspl.evaluate_all_bspl(t, k, xval, left)
         A[j, left-k:left+1] = bb
-    
+
     c = sl.solve(A, y)
     return c
+
 
 ### XXX: 'periodic' interp spline using full matrices
 def make_interp_per_full_matr(x, y, t, k):
@@ -582,15 +584,15 @@ def make_interp_per_full_matr(x, y, t, k):
     n = x.size
     nt = t.size - k - 1
 
-    # have `n` conditions for `nt` coefficients; need nt-n derivatives 
+    # have `n` conditions for `nt` coefficients; need nt-n derivatives
     assert nt - n == k - 1
 
     # LHS: the collocation matrix + derivatives @edges
     A = np.zeros((nt, nt), dtype=np.float_)
-    
+
     # derivatives @ x[0]:
     offset = 0
-    
+
     if x[0] == t[k]:
         left = k
     else:
@@ -610,7 +612,7 @@ def make_interp_per_full_matr(x, y, t, k):
 
     # RHS
     y = np.r_[[0]*(k-1), y]
-    
+
     # collocation matrix
     for j in range(n):
         xval = x[j]
