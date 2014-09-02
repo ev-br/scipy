@@ -372,11 +372,13 @@ def _augknt(x, k):
     return np.r_[(x[0],)*k, x, (x[-1],)*k]
 
 
-def _as_float_array(x):
+def _as_float_array(x, check_finite=False):
     """Convert the input into a C contiguous float array."""
     x = np.ascontiguousarray(x)
     if not np.issubdtype(x.dtype, np.inexact):
         x = x.astype(float)
+    if check_finite and not np.isfinite(x).all():
+        raise ValueError("Array must not contain infs or nans.")
     return x
 
 
@@ -403,8 +405,10 @@ def make_interp_spline(x, y, k=3, t=None, deriv_l=None, deriv_r=None,
     deriv_r : iterable of pairs (int, float) or None
         Derivatives known at ``x[-1]``.
         Default is None.
-    check_finite : bool
-        This forwards directly to the lin. algebra routines [solve_banded].
+    check_finite : bool, optional
+        Whether to check that the input arrays contain only finite numbers.
+        Disabling may give a performance gain, but may result in problems
+        (crashes, non-termination) if the inputs do contain infinities or NaNs.
         Default is True.
 
     Returns
@@ -465,7 +469,9 @@ def make_interp_spline(x, y, k=3, t=None, deriv_l=None, deriv_r=None,
         else:
             t = _augknt(x, k)
 
-    x, y, t = map(_as_float_array, (x, y, t))
+    x = _as_float_array(x, check_finite)
+    y = _as_float_array(y, check_finite)
+    t = _as_float_array(t, check_finite)
     k = int(k)
 
     if x.ndim != 1 or np.any(x[1:] - x[:-1] <= 0):

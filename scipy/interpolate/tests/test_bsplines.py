@@ -511,6 +511,16 @@ class TestInterp(TestCase):
 
         tck = make_interp_spline(x, y, k=1)
 
+    def test_check_finite(self):
+		# check_finite defaults to True; nans and such trigger a ValueError
+        x = np.arange(10).astype(float)
+        y = x**2
+
+        for z in [np.nan, np.inf, -np.inf]:
+            y[-1] = z
+            assert_raises(ValueError, make_interp_spline, x, y)
+
+
     def test_multiple_rhs(self):
         yy = np.c_[np.sin(self.xx), np.cos(self.xx)]
         der_l = [(1, [1., 2.])]
