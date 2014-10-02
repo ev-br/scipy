@@ -1564,6 +1564,13 @@ class TestRdist(TestCase):
                                 values, decimal=5)
 
 
+class TestTruncExpon(TestCase):
+    def test_ppf(self):
+        # check ppf-cdf roundtrip for small x, gh-4035
+        val = stats.truncexpon.ppf(stats.truncexpon.cdf(1e-100, 1), 1)
+        assert_equal(val, 1e-100)
+
+
 def test_540_567():
     # test for nan returned in tickets 540, 567
     assert_almost_equal(stats.norm.cdf(-1.7624320982),0.03899815971089126,
