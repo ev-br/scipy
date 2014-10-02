@@ -9,6 +9,8 @@ from numpy.testing import (assert_, assert_almost_equal, assert_array_equal,
 import numpy as np
 from numpy import array, float64, matrix
 
+import warnings
+
 from scipy import optimize
 from scipy.special import lambertw
 from scipy.optimize.minpack import leastsq, curve_fit, fixed_point
@@ -378,7 +380,6 @@ class TestCurveFit(TestCase):
         assert_(pcov.shape == (2, 2))
         assert_array_equal(pcov, pcov_expected)
 
-    @dec.knownfailureif(True, "fails because assert_warns does not clear __warningregistry__")
     def test_array_like(self):
         # Test sequence input.  Regression test for gh-3037.
         def f_linear(x, a, b):
@@ -386,7 +387,9 @@ class TestCurveFit(TestCase):
 
         x = [1, 2, 3, 4]
         y = [2, 4, 6, 8]
-        assert_allclose(curve_fit(f_linear, x, y)[0], [2, 0], atol=1e-10)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            assert_allclose(curve_fit(f_linear, x, y)[0], [2, 0], atol=1e-10)
 
     @dec.knownfailureif(True, "fails because assert_warns does not clear __warningregistry__")
     def test_indeterminate_covariance(self):
@@ -394,6 +397,7 @@ class TestCurveFit(TestCase):
         xdata = np.array([1, 2, 3, 4, 5, 6])
         ydata = np.array([1, 2, 3, 4, 5.5, 6])
         _assert_warns(OptimizeWarning, curve_fit, lambda x, a, b: a*x, xdata, ydata)
+
 
 class TestFixedPoint(TestCase):
 
