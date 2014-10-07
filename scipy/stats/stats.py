@@ -4269,8 +4269,8 @@ def combine_pvalues(pvalues, method='fisher', weights=None):
     method: str
         Name of method to use to combine p-values. The following methods are
         available:
-            "fisher": Fisher's method (Fisher's combined probability test)
-            "stouffer": Stouffer's Z-score method
+            * "fisher": Fisher's method (Fisher's combined probability test)
+            * "stouffer": Stouffer's Z-score method
     weights: array_like, 1-D, optional
         Optional array of weights used only for Stouffer's Z-score method.
 
@@ -4278,8 +4278,8 @@ def combine_pvalues(pvalues, method='fisher', weights=None):
     -------
     statistic: float
         The statistic calculated by the specified method:
-            "fisher": The chi-squared statistic
-            "stouffer": The Z-score
+            * "fisher": The chi-squared statistic
+            * "stouffer": The Z-score
     pval: float
         The combined p-value.
 
