@@ -28,7 +28,7 @@ ctypedef fused double_or_complex:
 @cython.boundscheck(False)
 cdef inline int find_interval(double[::1] t,
                        int k,
-                       double xval, 
+                       double xval,
                        int prev_l,
                        int extrapolate) nogil:
     """
@@ -90,12 +90,12 @@ cdef inline int find_interval(double[::1] t,
 @cython.boundscheck(False)
 @cython.cdivision(True)
 def evaluate_spline(double[::1] t,
-             double_or_complex[:,::1] c,
+             double_or_complex[:, ::1] c,
              int k,
              double[::1] xp,
              int der,
              int extrapolate,
-             double_or_complex[:,::1] out):
+             double_or_complex[:, ::1] out):
     """
     Evaluate a spline in the B-spline basis.
 
@@ -191,13 +191,19 @@ def evaluate_all_bspl(double[::1] t, int k, double xval, int m, int nu=0):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def _colloc(double[::1] x, double[::1] t, int k, int offset=0):
-    """Build the B-spline collocation matrix.  
+    """Build the B-spline collocation matrix.
 
-    :math:`B_{j,l} = B_l(x_j)`, so that row ``j`` contains
-    all the B-splines which are non-zero at ``x_j``.
+    The collocation matrix is defined as :math:`B_{j,l} = B_l(x_j)`,
+    so that row ``j`` contains all the B-splines which are non-zero
+    at ``x_j``.
 
-    The matrix is constructed in the banded storage, ready for
-    consumption by ``scipy.linalg.solve_banded``.
+    The matrix is constructed in the LAPACK banded storage. 
+    Basically, for an N-by-N matrix A with ku upper diagonals and 
+    kl lower diagonals, the shape of the array Ab is (2*kl + ku +1, N),
+    where the last kl+ku+1 rows of Ab contain the diagonals of A, and
+    the first kl rows of Ab are not referenced.
+    For more info see, e.g. the docs for the ``*gbsv`` routine.
+
     This routine is not supposed to be called directly, and
     does no error checking.
 
@@ -213,22 +219,25 @@ def _colloc(double[::1] x, double[::1] t, int k, int offset=0):
 
     Returns
     -------
-    Ab : ndarray, shape ((ku+kl+1), nt)
+    ab : ndarray, shape ((2*kl + ku + 1), nt)
         B-spline collocation matrix in the band storage with
         ``ku`` upper diagonals and ``kl`` lower diagonals.
     (kl, ku) : (int, int)
         the number of lower and upper diagonals
-        
+
+    Specifically, kl = kl = k.
+
     """
     cdef int nt = t.shape[0] - k -1
     cdef int left, j, a, kl, ku, clmn
     cdef double xval
 
     kl = ku = k
-    cdef cnp.ndarray[cnp.float_t, ndim=2] Ab = np.zeros((kl + ku + 1, nt),
+    cdef cnp.ndarray[cnp.float_t, ndim=2] ab = np.zeros((2*kl + ku + 1, nt),
+            dtype=np.float_, order='F')
+    cdef cnp.ndarray[cnp.float_t, ndim=1] wrk = np.empty(2*k + 2,
             dtype=np.float_)
-    cdef cnp.ndarray[cnp.float_t, ndim=1] out = np.empty(2*k+2, dtype=np.float_)
-    
+
     # collocation matrix
     left = k
     for j in range(x.shape[0]):
@@ -237,24 +246,24 @@ def _colloc(double[::1] x, double[::1] t, int k, int offset=0):
         left = find_interval(t, k, xval, left, extrapolate=False)
 
         # fill a row
-        _deBoor_D(&t[0], xval, k, left, 0, &out[0])
+        _deBoor_D(&t[0], xval, k, left, 0, &wrk[0])
         # for a full matrix it would be ``A[j + offset, left-k:left+1] = bb``
         # in the banded storage, need to spread the row over
         for a in range(k+1):
             clmn = left - k + a
-            Ab[ku + j + offset - clmn, clmn] = out[a]
-    return Ab, (kl, ku)
+            ab[kl + ku + j + offset - clmn, clmn] = wrk[a]
+    return ab, (kl, ku)
 
 
-def _handle_lhs_derivatives(double[::1]t, int k, double xval, ab, 
+def _handle_lhs_derivatives(double[::1]t, int k, double xval,
+                            cnp.ndarray ab,
                             kl_ku, deriv_ords, int offset=0):
     """ Fill in the entries of the collocation matrix corresponding to known
     derivatives at xval.
-    
-    The collocation matrix is in the banded storage, as prepared by
-    _colloc and ready for consumption by scipy.linalg.solve_banded.
+
+    The collocation matrix is in the banded storage, as prepared by _colloc.
     No error checking.
-    
+
     Parameters
     ----------
     t : ndarray, shape (nt + k + 1,)
@@ -263,7 +272,7 @@ def _handle_lhs_derivatives(double[::1]t, int k, double xval, ab,
         B-spline order
     xval : float
         The value at which to evaluate the derivatives at.
-    ab : ndarray, shape(kl + ku + 1, nt)
+    ab : ndarray, shape(2*kl + ku + 1, nt)
         B-spline collocation matrix.
         This argument is modified *in-place*.
     kl_ku : (integer, integer)
@@ -272,22 +281,20 @@ def _handle_lhs_derivatives(double[::1]t, int k, double xval, ab,
         Orders of derivatives known at xval
     offset : integer, optional
         Skip this many rows of the matrix ab.
-    
+
     """
     cdef int kl, ku, left, nu, a, clmn, row
 
     kl, ku = kl_ku
-    cdef double[::1] out = np.empty(2*k+2, dtype=np.float_)
-
+    cdef double[::1] wrk = np.empty(2*k+2, dtype=np.float_)
 
     # derivatives @ xval
     left = find_interval(t, k, xval, k, extrapolate=False)
     for row in range(deriv_ords.size):
         nu = deriv_ords[row]
-        _deBoor_D(&t[0], xval, k, left, nu, &out[0])
+        _deBoor_D(&t[0], xval, k, left, nu, &wrk[0])
         # if A were a full matrix, it would be just
         # ``A[row + offset, left-k:left+1] = bb``.
         for a in range(k+1):
             clmn = left - k + a
-            ab[ku + offset + row - clmn, clmn] = out[a]
-
+            ab[kl + ku + offset + row - clmn, clmn] = wrk[a]
