@@ -8,12 +8,11 @@ import numpy as np
 from scipy.lib.six import xrange
 from numpy import (pi, asarray, floor, isscalar, iscomplex, real, imag, sqrt,
                    where, mgrid, cos, sin, exp, place, issubdtype, extract,
-                   less, vectorize, inexact, nan, zeros, atleast_1d, sinc)
+                   less, inexact, nan, zeros, atleast_1d, sinc)
 from ._ufuncs import (ellipkm1, mathieu_a, mathieu_b, iv, jv, gamma, psi, zeta,
                       hankel1, hankel2, yv, kv, gammaln, ndtri, errprint, poch,
                       binom, xlogy)
 from . import _ufuncs
-import types
 from . import specfun
 from . import orthogonal
 import warnings
