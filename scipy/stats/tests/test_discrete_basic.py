@@ -165,9 +165,8 @@ def check_discrete_chisquare(distfn, arg, rvs, alpha, msg):
     histsupp[0] = distfn.a
 
     # find sample frequencies and perform chisquare test
-    freq,hsupp = np.histogram(rvs,histsupp)
-    cdfs = distfn.cdf(distsupp,*arg)
-    (chis,pval) = stats.chisquare(np.array(freq),n*distmass)
+    freq,hsupp = np.histogram(rvs, histsupp)
+    chis, pval = stats.chisquare(np.array(freq), n*distmass)
 
     npt.assert_(pval > alpha, 'chisquare - test for %s'
            ' at arg = %s with pval = %s' % (msg,str(arg),str(pval)))

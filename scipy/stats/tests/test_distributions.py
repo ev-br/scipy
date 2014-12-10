@@ -718,7 +718,7 @@ class TestF(TestCase):
     @dec.knownfailureif(True, 'f stats does not properly broadcast')
     def test_stats_broadcast(self):
         # stats do not fully broadcast just yet
-        mv = stats.f.stats(dfn=11, dfd=[11, 12])
+        stats.f.stats(dfn=11, dfd=[11, 12])
 
 
 def test_rvgeneric_std():
@@ -1535,7 +1535,7 @@ def test_540_567():
 def test_regression_ticket_1316():
     # The following was raising an exception, because _construct_default_doc()
     # did not handle the default keyword extradoc=None.  See ticket #1316.
-    g = stats._continuous_distns.gamma_gen(name='gamma')
+    stats._continuous_distns.gamma_gen(name='gamma')
 
 
 def test_regression_ticket_1326():

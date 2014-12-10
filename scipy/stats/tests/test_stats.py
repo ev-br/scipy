@@ -1204,7 +1204,7 @@ class TestMode(TestCase):
     def test_strings(self):
         data1 = ['rain', 'showers', 'showers']
         vals = stats.mode(data1)
-        expected = ['showers']
+        # expected = ['showers']
         assert_equal(vals[0][0], 'showers')
         assert_equal(vals[1][0], 2)
 
