@@ -1459,7 +1459,6 @@ class TestRegularGridInterpolator(TestCase):
         # from #3703; test that interpolator object construction succeeds
         values = np.ones((10, 20, 30), dtype='>f4')
         points = [np.arange(n) for n in values.shape]
-        xi = [(1, 1, 1)]
         interpolator = RegularGridInterpolator(points, values)
         interpolator = RegularGridInterpolator(points, values, fill_value=0.)
 

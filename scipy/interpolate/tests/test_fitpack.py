@@ -5,7 +5,7 @@ import os
 import numpy as np
 from numpy.testing import (assert_equal, assert_allclose, assert_,
     TestCase, assert_raises, run_module_suite, assert_almost_equal,
-    assert_raises, assert_array_almost_equal)
+    assert_array_almost_equal)
 from numpy import array, asarray, pi, sin, cos, arange, dot, ravel, sqrt, round
 from scipy import interpolate
 from scipy.interpolate.fitpack import (splrep, splev, bisplrep, bisplev,
@@ -77,7 +77,7 @@ class TestSmokeTests(TestCase):
             xe = b
         x = a+(b-a)*arange(N+1,dtype=float)/float(N)    # nodes
         x1 = a+(b-a)*arange(1,N,dtype=float)/float(N-1)  # middle points of the nodes
-        v,v1 = f(x),f(x1)
+        v = f(x)
         nk = []
 
         def err_est(k, d):
@@ -190,7 +190,7 @@ class TestSmokeTests(TestCase):
             xe = b
         x = a+(b-a)*arange(N+1,dtype=float)/float(N)    # nodes
         x1 = a + (b-a)*arange(1,N,dtype=float)/float(N-1)  # middle points of the nodes
-        v,v1 = f(x),f(x1)
+        v = f(x)
         put(" u = %s   N = %d" % (repr(round(dx,3)),N))
         put("  k  :  [x(u), %s(x(u))]  Error of splprep  Error of splrep " % (f(0,None)))
         for k in range(1,6):

@@ -146,7 +146,6 @@ class CheckKrogh(TestCase):
                                 np.zeros(len(self.test_xs)))
 
     def test_hermite(self):
-        xs = [0,0,0,1,1,1,2]
         ys = [self.true_poly(0),
               self.true_poly.deriv(1)(0),
               self.true_poly.deriv(2)(0),
@@ -378,7 +377,6 @@ class CheckPiecewise(TestCase):
             warnings.filterwarnings('ignore', category=DeprecationWarning)
             P = PiecewisePolynomial(self.xi,self.yi,4)
 
-        n = 4
         assert_array_equal(np.shape(P.derivative(0,1)), ())
         assert_array_equal(np.shape(P.derivative(np.array(0),1)), ())
         assert_array_equal(np.shape(P.derivative([0],1)), (1,))
@@ -410,7 +408,6 @@ class CheckPiecewise(TestCase):
             P = PiecewisePolynomial(self.xi, np.multiply.outer(self.yi,
                                                                np.arange(3)),4)
 
-        n = 4
         assert_array_equal(np.shape(P.derivative(0,1)), (3,))
         assert_array_equal(np.shape(P.derivative([0],1)), (1,3))
         assert_array_equal(np.shape(P.derivative([0,1],1)), (2,3))
