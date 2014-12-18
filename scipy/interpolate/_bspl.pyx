@@ -298,3 +298,82 @@ def _handle_lhs_derivatives(double[::1]t, int k, double xval,
         for a in range(k+1):
             clmn = left - k + a
             ab[kl + ku + offset + row - clmn, clmn] = wrk[a]
+
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def _colloc_lsq(double[::1] x, double[::1] t, int k, cnp.ndarray y):
+    """Build the B-spline collocation matrix.
+
+    The collocation matrix is defined as :math:`B_{j,l} = B_l(x_j)`,
+    so that row ``j`` contains all the B-splines which are non-zero
+    at ``x_j``.
+
+    The matrix is constructed in the LAPACK banded storage. 
+    Basically, for an N-by-N matrix A with ku upper diagonals and 
+    kl lower diagonals, the shape of the array Ab is (2*kl + ku +1, N),
+    where the last kl+ku+1 rows of Ab contain the diagonals of A, and
+    the first kl rows of Ab are not referenced.
+    For more info see, e.g. the docs for the ``*gbsv`` routine.
+
+    This routine is not supposed to be called directly, and
+    does no error checking.
+
+    Parameters
+    x : ndarray, shape (n,)
+        sorted 1D array of x values
+    t : ndarray, shape (nt + k + 1,)
+        sorted 1D array of knots
+    k : int
+        spline order
+    offset : int, optional
+        skip this many rows
+
+    Returns
+    -------
+    ab : ndarray, shape ((2*kl + ku + 1), nt)
+        B-spline collocation matrix in the band storage with
+        ``ku`` upper diagonals and ``kl`` lower diagonals.
+    (kl, ku) : (int, int)
+        the number of lower and upper diagonals
+
+    Specifically, kl = kl = k.
+
+    """
+    cdef:
+        int j, r, s, row, clmn, left
+        int m = x.size
+        int n = t.size - k - 1
+        double xval
+
+        cnp.ndarray[cnp.float_t, ndim=2] ab = np.zeros((k+1, n),
+            dtype=np.float_, order='F')
+        cnp.ndarray[cnp.float_t, ndim=1] wrk = np.empty(2*k + 2,
+            dtype=np.float_)
+        cnp.ndarray rhs = np.zeros(n, dtype=y.dtype)   # can be complex
+    
+    left = k
+    for j in range(m):
+        xval = x[j]
+        # find interval
+        left = find_interval(t, k, xval, left, extrapolate=False)
+            
+        # non-zero B-splines at xval
+        _deBoor_D(&t[0], xval, k, left, 0, &wrk[0])
+
+        # non-zero values of A.T @ A: banded storage w/ lower=True
+        # The colloq matrix in full storage would be
+        #   A[j, left-k:left+1] = wrk,
+        # Here we work out A.T @ A *in the banded storage* w/lower=True
+        # see the docstring of `scipy.linalg.cholesky_banded`.
+        for r in range(k+1):
+            row = left - k + r
+            for s in range(r+1):
+                clmn = left - k + s
+                ab[r-s, clmn] += wrk[r] * wrk[s]
+                
+            # ... and A.T @ y
+            rhs[row] += wrk[r] * y[j]
+
+    return (ab, True), rhs

@@ -4,7 +4,7 @@ from numpy.testing import (run_module_suite, TestCase, assert_equal,
 from numpy.testing.decorators import skipif, knownfailureif
 
 from scipy.interpolate import (BSpline, splev, splrep, BPoly, PPoly,
-        make_interp_spline, _bspl)
+        make_interp_spline, make_lsq_spline, _bspl)
 from scipy.interpolate._bsplines import _not_a_knot, _augknt
 import scipy.linalg as sl
 
@@ -675,6 +675,99 @@ def make_interp_per_full_matr(x, y, t, k):
 
     c = sl.solve(A, y)
     return c
+
+
+def make_lsq_full_matrix(x, y, t, k=3):
+    """Make the least-square spline, full matrices."""
+    x, y, t = map(np.asarray, (x, y, t))
+    m = x.size
+    n = t.size - k - 1
+
+    A = np.zeros((m, n), dtype=np.float_)
+    
+    i = 0
+    for j in range(m):
+        xval = x[j]
+        # find interval
+        if xval == t[k]:
+            left = k
+        else:
+            left = np.searchsorted(t, xval) - 1
+            
+        # fill a row
+        bb = _bspl.evaluate_all_bspl(t, k, xval, left)
+        A[j, left-k:left+1] = bb
+
+    # have observation matrix, can solve the LSQ problem    
+    B = np.dot(A.T, A)
+    Y = np.dot(A.T, y)
+    c = sl.solve(B, Y)
+
+    return c, (A, Y)
+
+
+
+class TestLSQ(TestCase):
+
+    np.random.seed(1234)
+    n, k = 13, 3
+    x = np.sort(np.random.random(n))
+    y = np.random.random(n)
+    t = _augknt(np.linspace(x[0], x[-1], 5), k)
+
+    def test_lstsq(self):
+        # check vs a full matrix, also vs numpy.lstsq
+        x, y, t, k = self.x, self.y, self.t, self.k
+
+        c0, AY = make_lsq_full_matrix(x, y, t, k)
+        t, c, k = make_lsq_spline(x, y, t, k)
+
+        assert_allclose(c, c0)
+
+        aa, yy = AY
+        c1, _, _, _ = np.linalg.lstsq(aa, y)
+        assert_allclose(c, c1)
+
+    def test_weights(self):
+        # 1. are accepted
+        # 2. weight = 0 and corresp `y` does not matter
+        pass
+
+    def test_multiple_rhs(self):
+        pass
+
+    def test_complex(self):
+        # cmplx-valued `y`
+        pass
+
+    def test_int_xy(self):
+        x = np.arange(10).astype(np.int_)
+        y = np.arange(10).astype(np.int_)
+        k = 1
+        t = _augknt(x, k)
+
+        # cython chokes on "buffer type mismatch"
+        tck = make_lsq_spline(x, y, t, k=k)
+
+    def test_sliced_input(self):
+        # cython code chokes on non C contiguous arrays
+        xx = np.linspace(-1, 1, 100)
+
+        x = xx[::5]
+        y = xx[::5]
+        t = _augknt(x, 1)
+
+        tck = make_lsq_spline(x, y, t, k=1)
+
+    def test_checkfinite(self):
+        # check_finite defaults to True; nans and such trigger a ValueError
+        x = np.arange(12).astype(float)
+        y = x**2
+        t = _augknt(x, 3)
+
+        for z in [np.nan, np.inf, -np.inf]:
+            y[-1] = z
+            assert_raises(ValueError, make_lsq_spline, x, y, t)
 
 
 if __name__ == "__main__":

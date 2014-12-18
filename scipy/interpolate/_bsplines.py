@@ -4,11 +4,12 @@ import functools
 import operator
 
 import numpy as np
-from scipy.linalg import get_lapack_funcs, LinAlgError
+from scipy.linalg import (get_lapack_funcs, LinAlgError,
+                          cholesky_banded, cho_solve_banded)
 from . import _bspl
 from . import fitpack
 
-__all__ = ["BSpline", "make_interp_spline"]
+__all__ = ["BSpline", "make_interp_spline", "make_lsq_spline"]
 
 
 # copy-paste from interpolate.py
@@ -600,3 +601,80 @@ def make_interp_spline(x, y, k=3, t=None, deriv_l=None, deriv_r=None,
         raise ValueError('illegal value in %d-th argument of internal gbsv' % -info)
 
     return t, c.reshape((nt,) + y.shape[1:]), k
+
+
+def make_lsq_spline(x, y, t, k=3, w=None, check_finite=True):
+    r"""Compute the (coefficients of) an LSQ B-spline.
+
+    The result is a linear combination  
+
+    .. math::
+
+            S(x) = \sum_j c_j B_j(x; t)
+
+    of the B-spline basis elements, :math:`B_j(x; t)`, which minimizes
+
+    .. math::
+
+        \sum_{j} \left( w_j * (S(x_j) - y_j) \right)^2
+
+    Parameters
+    ----------
+    x : ndarray, shape (m,)
+        Abscissas.
+    y : ndarray, shape (m, ...)
+        Ordinates.
+    t : ndarray, shape (n + k + 1,).
+        Knots.
+        Knots and data points must satisfy Schoenberg-Whitney conditions.
+    k : int, optional
+        B-spline degree. Default is cubic, k=3.
+    w : ndarray, shape (n,)
+        Weights.
+    check_finite : bool, optional
+        Whether to check that the input arrays contain only finite numbers.
+        Disabling may give a performance gain, but may result in problems
+        (crashes, non-termination) if the inputs do contain infinities or NaNs.
+        Default is True.
+
+    Returns
+    -------
+    tck : tuple
+        Here ``c`` is an ndarray, shape(n, ...), representing the coefficients
+        of the B-spline of degree ``k`` with knots ``t``.
+        ``t`` and ``k`` are returned unchanged.
+
+
+    See Also
+    --------
+    BSpline : base class representing the B-spline objects
+    make_interp_spline
+    
+    """
+    x = _as_float_array(x, check_finite)
+    y = _as_float_array(y, check_finite)
+    t = _as_float_array(t, check_finite)
+    if w is not None:
+        w = _as_float_array(w, check_finite)
+    else:
+        w = np.ones_like(x)
+    k = int(k)
+        
+    # TODO: validations
+    assert x.size == y.size
+        
+    m = x.size
+    n = t.size - k - 1
+
+    # TODO: extradim for y
+    # return ab AND lower/upper!
+    ab_lower, rhs = _bspl._colloc_lsq(x, t, k, y)
+
+    # have observation matrix & rhs, can solve the LSQ problem
+    # TODO: overwrite_ab etc
+    ab, lower = ab_lower
+    cho_decomp = cholesky_banded(ab, lower=lower, check_finite=check_finite)
+    c = cho_solve_banded((cho_decomp, lower), rhs)
+
+    # TODO: reshape c
+    return t, c, k
