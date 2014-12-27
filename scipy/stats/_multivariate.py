@@ -281,7 +281,7 @@ class multivariate_normal_gen(object):
         Probability density function.
     logpdf(x, mean=None, cov=1, allow_singular=False)
         Log of the probability density function.
-    rvs(mean=None, cov=1, size=1, seed=None)
+    rvs(mean=None, cov=1, size=1, random_state=None)
         Draw random samples from a multivariate normal distribution.
     entropy()
         Compute the differential entropy of the multivariate normal.
@@ -691,7 +691,7 @@ class dirichlet_gen(object):
         Probability density function.
     logpdf(x, alpha)
         Log of the probability density function.
-    rvs(alpha, size=1, seed=None)
+    rvs(alpha, size=1, random_state=None)
         Draw random samples from a Dirichlet distribution.
     mean(alpha)
         The mean of the Dirichlet distribution
@@ -1001,7 +1001,7 @@ class wishart_gen(object):
         Probability density function.
     logpdf(x, df, scale)
         Log of the probability density function.
-    rvs(df, scale, size=1)
+    rvs(df, scale, size=1, random_state=None)
         Draw random samples from a Wishart distribution.
     entropy()
         Compute the differential entropy of the Wishart distribution.
@@ -1757,7 +1757,7 @@ class invwishart_gen(wishart_gen):
         Probability density function.
     logpdf(x, df, scale)
         Log of the probability density function.
-    rvs(df, scale, size=1)
+    rvs(df, scale, size=1, random_state=None)
         Draw random samples from an inverse Wishart distribution.
 
     Parameters
