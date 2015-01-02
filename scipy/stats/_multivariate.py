@@ -1401,7 +1401,7 @@ class wishart_gen(object):
         out = self._var(dim, df, scale)
         return _squeeze_output(out)
 
-    def _standard_rvs(self, n, shape, dim, df):
+    def _standard_rvs(self, n, shape, dim, df, random_state):
         """
         Parameters
         ----------
@@ -1413,6 +1413,10 @@ class wishart_gen(object):
             Dimension of the scale matrix
         df : int
             Degrees of freedom
+        random_state : None or int or np.random.RandomState instance, optional
+            If int or RandomState, use it for drawing the random variates.
+            If None (or np.random), the global np.random state is used.
+            Default is None.
 
         Notes
         -----
@@ -1421,13 +1425,12 @@ class wishart_gen(object):
 
         """
         # Random normal variates for off-diagonal elements
-        n_tril =  dim * (dim-1) // 2
-        covariances = self._random_state.normal(
+        n_tril = dim * (dim-1) // 2
+        covariances = random_state.normal(
             size=n*n_tril).reshape(shape+(n_tril,))
 
         # Random chi-square variates for diagonal elements
-        variances = np.r_[
-            [self._random_state.chisquare(df-(i+1)+1, size=n)**0.5
+        variances = np.r_[[random_state.chisquare(df-(i+1)+1, size=n)**0.5
              for i in range(dim)]].reshape((dim,) + shape[::-1]).T
 
         # Create the A matri(ces) - lower triangular
@@ -1444,7 +1447,7 @@ class wishart_gen(object):
 
         return A
 
-    def _rvs(self, n, shape, dim, df, C):
+    def _rvs(self, n, shape, dim, df, C, random_state):
         """
         Parameters
         ----------
@@ -1460,6 +1463,10 @@ class wishart_gen(object):
             Scale matrix
         C : ndarray
             Cholesky factorization of the scale matrix, lower triangular.
+        random_state : None or int or np.random.RandomState instance, optional
+            If int or RandomState, use it for drawing the random variates.
+            If None (or np.random), the global np.random state is used.
+            Default is None.
 
         Notes
         -----
@@ -1469,7 +1476,7 @@ class wishart_gen(object):
         """
         # Calculate the matrices A, which are actually lower triangular
         # Cholesky factorizations of a matrix B such that B ~ W(df, I)
-        A = self._standard_rvs(n, shape, dim, df)
+        A = self._standard_rvs(n, shape, dim, df, random_state)
 
         # Calculate SA = C A A' C', where SA ~ W(df, scale)
         # Note: this is the product of a (lower) (lower) (lower)' (lower)'
@@ -1519,17 +1526,10 @@ class wishart_gen(object):
         # Cholesky decomposition of scale
         C = scipy.linalg.cholesky(scale, lower=True)
 
-        # extra gymnastics needed for a custom random_state
         if random_state is not None:
             random_state = check_random_state(random_state)
-            random_state_saved = self._random_state
-            self._random_state = random_state
 
-        out = self._rvs(n, shape, dim, df, C)
-
-        # do not forget to restore the _random_state
-        if random_state is not None:
-            self._random_state = random_state_saved
+        out = self._rvs(n, shape, dim, df, C, random_state)
 
         return _squeeze_output(out)
 
@@ -2085,7 +2085,7 @@ class invwishart_gen(wishart_gen):
         out = self._var(dim, df, scale)
         return _squeeze_output(out) if out is not None else out
 
-    def _rvs(self, n, shape, dim, df, C):
+    def _rvs(self, n, shape, dim, df, C, random_state):
         """
         Parameters
         ----------
@@ -2099,6 +2099,10 @@ class invwishart_gen(wishart_gen):
             Degrees of freedom
         C : ndarray
             Cholesky factorization of the scale matrix, lower triagular.
+        random_state : None or int or np.random.RandomState instance, optional
+            If int or RandomState, use it for drawing the random variates.
+            If None (or np.random), the global np.random state is used.
+            Default is None.
 
         Notes
         -----
@@ -2107,7 +2111,8 @@ class invwishart_gen(wishart_gen):
 
         """
         # Get random draws A such that A ~ W(df, I)
-        A = super(invwishart_gen, self)._standard_rvs(n, shape, dim, df)
+        A = super(invwishart_gen, self)._standard_rvs(n, shape, dim,
+                                                      df, random_state)
 
         # Calculate SA = (CA)'^{-1} (CA)^{-1} ~ iW(df, scale)
         eye = np.eye(dim)
@@ -2166,17 +2171,10 @@ class invwishart_gen(wishart_gen):
         # Cholesky decomposition of inverted scale
         C = scipy.linalg.cholesky(inv_scale, lower=True)
 
-        # extra gymnastics needed for a custom random_state
         if random_state is not None:
             random_state = check_random_state(random_state)
-            random_state_saved = self._random_state
-            self._random_state = random_state
 
-        out = self._rvs(n, shape, dim, df, C)
-
-        # do not forget to restore the _random_state
-        if random_state is not None:
-            self._random_state = random_state_saved
+        out = self._rvs(n, shape, dim, df, C, random_state)
 
         return _squeeze_output(out)
 
