@@ -492,7 +492,7 @@ class multivariate_normal_gen(object):
             random_state = check_random_state(random_state)
             out = random_state.multivariate_normal(mean, cov, size)
         else:
-            out = self.random_state.multivariate_normal(mean, cov, size)
+            out = self._random_state.multivariate_normal(mean, cov, size)
         return _squeeze_output(out)
 
     def entropy(self, mean=None, cov=1):
@@ -916,7 +916,7 @@ class dirichlet_gen(object):
         """
         alpha = _dirichlet_check_parameters(alpha)
         if random_state is None:
-            return self.random_state.dirichlet(alpha, size=size)
+            return self._random_state.dirichlet(alpha, size=size)
         else:
             random_state = check_random_state(random_state)
             return random_state.dirichlet(alpha, size=size)
