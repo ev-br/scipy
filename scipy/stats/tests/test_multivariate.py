@@ -22,7 +22,7 @@ from scipy.stats import norm
 
 from scipy.integrate import romb
 
-from common_tests import check_random_state
+from common_tests import check_random_state_property
 
 
 class TestMultivariateNormal(TestCase):
@@ -766,7 +766,7 @@ class TestInvwishart(TestCase):
 
 
 
-def test_random_state():
+def test_random_state_property():
     scale = np.eye(3)
     scale[0,1] = 0.5
     scale[1,0] = 0.5
@@ -777,7 +777,7 @@ def test_random_state():
         [invwishart, (10, scale)]
     ]
     for distfn, args in dists:
-        check_random_state(distfn, args)
+        check_random_state_property(distfn, args)
 
 
 if __name__ == "__main__":
