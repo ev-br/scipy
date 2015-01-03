@@ -252,6 +252,13 @@ _doc_callparams_note = \
     array_like.
     """
 
+_doc_random_state = """\
+random_state : None or int or np.random.RandomState instance, optional
+    If int or RandomState, use it for drawing the random variates.
+    If None (or np.random), the global np.random state is used.
+    Default is None.
+"""
+
 _doc_frozen_callparams = ""
 
 _doc_frozen_callparams_note = \
@@ -259,7 +266,8 @@ _doc_frozen_callparams_note = \
 
 docdict_params = {
     '_doc_default_callparams': _doc_default_callparams,
-    '_doc_callparams_note': _doc_callparams_note
+    '_doc_callparams_note': _doc_callparams_note,
+    '_doc_random_state': _doc_random_state
 }
 
 docdict_noparams = {
@@ -500,10 +508,7 @@ class multivariate_normal_gen(multi_rv_generic):
         %(_doc_default_callparams)s
         size : integer, optional
             Number of samples to draw (default 1).
-        random_state : None or int or np.random.RandomState instance, optional
-            If int or RandomState, use it for drawing the random variates.
-            If None (or np.random), the global np.random state is used.
-            Default is None.
+        %(_doc_random_state)s
 
         Returns
         -------
@@ -633,6 +638,7 @@ _dirichlet_doc_frozen_callparams_note = \
 
 dirichlet_docdict_params = {
     '_dirichlet_doc_default_callparams': _dirichlet_doc_default_callparams,
+    '_doc_random_state': _doc_random_state
 }
 
 dirichlet_docdict_noparams = {
@@ -912,10 +918,7 @@ class dirichlet_gen(multi_rv_generic):
         %(_dirichlet_doc_default_callparams)s
         size : int, optional
             Number of samples to draw (default 1).
-        random_state : None or int or np.random.RandomState instance, optional
-            If int or RandomState, use it for drawing the random variates.
-            If None (or np.random), the global np.random state is used.
-            Default is None.
+        %(_doc_random_state)s
 
         Returns
         -------
@@ -983,7 +986,8 @@ _wishart_doc_frozen_callparams_note = \
 
 wishart_docdict_params = {
     '_doc_default_callparams': _wishart_doc_default_callparams,
-    '_doc_callparams_note': _wishart_doc_callparams_note
+    '_doc_callparams_note': _wishart_doc_callparams_note,
+    '_doc_random_state': _doc_random_state
 }
 
 wishart_docdict_noparams = {
@@ -1451,10 +1455,7 @@ class wishart_gen(multi_rv_generic):
             Scale matrix
         C : ndarray
             Cholesky factorization of the scale matrix, lower triangular.
-        random_state : None or int or np.random.RandomState instance, optional
-            If int or RandomState, use it for drawing the random variates.
-            If None (or np.random), the global np.random state is used.
-            Default is None.
+        %(_doc_random_state)s
 
         Notes
         -----
@@ -1493,10 +1494,7 @@ class wishart_gen(multi_rv_generic):
         %(_doc_default_callparams)s
         size : integer or iterable of integers, optional
             Number of samples to draw (default 1).
-        random_state : None or int or np.random.RandomState instance, optional
-            If int or RandomState, use it for drawing the random variates.
-            If None (or np.random), the global np.random state is used.
-            Default is None.
+        %(_doc_random_state)s
 
         Returns
         -------
@@ -2068,10 +2066,7 @@ class invwishart_gen(wishart_gen):
             Degrees of freedom
         C : ndarray
             Cholesky factorization of the scale matrix, lower triagular.
-        random_state : None or int or np.random.RandomState instance, optional
-            If int or RandomState, use it for drawing the random variates.
-            If None (or np.random), the global np.random state is used.
-            Default is None.
+        %(_doc_random_state)s
 
         Notes
         -----
@@ -2115,10 +2110,7 @@ class invwishart_gen(wishart_gen):
         %(_doc_default_callparams)s
         size : integer or iterable of integers, optional
             Number of samples to draw (default 1).
-        random_state : None or int or np.random.RandomState instance, optional
-            If int or RandomState, use it for drawing the random variates.
-            If None (or np.random), the global np.random state is used.
-            Default is None.
+        %(_doc_random_state)s
 
         Returns
         -------
