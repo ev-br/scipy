@@ -296,6 +296,20 @@ class multi_rv_generic(object):
         self._random_state = check_random_state(seed)
 
 
+class multi_rv_frozen(object):
+    """
+    Class which encapsulates common functionality between all frozen
+    multivariate distributions.
+    """
+    @property
+    def random_state(self):
+        return self.dist._random_state
+
+    @random_state.setter
+    def random_state(self, seed):
+        self.dist._random_state = check_random_state(seed)
+
+
 class multivariate_normal_gen(multi_rv_generic):
     r"""
     A multivariate normal random variable.
@@ -532,7 +546,7 @@ class multivariate_normal_gen(multi_rv_generic):
 multivariate_normal = multivariate_normal_gen()
 
 
-class multivariate_normal_frozen(object):
+class multivariate_normal_frozen(multi_rv_frozen):
     def __init__(self, mean=None, cov=1, allow_singular=False, seed=None):
         """
         Create a frozen multivariate normal distribution.
@@ -568,19 +582,19 @@ class multivariate_normal_frozen(object):
         """
         self.dim, self.mean, self.cov = _process_parameters(None, mean, cov)
         self.cov_info = _PSD(self.cov, allow_singular=allow_singular)
-        self._mnorm = multivariate_normal_gen(seed)
+        self.dist = multivariate_normal_gen(seed)
 
     def logpdf(self, x):
         x = _process_quantiles(x, self.dim)
-        out = self._mnorm._logpdf(x, self.mean, self.cov_info.U,
-                                  self.cov_info.log_pdet, self.cov_info.rank)
+        out = self.dist._logpdf(x, self.mean, self.cov_info.U,
+                                self.cov_info.log_pdet, self.cov_info.rank)
         return _squeeze_output(out)
 
     def pdf(self, x):
         return np.exp(self.logpdf(x))
 
     def rvs(self, size=1, random_state=None):
-        return self._mnorm.rvs(self.mean, self.cov, size, random_state)
+        return self.dist.rvs(self.mean, self.cov, size, random_state)
 
     def entropy(self):
         """
@@ -919,28 +933,28 @@ class dirichlet_gen(multi_rv_generic):
 dirichlet = dirichlet_gen()
 
 
-class dirichlet_frozen(object):
+class dirichlet_frozen(multi_rv_frozen):
     def __init__(self, alpha, seed=None):
         self.alpha = _dirichlet_check_parameters(alpha)
-        self._dirichlet = dirichlet_gen(seed)
+        self.dist = dirichlet_gen(seed)
 
     def logpdf(self, x):
-        return self._dirichlet.logpdf(x, self.alpha)
+        return self.dist.logpdf(x, self.alpha)
 
     def pdf(self, x):
-        return self._dirichlet.pdf(x, self.alpha)
+        return self.dist.pdf(x, self.alpha)
 
     def mean(self):
-        return self._dirichlet.mean(self.alpha)
+        return self.dist.mean(self.alpha)
 
     def var(self):
-        return self._dirichlet.var(self.alpha)
+        return self.dist.var(self.alpha)
 
     def entropy(self):
-        return self._dirichlet.entropy(self.alpha)
+        return self.dist.entropy(self.alpha)
 
     def rvs(self, size=1, random_state=None):
-        return self._dirichlet.rvs(self.alpha, size, random_state)
+        return self.dist.rvs(self.alpha, size, random_state)
 
 
 # Set frozen generator docstrings from corresponding docstrings in
@@ -1586,7 +1600,7 @@ class wishart_gen(multi_rv_generic):
 wishart = wishart_gen()
 
 
-class wishart_frozen(object):
+class wishart_frozen(multi_rv_frozen):
     """
     Create a frozen Wishart distribution.
 
@@ -1605,15 +1619,15 @@ class wishart_frozen(object):
 
     """
     def __init__(self, df, scale, seed=None):
-        self._wishart = wishart_gen(seed)
-        self.dim, self.df, self.scale = self._wishart._process_parameters(
+        self.dist = wishart_gen(seed)
+        self.dim, self.df, self.scale = self.dist._process_parameters(
             df, scale)
-        self.C, self.log_det_scale = self._wishart._cholesky_logdet(self.scale)
+        self.C, self.log_det_scale = self.dist._cholesky_logdet(self.scale)
 
     def logpdf(self, x):
-        x = self._wishart._process_quantiles(x, self.dim)
+        x = self.dist._process_quantiles(x, self.dim)
 
-        out = self._wishart._logpdf(x, self.dim, self.df, self.scale,
+        out = self.dist._logpdf(x, self.dim, self.df, self.scale,
                                     self.log_det_scale, self.C)
         return _squeeze_output(out)
 
@@ -1621,25 +1635,24 @@ class wishart_frozen(object):
         return np.exp(self.logpdf(x))
 
     def mean(self):
-        out = self._wishart._mean(self.dim, self.df, self.scale)
+        out = self.dist._mean(self.dim, self.df, self.scale)
         return _squeeze_output(out)
 
     def mode(self):
-        out = self._wishart._mode(self.dim, self.df, self.scale)
+        out = self.dist._mode(self.dim, self.df, self.scale)
         return _squeeze_output(out) if out is not None else out
 
     def var(self):
-        out = self._wishart._var(self.dim, self.df, self.scale)
+        out = self.dist._var(self.dim, self.df, self.scale)
         return _squeeze_output(out)
 
     def rvs(self, size=1, random_state=None):
-        n, shape = self._wishart._process_size(size)
-        out = self._wishart._rvs(n, shape,
-                                 self.dim, self.df, self.C, random_state)
+        n, shape = self.dist._process_size(size)
+        out = self.dist._rvs(n, shape, self.dim, self.df, self.C, random_state)
         return _squeeze_output(out)
 
     def entropy(self):
-        return self._wishart._entropy(self.dim, self.df, self.log_det_scale)
+        return self.dist._entropy(self.dim, self.df, self.log_det_scale)
 
 # Set frozen generator docstrings from corresponding docstrings in
 # Wishart and fill in default strings in class docstrings
@@ -2145,7 +2158,7 @@ class invwishart_gen(wishart_gen):
 
 invwishart = invwishart_gen()
 
-class invwishart_frozen(object):
+class invwishart_frozen(multi_rv_frozen):
     def __init__(self, df, scale, seed=None):
         """
         Create a frozen inverse Wishart distribution.
@@ -2164,8 +2177,8 @@ class invwishart_frozen(object):
             Default is None.
 
         """
-        self._invwishart = invwishart_gen(seed)
-        self.dim, self.df, self.scale = self._invwishart._process_parameters(
+        self.dist = invwishart_gen(seed)
+        self.dim, self.df, self.scale = self.dist._process_parameters(
             df, scale
         )
 
@@ -2181,31 +2194,30 @@ class invwishart_frozen(object):
         self.C = scipy.linalg.cholesky(self.inv_scale, lower=True)
 
     def logpdf(self, x):
-        x = self._invwishart._process_quantiles(x, self.dim)
-        out = self._invwishart._logpdf(x, self.dim, self.df, self.scale,
-                                       self.log_det_scale)
+        x = self.dist._process_quantiles(x, self.dim)
+        out = self.dist._logpdf(x, self.dim, self.df, self.scale,
+                                self.log_det_scale)
         return _squeeze_output(out)
 
     def pdf(self, x):
         return np.exp(self.logpdf(x))
 
     def mean(self):
-        out = self._invwishart._mean(self.dim, self.df, self.scale)
+        out = self.dist._mean(self.dim, self.df, self.scale)
         return _squeeze_output(out) if out is not None else out
 
     def mode(self):
-        out = self._invwishart._mode(self.dim, self.df, self.scale)
+        out = self.dist._mode(self.dim, self.df, self.scale)
         return _squeeze_output(out)
 
     def var(self):
-        out = self._invwishart._var(self.dim, self.df, self.scale)
+        out = self.dist._var(self.dim, self.df, self.scale)
         return _squeeze_output(out) if out is not None else out
 
     def rvs(self, size=1, random_state=None):
-        n, shape = self._invwishart._process_size(size)
+        n, shape = self.dist._process_size(size)
 
-        out = self._invwishart._rvs(n, shape, self.dim, self.df,
-                                    self.C, random_state)
+        out = self.dist._rvs(n, shape, self.dim, self.df, self.C, random_state)
 
         return _squeeze_output(out)
 
