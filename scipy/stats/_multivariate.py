@@ -295,6 +295,12 @@ class multi_rv_generic(object):
     def random_state(self, seed):
         self._random_state = check_random_state(seed)
 
+    def _get_random_state(self, random_state):
+        if random_state is not None:
+            return check_random_state(random_state)
+        else:
+            return self._random_state
+
 
 class multi_rv_frozen(object):
     """
@@ -512,12 +518,8 @@ class multivariate_normal_gen(multi_rv_generic):
         """
         dim, mean, cov = _process_parameters(None, mean, cov)
 
-        # extra gymnastics needed for a custom random_state
-        if random_state is not None:
-            random_state = check_random_state(random_state)
-            out = random_state.multivariate_normal(mean, cov, size)
-        else:
-            out = self._random_state.multivariate_normal(mean, cov, size)
+        random_state = self._get_random_state(random_state)
+        out = random_state.multivariate_normal(mean, cov, size)
         return _squeeze_output(out)
 
     def entropy(self, mean=None, cov=1):
@@ -923,11 +925,8 @@ class dirichlet_gen(multi_rv_generic):
 
         """
         alpha = _dirichlet_check_parameters(alpha)
-        if random_state is None:
-            return self._random_state.dirichlet(alpha, size=size)
-        else:
-            random_state = check_random_state(random_state)
-            return random_state.dirichlet(alpha, size=size)
+        random_state = self._get_random_state(random_state)
+        return random_state.dirichlet(alpha, size=size)
 
 
 dirichlet = dirichlet_gen()
@@ -1463,10 +1462,7 @@ class wishart_gen(multi_rv_generic):
         called directly; use 'rvs' instead.
 
         """
-        if random_state is not None:
-            random_state = check_random_state(random_state)
-        else:
-            random_state = self._random_state
+        random_state = self._get_random_state(random_state)
         # Calculate the matrices A, which are actually lower triangular
         # Cholesky factorizations of a matrix B such that B ~ W(df, I)
         A = self._standard_rvs(n, shape, dim, df, random_state)
@@ -2083,11 +2079,7 @@ class invwishart_gen(wishart_gen):
         called directly; use 'rvs' instead.
 
         """
-        if random_state is not None:
-            random_state = check_random_state(random_state)
-        else:
-            random_state = self._random_state
-
+        random_state = self._get_random_state(random_state)
         # Get random draws A such that A ~ W(df, I)
         A = super(invwishart_gen, self)._standard_rvs(n, shape, dim,
                                                       df, random_state)
