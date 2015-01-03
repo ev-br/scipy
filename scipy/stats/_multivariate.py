@@ -568,8 +568,8 @@ class multivariate_normal_frozen(object):
     def pdf(self, x):
         return np.exp(self.logpdf(x))
 
-    def rvs(self, size=1):
-        return self._mnorm.rvs(self.mean, self.cov, size)
+    def rvs(self, size=1, random_state=None):
+        return self._mnorm.rvs(self.mean, self.cov, size, random_state)
 
     def entropy(self):
         """
@@ -945,8 +945,8 @@ class dirichlet_frozen(object):
     def entropy(self):
         return self._dirichlet.entropy(self.alpha)
 
-    def rvs(self, size=1):
-        return self._dirichlet.rvs(self.alpha, size)
+    def rvs(self, size=1, random_state=None):
+        return self._dirichlet.rvs(self.alpha, size, random_state)
 
 
 # Set frozen generator docstrings from corresponding docstrings in
@@ -1413,10 +1413,8 @@ class wishart_gen(object):
             Dimension of the scale matrix
         df : int
             Degrees of freedom
-        random_state : None or int or np.random.RandomState instance, optional
-            If int or RandomState, use it for drawing the random variates.
-            If None (or np.random), the global np.random state is used.
-            Default is None.
+        random_state : np.random.RandomState instance
+            RandomState used for drawing the random variates.
 
         Notes
         -----
@@ -1474,6 +1472,10 @@ class wishart_gen(object):
         called directly; use 'rvs' instead.
 
         """
+        if random_state is not None:
+            random_state = check_random_state(random_state)
+        else:
+            random_state = self._random_state
         # Calculate the matrices A, which are actually lower triangular
         # Cholesky factorizations of a matrix B such that B ~ W(df, I)
         A = self._standard_rvs(n, shape, dim, df, random_state)
@@ -1525,9 +1527,6 @@ class wishart_gen(object):
 
         # Cholesky decomposition of scale
         C = scipy.linalg.cholesky(scale, lower=True)
-
-        if random_state is not None:
-            random_state = check_random_state(random_state)
 
         out = self._rvs(n, shape, dim, df, C, random_state)
 
@@ -1656,10 +1655,10 @@ class wishart_frozen(object):
         out = self._wishart._var(self.dim, self.df, self.scale)
         return _squeeze_output(out)
 
-    def rvs(self, size=1):
+    def rvs(self, size=1, random_state=None):
         n, shape = self._wishart._process_size(size)
         out = self._wishart._rvs(n, shape,
-                                 self.dim, self.df, self.C)
+                                 self.dim, self.df, self.C, random_state)
         return _squeeze_output(out)
 
     def entropy(self):
@@ -2110,6 +2109,11 @@ class invwishart_gen(wishart_gen):
         called directly; use 'rvs' instead.
 
         """
+        if random_state is not None:
+            random_state = check_random_state(random_state)
+        else:
+            random_state = self._random_state
+
         # Get random draws A such that A ~ W(df, I)
         A = super(invwishart_gen, self)._standard_rvs(n, shape, dim,
                                                       df, random_state)
@@ -2170,9 +2174,6 @@ class invwishart_gen(wishart_gen):
         inv_scale = scipy.linalg.cho_solve((L, lower), eye)
         # Cholesky decomposition of inverted scale
         C = scipy.linalg.cholesky(inv_scale, lower=True)
-
-        if random_state is not None:
-            random_state = check_random_state(random_state)
 
         out = self._rvs(n, shape, dim, df, C, random_state)
 
@@ -2240,10 +2241,11 @@ class invwishart_frozen(object):
         out = self._invwishart._var(self.dim, self.df, self.scale)
         return _squeeze_output(out) if out is not None else out
 
-    def rvs(self, size=1):
+    def rvs(self, size=1, random_state=None):
         n, shape = self._invwishart._process_size(size)
 
-        out = self._invwishart._rvs(n, shape, self.dim, self.df, self.C)
+        out = self._invwishart._rvs(n, shape, self.dim, self.df,
+                                    self.C, random_state)
 
         return _squeeze_output(out)
 
