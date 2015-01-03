@@ -272,7 +272,8 @@ docdict_params = {
 
 docdict_noparams = {
     '_doc_default_callparams': _doc_frozen_callparams,
-    '_doc_callparams_note': _doc_frozen_callparams_note
+    '_doc_callparams_note': _doc_frozen_callparams_note,
+    '_doc_random_state': _doc_random_state
 }
 
 
@@ -643,6 +644,7 @@ dirichlet_docdict_params = {
 
 dirichlet_docdict_noparams = {
     '_dirichlet_doc_default_callparams': _dirichlet_doc_frozen_callparams,
+    '_doc_random_state': _doc_random_state
 }
 
 
@@ -992,7 +994,8 @@ wishart_docdict_params = {
 
 wishart_docdict_noparams = {
     '_doc_default_callparams': _wishart_doc_frozen_callparams,
-    '_doc_callparams_note': _wishart_doc_frozen_callparams_note
+    '_doc_callparams_note': _wishart_doc_frozen_callparams_note,
+    '_doc_random_state': _doc_random_state
 }
 
 
