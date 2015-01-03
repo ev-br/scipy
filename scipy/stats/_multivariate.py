@@ -268,7 +268,35 @@ docdict_noparams = {
 }
 
 
-class multivariate_normal_gen(object):
+class multi_rv_generic(object):
+    """
+    Class which encapsulates common functionality between all multivariate
+    distributions.
+
+    """
+    def __init__(self, seed=None):
+        super(multi_rv_generic, self).__init__()
+        self._random_state = check_random_state(seed)
+
+    @property
+    def random_state(self):
+        """ Get or set the RandomState object for generating random variates.
+
+        This can be either None or an existing RandomState object.
+
+        If None (or np.random), use the RandomState singleton used by np.random.
+        If already a RandomState instance, use it.
+        If an int, use a new RandomState instance seeded with seed.
+
+        """
+        return self._random_state
+
+    @random_state.setter
+    def random_state(self, seed):
+        self._random_state = check_random_state(seed)
+
+
+class multivariate_normal_gen(multi_rv_generic):
     r"""
     A multivariate normal random variable.
 
@@ -350,8 +378,8 @@ class multivariate_normal_gen(object):
     """
 
     def __init__(self, seed=None):
+        super(multivariate_normal_gen, self).__init__(seed)
         self.__doc__ = doccer.docformat(self.__doc__, docdict_params)
-        self._random_state = check_random_state(seed)
 
     def __call__(self, mean=None, cov=1, allow_singular=False, seed=None):
         """
@@ -363,23 +391,6 @@ class multivariate_normal_gen(object):
         return multivariate_normal_frozen(mean, cov,
                                           allow_singular=allow_singular,
                                           seed=seed)
-
-    @property
-    def random_state(self):
-        """ Get or set the RandomState object for generating random variates.
-
-        This can be either None or an existing RandomState object.
-
-        If None (or np.random), use the RandomState singleton used by np.random.
-        If already a RandomState instance, use it.
-        If an int, use a new RandomState instance seeded with seed.
-
-        """
-        return self._random_state
-
-    @random_state.setter
-    def random_state(self, seed):
-        self._random_state = check_random_state(seed)
 
     def _logpdf(self, x, mean, prec_U, log_det_cov, rank):
         """
@@ -676,7 +687,7 @@ def _lnB(alpha):
     return np.sum(gammaln(alpha)) - gammaln(np.sum(alpha))
 
 
-class dirichlet_gen(object):
+class dirichlet_gen(multi_rv_generic):
     r"""
     A Dirichlet random variable.
 
@@ -743,28 +754,11 @@ class dirichlet_gen(object):
     """
 
     def __init__(self, seed=None):
+        super(dirichlet_gen, self).__init__(seed)
         self.__doc__ = doccer.docformat(self.__doc__, dirichlet_docdict_params)
-        self._random_state = check_random_state(seed)
 
     def __call__(self, alpha, seed=None):
         return dirichlet_frozen(alpha, seed=seed)
-
-    @property
-    def random_state(self):
-        """ Get or set the RandomState object for generating random variates.
-
-        This can be either None or an existing RandomState object.
-
-        If None (or np.random), use the RandomState singleton used by np.random.
-        If already a RandomState instance, use it.
-        If an int, use a new RandomState instance seeded with seed.
-
-        """
-        return self._random_state
-
-    @random_state.setter
-    def random_state(self, seed):
-        self._random_state = check_random_state(seed)
 
     def _logpdf(self, x, alpha):
         """
@@ -985,7 +979,7 @@ wishart_docdict_noparams = {
 }
 
 
-class wishart_gen(object):
+class wishart_gen(multi_rv_generic):
     r"""
     A Wishart random variable.
 
@@ -1084,8 +1078,8 @@ class wishart_gen(object):
     """
 
     def __init__(self, seed=None):
+        super(wishart_gen, self).__init__(seed)
         self.__doc__ = doccer.docformat(self.__doc__, wishart_docdict_params)
-        self._random_state = check_random_state(seed)
 
     def __call__(self, df=None, scale=None, seed=None):
         """
@@ -1095,23 +1089,6 @@ class wishart_gen(object):
 
         """
         return wishart_frozen(df, scale, seed)
-
-    @property
-    def random_state(self):
-        """ Get or set the RandomState object for generating random variates.
-
-        This can be either None or an existing RandomState object.
-
-        If None (or np.random), use the RandomState singleton used by np.random.
-        If already a RandomState instance, use it.
-        If an int, use a new RandomState instance seeded with seed.
-
-        """
-        return self._random_state
-
-    @random_state.setter
-    def random_state(self, seed):
-        self._random_state = check_random_state(seed)
 
     def _process_parameters(self, df, scale):
         if scale is None:
@@ -1840,8 +1817,8 @@ class invwishart_gen(wishart_gen):
     """
 
     def __init__(self, seed=None):
+        super(invwishart_gen, self).__init__(seed)
         self.__doc__ = doccer.docformat(self.__doc__, wishart_docdict_params)
-        self._random_state = check_random_state(seed)
 
     def __call__(self, df=None, scale=None, seed=None):
         """
@@ -1851,23 +1828,6 @@ class invwishart_gen(wishart_gen):
 
         """
         return invwishart_frozen(df, scale, seed)
-
-    @property
-    def random_state(self):
-        """ Get or set the RandomState object for generating random variates.
-
-        This can be either None or an existing RandomState object.
-
-        If None (or np.random), use the RandomState singleton used by np.random.
-        If already a RandomState instance, use it.
-        If an int, use a new RandomState instance seeded with seed.
-
-        """
-        return self._random_state
-
-    @random_state.setter
-    def random_state(self, seed):
-        self._random_state = check_random_state(seed)
 
     def _logpdf(self, x, dim, df, scale, log_det_scale):
         """
