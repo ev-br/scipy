@@ -348,6 +348,7 @@ class multivariate_normal_gen(multi_rv_generic):
     x : array_like
         Quantiles, with the last axis of `x` denoting the components.
     %(_doc_default_callparams)s
+    %(_doc_random_state)s
 
     Alternatively, the object may be called (as a function) to fix the mean
     and covariance parameters, returning a "frozen" multivariate normal
@@ -740,6 +741,7 @@ class dirichlet_gen(multi_rv_generic):
     x : array_like
         Quantiles, with the last axis of `x` denoting the components.
     %(_dirichlet_doc_default_callparams)s
+    %(_doc_random_state)s
 
     Alternatively, the object may be called (as a function) to fix
     concentration parameters, returning a "frozen" Dirichlet
@@ -1025,6 +1027,7 @@ class wishart_gen(multi_rv_generic):
     x : array_like
         Quantiles, with the last axis of `x` denoting the components.
     %(_doc_default_callparams)s
+    %(_doc_random_state)s
 
     Alternatively, the object may be called (as a function) to fix the degrees
     of freedom and scale parameters, returning a "frozen" Wishart random
@@ -1752,6 +1755,7 @@ class invwishart_gen(wishart_gen):
     x : array_like
         Quantiles, with the last axis of `x` denoting the components.
     %(_doc_default_callparams)s
+    %(_doc_random_state)s
 
     Alternatively, the object may be called (as a function) to fix the degrees
     of freedom and scale parameters, returning a "frozen" inverse Wishart
