@@ -12,7 +12,7 @@ from scipy import special
 from scipy import optimize
 from scipy import integrate
 from scipy.special import (gammaln as gamln, gamma as gam, boxcox, boxcox1p,
-                           inv_boxcox, inv_boxcox1p)
+                           inv_boxcox, inv_boxcox1p, erfc)
 
 from numpy import (where, arange, putmask, ravel, sum, shape,
                    log, sqrt, exp, arctanh, tan, sin, arcsin, arctan,
@@ -968,6 +968,59 @@ class expon_gen(rv_continuous):
     def _entropy(self):
         return 1.0
 expon = expon_gen(a=0.0, name='expon')
+
+
+## Exponentially Modified Gaussian (exponential distribution
+##  with parameter l convolved with a Gaussian with location loc
+##  and sigma s)
+class expongauss_gen(rv_continuous):
+    """An exponentially modified Gaussian continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `expongauss` is::
+
+        expongauss.pdf(x, lam, s) = 
+           lam/2 * exp(lam/2 * (lam*s**2-2*x)) * erfc((lam*s**2-x)/(sqrt(2)*s))
+
+    for ``lam > 0, s > 0``.
+
+
+    The two shape parameters for `expongauss` (``lam`` and ``s``) must
+    be set explicitly.
+    .. versionadded:: 0.16.0
+
+    %(example)s
+
+    """
+    def _rvs(self, lam, s):
+        expval = self._random_state.standard_exponential(self._size) / lam
+        gval = s * self._random_state.standard_normal(self._size)
+        return expval + gval
+
+    def _pdf(self, x, lam, s):
+        ls2 = lam * s * s
+        exparg = 0.5 * lam * (ls2 - 2 * x)
+        erfcarg = (ls2 - x) / (sqrt(2) * s)
+        return 0.5 * lam * exp(exparg) * erfc(erfcarg)
+
+    def _cdf(self, x, lam, s):
+        u = lam * x
+        v = lam * s
+        exparg = -u + 0.5 * v * v
+        return special.ndtr(x / s) - exp(exparg) * special.ndtr(x / s - v)
+
+    def _stats(self, lam, s):
+        invlam = 1.0 / lam
+        islam = 1.0 / (s * lam)
+        islamsq = islam * islam
+        skew = 2.0 * (1 + islamsq)**(-1.5) * islam**3
+        kurt = 2 * (islamsq * (3 * islamsq + 2) + 1) / (1 + islamsq)**2 - 3
+        return invlam, s * s + invlam * invlam, skew, kurt
+
+expongauss = expongauss_gen(name='expongauss')
 
 
 class exponweib_gen(rv_continuous):
