@@ -33,8 +33,8 @@ DOCSTRINGS_STRIPPED = sys.flags.optimize > 1
 dists = ['uniform','norm','lognorm','expon','beta',
          'powerlaw','bradford','burr','fisk','cauchy','halfcauchy',
          'foldcauchy','gamma','gengamma','loggamma',
-         'alpha','anglit','arcsine','betaprime',
-         'dgamma','exponweib','exponpow','frechet_l','frechet_r',
+         'alpha','anglit','arcsine','betaprime','dgamma',
+         'expongauss', 'exponweib','exponpow','frechet_l','frechet_r',
          'gilbrat','f','ncf','chi2','chi','nakagami','genpareto',
          'genextreme','genhalflogistic','pareto','lomax','halfnorm',
          'halflogistic','fatiguelife','foldnorm','ncx2','t','nct',
@@ -774,6 +774,21 @@ class TestExpon(TestCase):
     def test_tail(self):  # Regression test for ticket 807
         assert_equal(stats.expon.cdf(1e-18), 1e-18)
         assert_equal(stats.expon.isf(stats.expon.sf(40)), 40)
+
+        
+class TestExponGauss(TestCase):
+    def test_erfc0(self):
+        # Testing the special case where the argument to erfc is zero
+        #  (so x = lambda * sigma^2), where the value simplifies to
+        #  lambda / 2 * exp(-lambda * x / 2)
+        assert_almost_equal(stats.expongauss.pdf(1, 1, 1),
+                            0.5 * np.exp(-0.5))
+        assert_almost_equal(stats.expongauss.pdf(2*0.1*0.1, 2, 0.1),
+                            0.5 * 2 * np.exp(-0.5 * 2 * 0.1 * 0.1 * 2))
+
+    def test_veryneg_x(self):
+        # Test for large negative x where the exponent overflows
+        assert_almost_equal(stats.expongauss.pdf(-900, 1, 1), 0.0)
 
 
 class TestGenExpon(TestCase):

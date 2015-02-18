@@ -16,7 +16,7 @@ from scipy.special import (gammaln as gamln, gamma as gam, boxcox, boxcox1p,
 
 from numpy import (where, arange, putmask, ravel, sum, shape,
                    log, sqrt, exp, arctanh, tan, sin, arcsin, arctan,
-                   tanh, cos, cosh, sinh)
+                   tanh, cos, cosh, sinh, nan_to_num)
 
 from numpy import polyval, place, extract, any, asarray, nan, inf, pi
 
@@ -983,18 +983,22 @@ class expongauss_gen(rv_continuous):
     The probability density function for `expongauss` is::
 
         expongauss.pdf(x, lam, s) = 
-           lam/2 * exp(lam/2 * (lam*s**2-2*x)) * erfc((lam*s**2-x)/(sqrt(2)*s))
+           lam/2 * exp(lam/2 * (lam*s**2 - 2*x)) * erfc((lam*s**2 - x) / (sqrt(2)*s))
 
-    for ``lam > 0, s > 0``.
-
+    for ``lam > 0, s > 0``.  It is the sum of a normally and exponentially
+    distributed variable.
 
     The two shape parameters for `expongauss` (``lam`` and ``s``) must
     be set explicitly.
+
     .. versionadded:: 0.16.0
 
     %(example)s
 
     """
+    def _argcheck(self, lam, s):
+        return (lam > 0) & (s > 0)
+    
     def _rvs(self, lam, s):
         expval = self._random_state.standard_exponential(self._size) / lam
         gval = s * self._random_state.standard_normal(self._size)
@@ -1003,14 +1007,32 @@ class expongauss_gen(rv_continuous):
     def _pdf(self, x, lam, s):
         ls2 = lam * s * s
         exparg = 0.5 * lam * (ls2 - 2 * x)
-        erfcarg = (ls2 - x) / (sqrt(2) * s)
-        return 0.5 * lam * exp(exparg) * erfc(erfcarg)
+        erfcval = (ls2 - x) / (sqrt(2) * s)
+        # The use of nan_to_num from numpy is a bit of an ugly kludge
+        # for dealing with overflow in exp(exparg).  The properties of
+        # erfc guarantee the product is defined, but python doesn't
+        # understand this and ends up with 0.5 * lam * inf * 0 = nan.
+        # nan_to_num takes that inf and turns it into the largest
+        # floating point number, which solves the problem.
+        return 0.5 * lam * (nan_to_num(exp(exparg)) * erfc(erfcval))
 
+    def _logpdf(self, x, lam, s):
+        ls2 = lam * s * s
+        exparg = 0.5 * lam * (ls2 - 2 * x)
+        erfcval = (ls2 - x) / (sqrt(2) * s)
+        return exparg + log(0.5 * lam * erfc(erfcval))
+    
     def _cdf(self, x, lam, s):
         u = lam * x
         v = lam * s
-        exparg = -u + 0.5 * v * v
-        return special.ndtr(x / s) - exp(exparg) * special.ndtr(x / s - v)
+        expval = nan_to_num(exp(-u + 0.5 * v * v))
+        return special.ndtr(x / s) - expval * special.ndtr(x / s - v)
+
+    def _sf(self, x, lam, s):
+        u = lam * x
+        v = lam * s
+        expval = nan_to_num(exp(-u + 0.5 * v * v))
+        return special.ndtr(-x / s) + expval * special.ndtr(x / s - v)
 
     def _stats(self, lam, s):
         invlam = 1.0 / lam
