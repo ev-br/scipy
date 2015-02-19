@@ -777,18 +777,37 @@ class TestExpon(TestCase):
 
         
 class TestExponGauss(TestCase):
-    def test_erfc0(self):
-        # Testing the special case where the argument to erfc is zero
-        #  (so x = lambda * sigma^2), where the value simplifies to
-        #  lambda / 2 * exp(-lambda * x / 2)
-        assert_almost_equal(stats.expongauss.pdf(1, 1, 1),
-                            0.5 * np.exp(-0.5))
-        assert_almost_equal(stats.expongauss.pdf(2*0.1*0.1, 2, 0.1),
-                            0.5 * 2 * np.exp(-0.5 * 2 * 0.1 * 0.1 * 2))
+    def test_moments(self):
+        # Some moment test cases based on non-loc/scaled formula
+        def get_moms(lam, sig, mu):
+            # See wikipedia for these formulae
+            opK2 = 1.0 + 1 / (lam*sig)**2
+            exp_skew = 2 / (lam * sig)**3 * opK2**(-1.5)
+            exp_kurt = 2.0 * (1 + 2 / (lam*sig)**2 + 3.0 / (lam*sig)**4) *\
+                       opK2**(-2) - 3.0
+            return [mu + 1/lam, sig*sig + 1.0/(lam*lam), exp_skew, exp_kurt] 
 
-    def test_veryneg_x(self):
-        # Test for large negative x where the exponent overflows
-        assert_almost_equal(stats.expongauss.pdf(-900, 1, 1), 0.0)
+        mu, sig, lam = 0, 1, 1        
+        K = 1.0 / (lam * sig)
+        sts = stats.expongauss.stats(K, loc=mu, scale=sig, moments='mvsk')
+        assert_almost_equal(sts, get_moms(lam, sig, mu))
+        mu, sig, lam = -3, 2, 0.1
+        K = 1.0 / (lam * sig)
+        sts = stats.expongauss.stats(K, loc=mu, scale=sig, moments='mvsk')
+        assert_almost_equal(sts, get_moms(lam, sig, mu))
+        mu, sig, lam = 0, 3, 1
+        K = 1.0 / (lam * sig)
+        sts = stats.expongauss.stats(K, loc=mu, scale=sig, moments='mvsk')
+        assert_almost_equal(sts, get_moms(lam, sig, mu))
+        mu, sig, lam = -5, 11, 3.5
+        K = 1.0 / (lam * sig)
+        sts = stats.expongauss.stats(K, loc=mu, scale=sig, moments='mvsk')
+        assert_almost_equal(sts, get_moms(lam, sig, mu))
+        
+    def test_extremes_x(self):
+        # Test for extreme values against overflows
+        assert_almost_equal(stats.expongauss.pdf(-900, 1), 0.0)
+        assert_almost_equal(stats.expongauss.pdf(+900, 1), 0.0)
 
 
 class TestGenExpon(TestCase):
@@ -1955,7 +1974,7 @@ def test_stats_shapes_argcheck():
     # anyway, so some distributions may or may not fail.
 
 
-## Test subclassing distributions w/ explicit shapes
+# Test subclassing distributions w/ explicit shapes
 
 class _distr_gen(stats.rv_continuous):
     def _pdf(self, x, a):

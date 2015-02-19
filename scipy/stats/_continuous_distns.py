@@ -971,8 +971,7 @@ expon = expon_gen(a=0.0, name='expon')
 
 
 ## Exponentially Modified Gaussian (exponential distribution
-##  with parameter l convolved with a Gaussian with location loc
-##  and sigma s)
+##  convolved with a Gaussian)
 class expongauss_gen(rv_continuous):
     """An exponentially modified Gaussian continuous random variable.
 
@@ -982,66 +981,55 @@ class expongauss_gen(rv_continuous):
     -----
     The probability density function for `expongauss` is::
 
-        expongauss.pdf(x, lam, s) = 
-           lam/2 * exp(lam/2 * (lam*s**2 - 2*x)) * erfc((lam*s**2 - x) / (sqrt(2)*s))
+        expongauss.pdf(x, K) = 1/(2*K) exp(1/(2 * K**2)) exp(-x / K) * erfc(- (x - 1/K) / sqrt(2))
+           
+    where the shape parameter ``K`` > 0.
 
-    for ``lam > 0, s > 0``.  It is the sum of a normally and exponentially
-    distributed variable.
-
-    The two shape parameters for `expongauss` (``lam`` and ``s``) must
-    be set explicitly.
+    It can be thought of as the sum of a normally distributed random
+    value with mean ``loc`` and sigma ``scale`` and an exponentially
+    distributed random number with a pdf proportional to exp(-lambda * x)
+    where lambda = (``K`` * ``scale``)**(-1).
 
     .. versionadded:: 0.16.0
 
     %(example)s
 
     """
-    def _argcheck(self, lam, s):
-        return (lam > 0) & (s > 0)
+    def _argcheck(self, K):
+        return (K > 0)
     
-    def _rvs(self, lam, s):
-        expval = self._random_state.standard_exponential(self._size) / lam
-        gval = s * self._random_state.standard_normal(self._size)
+    def _rvs(self, K, loc=0, scale=1):
+        invlam = scale * K
+        expval = self._random_state.standard_exponential(self._size) * invlam
+        gval = loc + scale * self._random_state.standard_normal(self._size)
         return expval + gval
 
-    def _pdf(self, x, lam, s):
-        ls2 = lam * s * s
-        exparg = 0.5 * lam * (ls2 - 2 * x)
-        erfcval = (ls2 - x) / (sqrt(2) * s)
-        # The use of nan_to_num from numpy is a bit of an ugly kludge
-        # for dealing with overflow in exp(exparg).  The properties of
-        # erfc guarantee the product is defined, but python doesn't
-        # understand this and ends up with 0.5 * lam * inf * 0 = nan.
-        # nan_to_num takes that inf and turns it into the largest
-        # floating point number, which solves the problem.
-        return 0.5 * lam * (nan_to_num(exp(exparg)) * erfc(erfcval))
+    def _pdf(self, x, K):
+        invK = 1.0 / K
+        exparg = 0.5 * invK**2 - invK * x
+        return 0.5 * invK * exp(exparg) * erfc(-(x - invK) / sqrt(2))
 
-    def _logpdf(self, x, lam, s):
-        ls2 = lam * s * s
-        exparg = 0.5 * lam * (ls2 - 2 * x)
-        erfcval = (ls2 - x) / (sqrt(2) * s)
-        return exparg + log(0.5 * lam * erfc(erfcval))
+    def _logpdf(self, x, K):
+        invK = 1.0 / K
+        exparg = 0.5 * invK**2 - invK * x
+        return exparg + log(0.5 * invK * erfc(-(x - invK) / sqrt(2)))
     
-    def _cdf(self, x, lam, s):
-        u = lam * x
-        v = lam * s
-        expval = nan_to_num(exp(-u + 0.5 * v * v))
-        return special.ndtr(x / s) - expval * special.ndtr(x / s - v)
+    def _cdf(self, x, K):
+        invK = 1.0 / K
+        expval = invK * (0.5 * invK - x)
+        return special.ndtr(x) - exp(expval) * special.ndtr(x - invK)
 
-    def _sf(self, x, lam, s):
-        u = lam * x
-        v = lam * s
-        expval = nan_to_num(exp(-u + 0.5 * v * v))
-        return special.ndtr(-x / s) + expval * special.ndtr(x / s - v)
+    def _sf(self, x, K):
+        invK = 1.0 / K
+        expval = invK * (0.5 * invK - x)
+        return special.ndtr(-x) + exp(expval) * special.ndtr(x - invK)
 
-    def _stats(self, lam, s):
-        invlam = 1.0 / lam
-        islam = 1.0 / (s * lam)
-        islamsq = islam * islam
-        skew = 2.0 * (1 + islamsq)**(-1.5) * islam**3
-        kurt = 2 * (islamsq * (3 * islamsq + 2) + 1) / (1 + islamsq)**2 - 3
-        return invlam, s * s + invlam * invlam, skew, kurt
-
+    def _stats(self, K):
+        K2 = K * K
+        opK2 = 1.0 + K2
+        skw = 2 * K**3 * opK2**(-1.5)
+        krt = 2 * ((3 * K2 + 2) * K2 + 1) * opK2**(-2) - 3
+        return K, opK2, skw, krt
 expongauss = expongauss_gen(name='expongauss')
 
 
