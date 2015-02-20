@@ -27,11 +27,16 @@ from ._tukeylambda_stats import (tukeylambda_variance as _tlvar,
 
 from ._distn_infrastructure import (
         rv_continuous, valarray, _skew, _kurtosis, _lazywhere,
-        _ncx2_log_pdf, _ncx2_pdf, _ncx2_cdf, get_distribution_names,
+        _lazywhere_single, _ncx2_log_pdf, _ncx2_pdf, _ncx2_cdf,
+        get_distribution_names,
         )
 
 from ._constants import _XMIN, _EULER, _ZETA3
 
+# exponent overflow values
+from sys import float_info
+_maxfloat = float_info.max
+_maxexparg = log(_maxfloat)
 
 ## Kolmogorov-Smirnov one-sided and two-sided test statistics
 class ksone_gen(rv_continuous):
@@ -1007,7 +1012,11 @@ class expongauss_gen(rv_continuous):
     def _pdf(self, x, K):
         invK = 1.0 / K
         exparg = 0.5 * invK**2 - invK * x
-        return 0.5 * invK * exp(exparg) * erfc(-(x - invK) / sqrt(2))
+        # Avoid overflows; setting exp(exparg) to the max float works
+        #  all right here
+        expval = _lazywhere_single(exparg < _maxexparg, (exparg),
+                                   exp, _maxfloat)
+        return 0.5 * invK * expval * erfc(-(x - invK) / sqrt(2))
 
     def _logpdf(self, x, K):
         invK = 1.0 / K
