@@ -568,29 +568,6 @@ def _lazywhere(cond, arrays, f, fillvalue=None, f2=None):
 
     return out
 
-def _lazywhere_single(cond, array, f, fillvalue=None, f2=None):
-    """
-    Like _lazywhere but works for a single argument array (_lazywhere
-    does not).
-
-    """
-    if fillvalue is None:
-        if f2 is None:
-            raise ValueError("One of (fillvalue, f2) must be given.")
-        else:
-            fillvalue = np.nan
-    else:
-        if f2 is not None:
-            raise ValueError("Only one of (fillvalue, f2) can be given.")
-    out = valarray(shape(array), value=fillvalue)
-    temp = np.extract(cond, array)
-    np.place(out, cond, f(temp))
-    if f2 is not None:
-        temp = np.extract(~cond, array)
-        np.place(out, ~cond, f2(temp))
-
-    return out
-
 
 # This should be rewritten
 def argsreduce(cond, *args):

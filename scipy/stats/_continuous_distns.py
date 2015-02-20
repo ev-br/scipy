@@ -16,7 +16,7 @@ from scipy.special import (gammaln as gamln, gamma as gam, boxcox, boxcox1p,
 
 from numpy import (where, arange, putmask, ravel, sum, shape,
                    log, sqrt, exp, arctanh, tan, sin, arcsin, arctan,
-                   tanh, cos, cosh, sinh, nan_to_num)
+                   tanh, cos, cosh, sinh)
 
 from numpy import polyval, place, extract, any, asarray, nan, inf, pi
 
@@ -27,8 +27,7 @@ from ._tukeylambda_stats import (tukeylambda_variance as _tlvar,
 
 from ._distn_infrastructure import (
         rv_continuous, valarray, _skew, _kurtosis, _lazywhere,
-        _lazywhere_single, _ncx2_log_pdf, _ncx2_pdf, _ncx2_cdf,
-        get_distribution_names,
+        _ncx2_log_pdf, _ncx2_pdf, _ncx2_cdf, get_distribution_names,
         )
 
 from ._constants import _XMIN, _EULER, _ZETA3
@@ -975,18 +974,19 @@ class expon_gen(rv_continuous):
 expon = expon_gen(a=0.0, name='expon')
 
 
-## Exponentially Modified Gaussian (exponential distribution
-##  convolved with a Gaussian)
-class expongauss_gen(rv_continuous):
-    """An exponentially modified Gaussian continuous random variable.
+## Exponentially Modified Normal (exponential distribution
+##  convolved with a Normal).
+## This is called an exponentially modified gaussian on wikipedia
+class exponnorm_gen(rv_continuous):
+    """An exponentially modified Normal continuous random variable.
 
     %(before_notes)s
 
     Notes
     -----
-    The probability density function for `expongauss` is::
+    The probability density function for `exponnorm` is::
 
-        expongauss.pdf(x, K) = 1/(2*K) exp(1/(2 * K**2)) exp(-x / K) * erfc(- (x - 1/K) / sqrt(2))
+        exponnorm.pdf(x, K) = 1/(2*K) exp(1/(2 * K**2)) exp(-x / K) * erfc(- (x - 1/K) / sqrt(2))
            
     where the shape parameter ``K`` > 0.
 
@@ -1000,13 +1000,9 @@ class expongauss_gen(rv_continuous):
     %(example)s
 
     """
-    def _argcheck(self, K):
-        return (K > 0)
-    
-    def _rvs(self, K, loc=0, scale=1):
-        invlam = scale * K
-        expval = self._random_state.standard_exponential(self._size) * invlam
-        gval = loc + scale * self._random_state.standard_normal(self._size)
+    def _rvs(self, K):
+        expval = self._random_state.standard_exponential(self._size) * K
+        gval = self._random_state.standard_normal(self._size)
         return expval + gval
 
     def _pdf(self, x, K):
@@ -1014,8 +1010,7 @@ class expongauss_gen(rv_continuous):
         exparg = 0.5 * invK**2 - invK * x
         # Avoid overflows; setting exp(exparg) to the max float works
         #  all right here
-        expval = _lazywhere_single(exparg < _maxexparg, (exparg),
-                                   exp, _maxfloat)
+        expval = _lazywhere(exparg < _maxexparg, (exparg,), exp, _maxfloat)
         return 0.5 * invK * expval * erfc(-(x - invK) / sqrt(2))
 
     def _logpdf(self, x, K):
@@ -1037,9 +1032,9 @@ class expongauss_gen(rv_continuous):
         K2 = K * K
         opK2 = 1.0 + K2
         skw = 2 * K**3 * opK2**(-1.5)
-        krt = 2 * ((3 * K2 + 2) * K2 + 1) * opK2**(-2) - 3
+        krt = 6.0 * K2 * K2 * opK2**(-2)
         return K, opK2, skw, krt
-expongauss = expongauss_gen(name='expongauss')
+exponnorm = exponnorm_gen(name='exponnorm')
 
 
 class exponweib_gen(rv_continuous):

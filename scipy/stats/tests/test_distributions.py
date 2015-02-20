@@ -34,7 +34,7 @@ dists = ['uniform','norm','lognorm','expon','beta',
          'powerlaw','bradford','burr','fisk','cauchy','halfcauchy',
          'foldcauchy','gamma','gengamma','loggamma',
          'alpha','anglit','arcsine','betaprime','dgamma',
-         'expongauss', 'exponweib','exponpow','frechet_l','frechet_r',
+         'exponnorm', 'exponweib','exponpow','frechet_l','frechet_r',
          'gilbrat','f','ncf','chi2','chi','nakagami','genpareto',
          'genextreme','genhalflogistic','pareto','lomax','halfnorm',
          'halflogistic','fatiguelife','foldnorm','ncx2','t','nct',
@@ -776,38 +776,38 @@ class TestExpon(TestCase):
         assert_equal(stats.expon.isf(stats.expon.sf(40)), 40)
 
         
-class TestExponGauss(TestCase):
+class TestExponNorm(TestCase):
     def test_moments(self):
         # Some moment test cases based on non-loc/scaled formula
         def get_moms(lam, sig, mu):
             # See wikipedia for these formulae
+            #  where it is listed as an exponentially modified gaussian
             opK2 = 1.0 + 1 / (lam*sig)**2
             exp_skew = 2 / (lam * sig)**3 * opK2**(-1.5)
-            exp_kurt = 2.0 * (1 + 2 / (lam*sig)**2 + 3.0 / (lam*sig)**4) *\
-                       opK2**(-2) - 3.0
+            exp_kurt = 6.0 * (1 + (lam * sig)**2)**(-2)
             return [mu + 1/lam, sig*sig + 1.0/(lam*lam), exp_skew, exp_kurt] 
 
         mu, sig, lam = 0, 1, 1        
         K = 1.0 / (lam * sig)
-        sts = stats.expongauss.stats(K, loc=mu, scale=sig, moments='mvsk')
+        sts = stats.exponnorm.stats(K, loc=mu, scale=sig, moments='mvsk')
         assert_almost_equal(sts, get_moms(lam, sig, mu))
         mu, sig, lam = -3, 2, 0.1
         K = 1.0 / (lam * sig)
-        sts = stats.expongauss.stats(K, loc=mu, scale=sig, moments='mvsk')
+        sts = stats.exponnorm.stats(K, loc=mu, scale=sig, moments='mvsk')
         assert_almost_equal(sts, get_moms(lam, sig, mu))
         mu, sig, lam = 0, 3, 1
         K = 1.0 / (lam * sig)
-        sts = stats.expongauss.stats(K, loc=mu, scale=sig, moments='mvsk')
+        sts = stats.exponnorm.stats(K, loc=mu, scale=sig, moments='mvsk')
         assert_almost_equal(sts, get_moms(lam, sig, mu))
         mu, sig, lam = -5, 11, 3.5
         K = 1.0 / (lam * sig)
-        sts = stats.expongauss.stats(K, loc=mu, scale=sig, moments='mvsk')
+        sts = stats.exponnorm.stats(K, loc=mu, scale=sig, moments='mvsk')
         assert_almost_equal(sts, get_moms(lam, sig, mu))
         
     def test_extremes_x(self):
         # Test for extreme values against overflows
-        assert_almost_equal(stats.expongauss.pdf(-900, 1), 0.0)
-        assert_almost_equal(stats.expongauss.pdf(+900, 1), 0.0)
+        assert_almost_equal(stats.exponnorm.pdf(-900, 1), 0.0)
+        assert_almost_equal(stats.exponnorm.pdf(+900, 1), 0.0)
 
 
 class TestGenExpon(TestCase):
