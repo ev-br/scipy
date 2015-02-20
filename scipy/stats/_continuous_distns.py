@@ -988,12 +988,12 @@ class exponnorm_gen(rv_continuous):
 
         exponnorm.pdf(x, K) = 1/(2*K) exp(1/(2 * K**2)) exp(-x / K) * erfc(- (x - 1/K) / sqrt(2))
            
-    where the shape parameter ``K`` > 0.
+    where the shape parameter ``K > 0``.
 
     It can be thought of as the sum of a normally distributed random
     value with mean ``loc`` and sigma ``scale`` and an exponentially
-    distributed random number with a pdf proportional to exp(-lambda * x)
-    where lambda = (``K`` * ``scale``)**(-1).
+    distributed random number with a pdf proportional to ``exp(-lambda * x)``
+    where ``lambda = (K * scale)**(-1)``.
 
     .. versionadded:: 0.16.0
 
