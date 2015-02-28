@@ -397,6 +397,17 @@ class TestMoments(TestCase):
         assert_array_almost_equal_nulp(mstats.kurtosis(self.testcase_2d[2, :]),
                                        stats.kurtosis(self.testcase_2d[2, :]))
 
+    def test_moment_vs_stats(self):
+        # make sure the mask is not discarded:
+        # masking an invalid value is the same as manually removing it. 
+        np.random.seed(1234)
+        x = np.random.rand(42)
+        x[8] = -1000001.
+        xm = np.ma.array(x, mask=(np.abs(x)>1.))
+        assert_allclose(mstats.moment(xm, 2),
+                        stats.moment(np.r_[x[:8], x[9:]], 2),
+                        atol=1e-12, rtol=1e-12)
+
     def test_mode(self):
         a1 = [0,0,0,1,1,1,2,3,3,3,3,4,5,6,7]
         a2 = np.reshape(a1, (3,5))
