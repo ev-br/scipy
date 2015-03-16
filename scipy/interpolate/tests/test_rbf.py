@@ -76,22 +76,22 @@ def check_rbf1d_regularity(function, atol):
         rbf = Rbf(x, y, function=function)
         xi = linspace(0, 10, 100)
         yi = rbf(xi)
-        #import matplotlib.pyplot as plt
-        #plt.figure()
-        #plt.plot(x, y, 'o', xi, sin(xi), ':', xi, yi, '-')
-        #plt.title(function)
-        #plt.show()
+        # import matplotlib.pyplot as plt
+        # plt.figure()
+        # plt.plot(x, y, 'o', xi, sin(xi), ':', xi, yi, '-')
+        # plt.plot(x, y, 'o', xi, yi-sin(xi), ':')
+        # plt.title(function)
+        # plt.show()
         msg = "abs-diff: %f" % abs(yi - sin(xi)).max()
         assert_(allclose(yi, sin(xi), atol=atol), msg)
     finally:
         np.seterr(**olderr)
 
-
 def test_rbf_regularity():
     tolerances = {
-        'multiquadric': 0.05,
-        'inverse multiquadric': 0.02,
-        'gaussian': 0.01,
+        'multiquadric': 0.1,
+        'inverse multiquadric': 0.15,
+        'gaussian': 0.15,
         'cubic': 0.15,
         'quintic': 0.1,
         'thin-plate': 0.1,
@@ -99,6 +99,34 @@ def test_rbf_regularity():
     }
     for function in FUNCTIONS:
         yield check_rbf1d_regularity, function, tolerances.get(function, 1e-2)
+
+
+def check_rbf1d_stability(function):
+    """Check that the Rbf function with default epsilon is not subject 
+    to overshoot.  Regression for issue #4523"""
+    olderr = np.seterr(all="ignore")
+    try:
+        # In ticket #4523 the user interpolates data which is a linear
+        # spline plus noise; for our test data we use data which is
+        # similarly "spikey" but deteministic
+        x = linspace(0, 1, 50)
+        y = sin(200 * x)
+        rbf = Rbf(x, y, function=function)
+        xi = linspace(0, 1, 500)
+        yi = rbf(xi)
+        # import matplotlib.pyplot as plt
+        # plt.figure()
+        # plt.plot(x, y, 'o', xi, sin(200*xi), ':', xi, yi, '-')
+        # plt.title(function)
+        # plt.show()
+        msg = "abs: %f" % abs(yi).max()
+        assert_(abs(yi).max() < 1.2, msg)
+    finally:
+        np.seterr(**olderr)
+
+def test_rbf_stability():
+    for function in FUNCTIONS:
+        yield check_rbf1d_stability, function
 
 
 def test_default_construction():
