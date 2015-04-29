@@ -49,6 +49,7 @@ import numpy as np
 
 from scipy import linalg
 from scipy._lib.six import callable, get_method_function, get_function_code
+from scipy.special import xlogy
 
 __all__ = ['Rbf']
 
@@ -130,9 +131,7 @@ class Rbf(object):
         return r**5
 
     def _h_thin_plate(self, r):
-        result = r**2 * np.log(r)
-        result[r == 0] = 0  # the spline is zero at zero
-        return result
+        return xlogy(r**2, r)
 
     # Setup self._function and do smoke test on initial r
     def _init_function(self, r):
