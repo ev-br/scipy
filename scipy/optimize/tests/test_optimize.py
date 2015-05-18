@@ -44,6 +44,93 @@ def test_check_grad():
     assert_(r > 1e-7)
 
 
+class TestApproxJacobian(object):
+    def fun_scalar_scalar(self, x):
+        return np.sinh(x)
+
+    def jac_scalar_scalar(self, x):
+        return np.cosh(x)
+
+    def fun_scalar_vector(self, x):
+        return np.array([x**2, np.tan(x), np.exp(x)])
+
+    def jac_scalar_vector(self, x):
+        return np.array([2 * x, np.cos(x) ** -2, np.exp(x)])
+
+    def fun_vector_scalar(self, x):
+        return np.sin(x[0] * x[1]) * np.log(x[0])
+
+    def jac_vector_scalar(self, x):
+        return np.array([
+            x[1] * np.cos(x[0] * x[1]) * np.log(x[0]) +
+            np.sin(x[0] * x[1]) / x[0],
+            x[0] * np.cos(x[0] * x[1]) * np.log(x[0])
+        ])
+
+    def fun_vector_vector(self, x):
+        return np.array([
+            x[0] * np.sin(x[1]),
+            x[1] * np.cos(x[0]),
+            x[0] ** 3 * x[1] ** -0.5
+        ])
+
+    def jac_vector_vector(self, x):
+        return np.array([
+            [np.sin(x[1]), x[0] * np.cos(x[1])],
+            [-x[1] * np.sin(x[0]), np.cos(x[0])],
+            [3 * x[0] ** 2 * x[1] ** -0.5, -0.5 * x[0] ** 3 * x[1] ** -1.5]
+        ])
+
+    def fun_parametrized(self, x, c0, c1):
+        return np.array([np.exp(c0 * x[0]), np.exp(c1 * x[1])])
+
+    def jac_parametrized(self, x, c0, c1):
+        return np.array([
+            [c0 * np.exp(c0 * x[0]), 0],
+            [0, c1 * np.exp(c1 * x[1])]
+        ])
+
+    def test_scalar_scalar(self):
+        x0 = 1.0
+        jac_diff = optimize.approx_jacobian(x0, self.fun_scalar_scalar)
+        jac_true = self.jac_scalar_scalar(x0)
+        assert_allclose(jac_diff, jac_true, rtol=1e-6)
+
+    def test_scalar_vector(self):
+        x0 = 0.5
+        jac_diff = optimize.approx_jacobian(x0, self.fun_scalar_vector)
+        jac_true = self.jac_scalar_vector(x0)
+        assert_allclose(jac_diff, jac_true, rtol=1e-6)
+
+    def test_vector_scalar(self):
+        x0 = np.array([100.0, -0.5])
+        jac_diff = optimize.approx_jacobian(x0, self.fun_vector_scalar)
+        jac_true = self.jac_vector_scalar(x0)
+        assert_allclose(jac_diff, jac_true, rtol=1e-6)
+
+    def test_vector_vector(self):
+        x0 = np.array([-100.0, 0.2])
+        jac_diff = optimize.approx_jacobian(x0, self.fun_vector_vector)
+        jac_true = self.jac_vector_vector(x0)
+        assert_allclose(jac_diff, jac_true, rtol=1e-5)
+
+    def test_custom_eps(self):
+        x0 = np.array([-0.1, 0.1])
+        jac_diff = optimize.approx_jacobian(x0, self.fun_vector_vector,
+                                            eps=1e-8)
+        jac_true = self.jac_vector_vector(x0)
+        assert_allclose(jac_diff, jac_true, rtol=1e-3)
+
+    def test_with_args(self):
+        x0 = np.array([1.0, 1.0])
+        c0 = -1.0
+        c1 = 1.0
+        jac_diff = optimize.approx_jacobian(x0, self.fun_parametrized,
+                                            args=(c0, c1))
+        jac_true = self.jac_parametrized(x0, c0, c1)
+        assert_allclose(jac_diff, jac_true, rtol=1e-6)
+
+
 class TestOptimize(object):
     """ Test case for a simple constrained entropy maximization problem
     (the machine translation example of Berger et al in
