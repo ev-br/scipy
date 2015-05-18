@@ -90,33 +90,42 @@ class TestApproxJacobian(object):
             [0, c1 * np.exp(c1 * x[1])]
         ])
 
+    def fun_zero_jacobian(self, x):
+        return np.array([x[0] * x[1], np.cos(x[0] * x[1])])
+
+    def jac_zero_jacobian(self, x):
+        return np.array([
+            [x[1], x[0]],
+            [-x[1] * np.sin(x[0] * x[1]), -x[0] * np.sin(x[0] * x[1])]
+        ])
+
     def test_scalar_scalar(self):
         x0 = 1.0
-        jac_diff = optimize.approx_jacobian(x0, self.fun_scalar_scalar)
+        jac_diff = optimize.approx_jacobian(self.fun_scalar_scalar, x0)
         jac_true = self.jac_scalar_scalar(x0)
         assert_allclose(jac_diff, jac_true, rtol=1e-6)
 
     def test_scalar_vector(self):
         x0 = 0.5
-        jac_diff = optimize.approx_jacobian(x0, self.fun_scalar_vector)
+        jac_diff = optimize.approx_jacobian(self.fun_scalar_vector, x0)
         jac_true = self.jac_scalar_vector(x0)
         assert_allclose(jac_diff, jac_true, rtol=1e-6)
 
     def test_vector_scalar(self):
         x0 = np.array([100.0, -0.5])
-        jac_diff = optimize.approx_jacobian(x0, self.fun_vector_scalar)
+        jac_diff = optimize.approx_jacobian(self.fun_vector_scalar, x0)
         jac_true = self.jac_vector_scalar(x0)
         assert_allclose(jac_diff, jac_true, rtol=1e-6)
 
     def test_vector_vector(self):
         x0 = np.array([-100.0, 0.2])
-        jac_diff = optimize.approx_jacobian(x0, self.fun_vector_vector)
+        jac_diff = optimize.approx_jacobian(self.fun_vector_vector, x0)
         jac_true = self.jac_vector_vector(x0)
         assert_allclose(jac_diff, jac_true, rtol=1e-5)
 
     def test_custom_eps(self):
         x0 = np.array([-0.1, 0.1])
-        jac_diff = optimize.approx_jacobian(x0, self.fun_vector_vector,
+        jac_diff = optimize.approx_jacobian(self.fun_vector_vector, x0,
                                             eps=1e-8)
         jac_true = self.jac_vector_vector(x0)
         assert_allclose(jac_diff, jac_true, rtol=1e-3)
@@ -125,10 +134,43 @@ class TestApproxJacobian(object):
         x0 = np.array([1.0, 1.0])
         c0 = -1.0
         c1 = 1.0
-        jac_diff = optimize.approx_jacobian(x0, self.fun_parametrized,
+        jac_diff = optimize.approx_jacobian(self.fun_parametrized, x0,
                                             args=(c0, c1))
         jac_true = self.jac_parametrized(x0, c0, c1)
         assert_allclose(jac_diff, jac_true, rtol=1e-6)
+
+    def test_check_jacobian(self):
+        x0 = np.array([-10.0, 10])
+        abs_tol, rel_tol = optimize.check_jacobian(self.fun_vector_vector,
+                                                   self.jac_vector_vector, x0)
+        assert_(rel_tol < 1e-6)
+        assert_(abs_tol < 1e-5)
+
+        abs_tol, rel_tol = optimize.check_jacobian(
+            self.fun_vector_vector,  self.jac_vector_vector, x0, eps=1e-8)
+        assert_(rel_tol < 1e-3)
+        assert_(abs_tol < 1e-2)
+
+        c0 = 1.0
+        c1 = 1.0
+        x0 = np.array([-1.0, -1.0])
+        abs_tol, rel_tol = optimize.check_jacobian(
+            self.fun_parametrized, self.jac_parametrized, x0, args=(c0, c1))
+        assert_(rel_tol < 1e-6)
+        assert_(abs_tol < 1e-5)
+
+    def test_check_jacobian_zeros(self):
+        x0 = np.array([0.0, 0.0])
+        abs_tol, rel_tol = optimize.check_jacobian(self.fun_zero_jacobian,
+                                                   self.jac_zero_jacobian, x0)
+        assert_(abs_tol == 0)
+        assert_(rel_tol is None)
+
+        x0 = np.array([1.0, 0.0])
+        abs_tol, rel_tol = optimize.check_jacobian(self.fun_zero_jacobian,
+                                                   self.jac_zero_jacobian, x0)
+        assert_(abs_tol < 1e-8)
+        assert_(rel_tol == 0)
 
 
 class TestOptimize(object):
