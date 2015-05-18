@@ -147,7 +147,7 @@ class TestApproxJacobian(object):
         assert_(abs_tol < 1e-5)
 
         abs_tol, rel_tol = optimize.check_jacobian(
-            self.fun_vector_vector,  self.jac_vector_vector, x0, eps=1e-8)
+            self.fun_vector_vector, self.jac_vector_vector, x0, eps=1e-8)
         assert_(rel_tol < 1e-3)
         assert_(abs_tol < 1e-2)
 
