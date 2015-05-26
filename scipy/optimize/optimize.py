@@ -22,8 +22,8 @@ from __future__ import division, print_function, absolute_import
 __all__ = ['fmin', 'fmin_powell', 'fmin_bfgs', 'fmin_ncg', 'fmin_cg',
            'fminbound', 'brent', 'golden', 'bracket', 'rosen', 'rosen_der',
            'rosen_hess', 'rosen_hess_prod', 'brute', 'approx_fprime',
-           'approx_jacobian', 'line_search', 'check_grad', 'check_jacobian',
-           'OptimizeResult', 'show_options', 'OptimizeWarning']
+           'line_search', 'check_grad', 'OptimizeResult', 'show_options',
+           'OptimizeWarning']
 
 __docformat__ = "restructuredtext en"
 
@@ -616,123 +616,6 @@ def approx_fprime(xk, f, epsilon, *args):
 
     """
     return _approx_fprime_helper(xk, f, epsilon, args=args)
-
-
-def approx_jacobian(f, x0, f0=None, eps=None, args=()):
-    """Compute finite difference approximation of the Jacobian matrix of a
-    vector-valued function.
-
-    If a function maps from R^n to R^m, its Jacobian matrix has shape m x n
-    with an element (i, j) being partial derivative of f[i] with respect to
-    x[j].
-
-    Parameters
-    ----------
-    f : callable
-        The function of which to estimate the Jacobian matrix. Must take float
-        or array_like as the first argument and return float or array_like.
-    x0 : array_like or float
-        The point at which to estimate the Jacobian matrix.
-    f0 : {None, float, array_like}, optional
-        If not None it is assumed to be equal to f(x0), in this case the
-        f(x0) is not called.
-    eps : float or None, optional
-        The fractional accuracy with which the function is computed. If None,
-        `eps` is assigned to the machine epsilon of dtype of f(x0).
-    args : tuple, optional
-        Additional arguments passed to `f`.
-
-    Returns
-    -------
-    J : array
-        Finite difference approximation of the Jacobian matrix. If n > 1 and
-        m > 1 then it's a 2d-array. If n = 1 or m = 1 then it's a 1d-array.
-        If n = 1 and m = 1 then it's a scalar.
-
-    Notes
-    -----
-    The derivatives are estimated by forward finite differences with the
-    step along i-th coordinate computed as
-    ``dx[i] = sqrt(eps) * max(1, abs(x[i]))``, which approximately minimizes
-    the sum of round-off and truncation errors. Refer to [1]_ for the
-    discussion.
-
-    References
-    ----------
-    .. [1] William H. Press et. al. "Numerical Recipes. The Art of Scientific
-           Computing. 3rd edition", p. 229
-    """
-    x0 = np.asarray(x0)
-    if f0 is None:
-        f0 = f(x0, *args)
-    f0 = np.asarray(f0)
-
-    if eps is None:
-        eps = np.finfo(f0.dtype).eps
-    else:
-        eps = np.maximum(eps, np.finfo(f0.dtype).eps)
-
-    if x0.ndim == 0:
-        x = x0 + np.sqrt(eps) * np.maximum(1, np.abs(x0))
-        dx = x - x0
-        df = f(x, *args) - f0
-        J = df / dx
-    else:
-        J = []
-        for i in range(x0.size):
-            x = np.copy(x0)
-            x[i] += np.sqrt(eps) * np.maximum(1, np.abs(x0[i]))
-            dx = x[i] - x0[i]  # to assure
-            df = f(x, *args) - f0
-            J.append(df / dx)
-        J = np.array(J).T
-    return J
-
-
-def check_jacobian(f, jac, x0, eps=None, args=()):
-    """Check the correctness of a function computing Jacobian matrix
-    by comparison with finite difference approximation.
-
-    Parameters
-    ----------
-    f : callable
-        Function whose derivatives is to be checked.
-    jac : callable
-        Function which computes Jacobian matrix of `f`.
-    x0 : array_like or float
-        The point at which evaluate and compare Jacobin matrices.
-    eps : None or float, optional
-        The fractional accuracy with which the function is computed. If None,
-        `eps` is assigned to the machine epsilon of dtype of f(x0).
-    args : tuple, optional
-        Extra arguments passed to `f` and `jac`.
-
-    Returns
-    -------
-    abs_tol : float
-        The maximum of absolute errors among all elements of Jacobian matrix.
-    rel_tol : float or None
-        The maximum of relative errors among all elements of Jacobian matrix.
-        Elements with zero values are ignored. None is returned if all
-        elements of true Jacobian matrix are zeros.
-
-    See Also
-    --------
-    approx_jacobian : Function computing finite difference approximation of
-                      Jacobian matrix.
-    """
-    jac_true = jac(x0, *args)
-    abs_err = np.abs(jac_true - approx_jacobian(f, x0, eps=eps, args=args))
-    with np.errstate(divide='ignore', invalid='ignore'):
-        rel_err = abs_err / np.abs(jac_true)
-        rel_err = rel_err[np.isfinite(rel_err)]
-
-    if rel_err.size == 0:
-        max_rel_err = None
-    else:
-        max_rel_err = np.max(rel_err)
-
-    return np.max(abs_err), max_rel_err
 
 
 def check_grad(func, grad, x0, *args, **kwargs):
