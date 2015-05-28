@@ -270,6 +270,21 @@ class TestApproxDerivatives(object):
                                      method='forward')
         assert_(accuracy == 0)
 
+    def func_bnd(self, x, c):
+        x = np.atleast_1d(x)
+        res = np.sin(x)
+        res[x > c] = np.nan
+        return res
+
+    def test_bounds_nan(self):
+        # test that the diff scheme switches to one-sided when needed
+        # (eg, an extreme case: right at the boundary)
+        c = np.pi
+        for meth in ['central', 'forward']:
+            deriv = approx_derivatives(self.func_bnd, x0=[c], args=(c,),
+                                       method=meth, bounds=(None, c))
+        assert_(np.isfinite(deriv).all())
+
 
 if __name__ == '__main__':
     run_module_suite()
