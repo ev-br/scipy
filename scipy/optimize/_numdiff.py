@@ -35,18 +35,21 @@ def _adjust_step_1st_order(x0, h, bounds):
     if lb is None:
         return -h
 
-    lb = np.asarray(lb)
-    ub = np.asarray(ub)
+    # numpy 1.6.2: otherwise it fails eg, TestAdjustStep1stOrder.test_scalar_case
+    h = np.atleast_1d(h)
+
+    lb = np.atleast_1d(lb)
+    ub = np.atleast_1d(ub)
 
     lower_dist = x0 - lb
     upper_dist = ub - x0
     forward = upper_dist > lower_dist
 
     h_adjusted = np.empty_like(h)
+
     h_adjusted[forward] = np.minimum(upper_dist[forward], h[forward])
     h_adjusted[~forward] = -np.minimum(lower_dist[~forward], h[~forward])
-
-    return h_adjusted
+    return h_adjusted.squeeze()
 
 
 def _adjust_step_2nd_order(x0, h, bounds):
@@ -88,11 +91,17 @@ def _adjust_step_2nd_order(x0, h, bounds):
         ub = np.empty_like(h)
         ub.fill(np.inf)
 
+    # numpy 1.6.2, scalars
+    h = np.atleast_1d(h)
+
     scheme = np.zeros_like(h, dtype=int)
     h_adjusted = h.copy()
 
     lower_dist = x0 - lb
     upper_dist = ub - x0
+
+    # numpy 1.6.2, scalars
+    lower_dist, upper_dist = map(np.atleast_1d, (lower_dist, upper_dist))
 
     central = (lower_dist >= h) & (upper_dist >= h)
 
