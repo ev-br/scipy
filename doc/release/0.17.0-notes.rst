@@ -46,6 +46,15 @@ should be used instead.
 ``scipy.stats.betai`` is deprecated. This is an alias for ``special.betainc`` 
 which should be used instead.
 
+``scipy.stats.ranksums`` is deprecated. This function has been subsumed by the
+``mann_whitney_u`` function. See PR #4933 for details.
+
+``scipy.stats.mannwhitneyu`` is deprecated. The p-values returned by this
+function were effectively 1/2 the p-value of a two-sided test, but reported
+as a "one-sided" test. This function has been subsumed by ``mann_whitney_u``
+and the reported p-value corrected. See PR #4933.
+
+
 Backwards incompatible changes
 ==============================
 

@@ -17,7 +17,7 @@ from numpy.testing import (TestCase, assert_, assert_equal,
                            assert_almost_equal, assert_array_almost_equal,
                            assert_array_equal, assert_approx_equal,
                            assert_raises, run_module_suite, assert_allclose,
-                           dec)
+                           assert_string_equal, dec)
 import numpy.ma.testutils as mat
 from numpy import array, arange, float32, float64, power
 import numpy as np
@@ -2797,7 +2797,7 @@ def test_kurtosistest_too_few_samples():
     assert_raises(ValueError, stats.kurtosistest, x)
 
 
-class TestMannWhitneyU(TestCase):
+class TestMannWhitneyU_0(TestCase):
     X = [19.8958398126694, 19.5452691647182, 19.0577309166425, 21.716543054589,
          20.3269502208702, 20.0009273294025, 19.3440043632957, 20.4216806548105,
          19.0649894736528, 18.7808043120398, 19.3680942943298, 19.4848044069953,
@@ -2920,6 +2920,113 @@ class TestMannWhitneyU(TestCase):
         attributes = ('statistic', 'pvalue')
         res = stats.mannwhitneyu(self.X, self.Y)
         check_named_results(res, attributes)
+
+
+class TestMannWhitneyU_1(TestCase):
+
+    def __init__(self, *args, **kwargs):
+        super(TestMannWhitneyU_1, self).__init__(*args, **kwargs)
+        self.x = np.array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+            1., 1., 1., 1., 1., 1., 1., 1., 2., 1., 1., 1., 1., 1., 1., 1.,
+            1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+            1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+            1., 1., 2., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+            1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+            1., 1., 1., 1., 2., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+            1., 1., 1., 1., 1., 2., 1., 1., 1., 1., 2., 1., 1., 2., 1., 1.,
+            2., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+            1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 2., 1., 1., 1., 1.,
+            1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+            1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+            2., 1., 1., 1., 1., 1., 1., 1., 1., 1., 2., 1., 1., 1., 1., 1.,
+            1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 3., 1., 1.,
+            1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+            1., 1., 1., 1., 1., 1., 1.])
+
+        self.y = np.array([1., 1., 1., 1., 1., 1., 1., 2., 1., 2., 1., 1., 1.,
+            1., 2., 1., 1., 1., 2., 1., 1., 1., 1., 1., 2., 1., 1., 3., 1.,
+            1., 1., 1., 1., 1., 1., 1., 1., 1., 2., 1., 2., 1., 1., 1., 1.,
+            1., 1., 2., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+            1., 1., 2., 1., 1., 1., 1., 1., 2., 2., 1., 1., 2., 1., 1., 2.,
+            1., 2., 1., 1., 1., 1., 2., 2., 1., 1., 1., 1., 1., 1., 1., 1.,
+            1., 1., 1., 1., 1., 1., 2., 1., 1., 1., 1., 1., 2., 2., 2., 1.,
+            1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+            1., 2., 1., 1., 2., 1., 1., 1., 1., 2., 1., 1., 1., 1., 1., 1.,
+            1., 1., 1., 1., 1., 1., 2., 1., 1., 1., 2., 1., 1., 1., 1., 1.,
+            1.])
+
+        self.a = np.array([210.052110, 110.190630, 307.918612])
+
+        self.b = np.array([436.08811482466416,
+                           416.37397329768191,
+                           179.96975939463582,
+                           197.8118754228619,
+                           34.038757281225756,
+                           138.54220550921517,
+                           128.7769351470246,
+                           265.92721427951852,
+                           275.6617533155341,
+                           592.34083395416258,
+                           448.73177590617018,
+                           300.61495185038905,
+                           187.97508449019588])
+
+        self.alt_two = 'x and y are sampled from different populations'
+        self.alt_less = 'x is sampled from a population of smaller values than y'
+        self.alt_greater = 'x is sampled from a population of larger values than y'
+
+    # p-values and statistic compared against wilcox.test from R stats
+    def test_two_tailed_exact(self):
+        res = stats.stats.mann_whitney_u(self.a, self.b)
+        ra = [res.statistic, res.pvalue]
+        assert_array_almost_equal(ra, (16, 0.703571428571428625), decimal=12)
+        assert_string_equal(res.alternative, self.alt_two)
+
+    def test_less_exact(self):
+        res = stats.stats.mann_whitney_u(self.a, self.b, alternative='less')
+        ra = [res.statistic, res.pvalue]
+        assert_array_almost_equal(ra, (23, 0.694642857142857117), decimal=12)
+        assert_string_equal(res.alternative, self.alt_less)
+
+    def test_greater_exact(self):
+        res = stats.stats.mann_whitney_u(self.a, self.b, alternative='greater')
+        ra = [res.statistic, res.pvalue]
+        assert_array_almost_equal(ra, (16, 0.351785714285714313), decimal=12)
+        assert_string_equal(res.alternative, self.alt_greater)
+
+    def test_two_tailed_inverse_exact(self):
+        res = stats.stats.mann_whitney_u(self.b, self.a)
+        ra = [res.statistic, res.pvalue]
+        assert_array_almost_equal(ra, (16, 0.703571428571428625), decimal=12)
+        assert_string_equal(res.alternative, self.alt_two)
+
+    def test_two_tailed_approx(self):
+        res = stats.stats.mann_whitney_u(self.x, self.y)
+        ra = [res.statistic, res.pvalue]
+        assert_array_almost_equal(ra, (16980.5, 5.64286553126644867e-05),
+                                  decimal=12)
+        assert_string_equal(res.alternative, self.alt_two)
+
+    def test_less_approx(self):
+        res = stats.stats.mann_whitney_u(self.x, self.y, alternative='less')
+        ra = [res.statistic, res.pvalue]
+        assert_array_almost_equal(ra, (16980.5, 2.8214327656332243e-05),
+                                  decimal=12)
+        assert_string_equal(res.alternative, self.alt_less)
+
+    def test_greater_approx(self):
+        res = stats.stats.mann_whitney_u(self.x, self.y, alternative='greater')
+        ra = [res.statistic, res.pvalue]
+        assert_array_almost_equal(ra, (21571.5, 0.9999719954296038),
+                                  decimal=12)
+        assert_string_equal(res.alternative, self.alt_greater)
+
+    def test_two_tailed_inverse_approx(self):
+        res = stats.stats.mann_whitney_u(self.y, self.x)
+        ra = [res.statistic, res.pvalue]
+        assert_array_almost_equal(ra, (16980.5, 5.64286553126644867e-05),
+                                  decimal=12)
+        assert_string_equal(res.alternative, self.alt_two)
 
 
 def test_pointbiserial():
