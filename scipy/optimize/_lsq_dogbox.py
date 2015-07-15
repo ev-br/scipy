@@ -281,7 +281,7 @@ def dogbox(fun, jac, x0, f0, J0, lb, ub, ftol, xtol, gtol, max_nfev, scaling,
                 ratio = 0
 
             if ratio < 0.25:
-                Delta = 0.25 * norm(step / scale, ord=np.inf)
+                Delta = 0.25 * norm(step * scale, ord=np.inf)
             elif ratio > 0.75 and tr_hit:
                 Delta *= 2.0
 
