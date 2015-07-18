@@ -2,11 +2,10 @@
 
 from __future__ import division
 
-import sys
-
 import numpy as np
+
 from ..sparse import issparse, csc_matrix, csr_matrix, lil_matrix, find
-from  ._group_columns import group_dense, group_sparse
+from ._group_columns import group_dense, group_sparse
 
 EPS = np.finfo(np.float64).eps
 
