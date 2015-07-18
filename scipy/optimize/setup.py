@@ -70,6 +70,9 @@ def configuration(parent_package='',top_path=None):
                                           for x in ["nnls.f","nnls.pyf"]],
                          **numpy_nodepr_api)
 
+    config.add_extension('_group_columns', sources=['_group_columns.c'],
+                         **numpy_nodepr_api)
+
     config.add_data_dir('tests')
     return config
 
