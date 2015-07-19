@@ -162,6 +162,10 @@ class BaseMixin(object):
                       2.0, scaling='auto', method=self.method)
         assert_raises(ValueError, least_squares, fun_trivial,
                       2.0, scaling=-1.0, method=self.method)
+        assert_raises(ValueError, least_squares, fun_trivial,
+                      2.0, scaling=None, method=self.method)
+        assert_raises(ValueError, least_squares, fun_trivial,
+                      2.0, scaling=1.0+2.0j, method=self.method)
 
     def test_diff_step(self):
         # res1 and res2 should be equivalent.

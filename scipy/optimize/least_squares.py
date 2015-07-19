@@ -109,13 +109,16 @@ def call_minpack(fun, x0, jac, ftol, xtol, gtol, max_nfev, scaling, diff_step):
 def check_scaling(scaling, x0):
     if scaling == 'jac':
         return scaling
+
     try:
         scaling = np.asarray(scaling, dtype=float)
-    except ValueError:
-        raise ValueError("`scaling` must be 'jac' or array_like with numbers.")
+        valid = np.all(np.isfinite(scaling)) and np.all(scaling > 0)
+    except (ValueError, TypeError):
+        valid = False
 
-    if np.any(scaling <= 0):
-        raise ValueError("`scaling` must contain only positive values.")
+    if not valid:
+        raise ValueError("`scaling` must be 'jac' or array_like with "
+                         "positive numbers.")
 
     if scaling.ndim == 0:
         scaling = np.resize(scaling, x0.shape)
