@@ -354,9 +354,9 @@ def least_squares(
     rectangular trust regions as opposed to conventional elliptical [Voglis]_.
     The intersection of a current trust region and initial bounds is again
     rectangular, so on each iteration a quadratic minimization problem subject
-    to bounds is solved approximately by Powell's dogleg method [NumOpt]_.
-    The algorithm is likely to exhibit slow convergence when the rank of
-    Jacobian is less than the number of variables. The algorithm often
+    to bounds is solved approximately by Powell's dogleg method [NumOpt]_,
+    Chapter 4. The algorithm is likely to exhibit slow convergence when the
+    rank of Jacobian is less than the number of variables. The algorithm often
     outperform 'trf' in bounded problems with small number of variables.
 
     .. versionadded: 0.17.0
@@ -384,7 +384,7 @@ def least_squares(
                 Nonlinear Optimization", WSEAS International Conference on
                 Applied Mathematics, Corfu, Greece, 2004.
     .. [NumOpt] J. Nocedal and S. J. Wright, "Numerical optimization,
-                2nd edition", Chapter 4.
+                2nd edition".
     """
     if method not in ['trf', 'dogbox', 'lm']:
         raise ValueError("`method` must be 'trf', 'dogbox' or 'lm'.")
