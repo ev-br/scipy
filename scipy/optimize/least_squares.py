@@ -317,6 +317,12 @@ def least_squares(
     success : int
         True if one of the convergence criteria is satisfied.
 
+    See Also
+    --------
+    scipy.sparse.linalg.LinearOperator : Abstraction for matrix-vector
+        product evaluations.
+    scipy.sparse.linalg.lsmr : Iterative solver for least-squares problems.
+
     Notes
     -----
     Method 'lm' (Levenberg-Marquardt) calls a wrapper over least-squares
@@ -352,6 +358,8 @@ def least_squares(
     The algorithm is likely to exhibit slow convergence when the rank of
     Jacobian is less than the number of variables. The algorithm often
     outperform 'trf' in bounded problems with small number of variables.
+
+    .. versionadded: 0.17.0
 
     References
     ----------
