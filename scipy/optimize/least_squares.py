@@ -200,9 +200,9 @@ def least_squares(
         square root of machine epsilon. The exact condition depends
         on a `method` used:
             * For 'trf' : ``norm(g_scaled, ord=np.inf) < gtol``, where
-              g_scaled is properly scaled gradient to account for the
+              g_scaled is the properly scaled gradient to account for the
               presence of bounds [STIR]_.
-            * Fot 'dogbox' : ``norm(g_free, ord=np.inf) < gtol``, where
+            * For 'dogbox' : ``norm(g_free, ord=np.inf) < gtol``, where
               g_free is the gradient with respect to the variables which
               aren't in the optimal state on the boundary.
             * For 'lm' : the maximum cosine of angles between columns of
@@ -232,7 +232,8 @@ def least_squares(
         Determines the step size for finite difference Jacobian approximation.
         The actual step is computed as ``x * diff_step``. If None (default),
         `diff_step` is assigned to a conventional "optimal" power of machine
-        epsilon depending on a finite difference approximation method [NR]_.
+        epsilon depending on a finite difference approximation method [NR]_,
+        Sec. 5.7.
     tr_solver : {None, 'exact', 'lsmr'}, optional
         Method for solving trust-region subproblems, relevant only for 'trf'
         and 'dogbox' methods.
@@ -257,16 +258,16 @@ def least_squares(
         Defines Jacobian sparsity structure for finite differencing. Provide
         this parameter to greatly speed up finite difference Jacobian
         estimation, if it has only few non-zeros in *each* row [Curtis]_.
-        Should be array_like or sparse matrix with shape (m, n). A zero element
-        means that a corresponding element in Jacobian is identically zero.
-        Forces `tr_solver` to 'lsmr' if it wasn't set. If None (default) then
-        dense differencing will be used. Has no effect for ``method='lm'``.
+        Should has shape (m, n). A zero element means that a corresponding
+        element in Jacobian is identically zero. Forces `tr_solver` to 'lsmr'
+        if it wasn't set. If None (default) then dense differencing will be
+        used. Has no effect for ``method='lm'``.
     verbose : {0, 1, 2}, optional
         Level of algorithm's verbosity:
             * 0 (default) - work silently.
             * 1 - display a termination report.
-            * 2 - display progress during iterations
-              (not supported by 'lm'method).
+            * 2 - display progress during iterations (not supported by 'lm'
+              method).
     args, kwargs : tuple and dict, optional
         Additional arguments passed to `fun` and `jac`. Both empty by default.
         The calling signature is ``fun(x, *args, **kwargs)`` and the same for
@@ -319,6 +320,7 @@ def least_squares(
 
     See Also
     --------
+    scipy.linalg.svd : Singular value decomposition.
     scipy.sparse.linalg.LinearOperator : Abstraction for matrix-vector
         product evaluations.
     scipy.sparse.linalg.lsmr : Iterative solver for least-squares problems.
@@ -368,7 +370,7 @@ def least_squares(
           Minimization Problems," SIAM Journal on Scientific Computing,
           Vol. 21, Number 1, pp 1-23, 1999.
     .. [NR] William H. Press et. al. "Numerical Recipes. The Art of Scientific
-            Computing. 3rd edition", Sec. 5.7.
+            Computing. 3rd edition".
     .. [Byrd] R. H. Byrd, R. B. Schnabel and G. A. Shultz, "Approximate
               solution of the trust region problem by minimization over
               two-dimensional subspaces", Math. Programming, 40 (1988),
@@ -385,6 +387,80 @@ def least_squares(
                 Applied Mathematics, Corfu, Greece, 2004.
     .. [NumOpt] J. Nocedal and S. J. Wright, "Numerical optimization,
                 2nd edition".
+
+    Examples
+    --------
+    In this example we find a minimum of Rosenbrock function without bounds
+    on the independed variables. We provide analytical Jacobian to
+    `least_squares`.
+
+    >>> import numpy as np
+    >>> from scipy.optimize import least_squares
+    ...
+    >>> def fun_rosenbrock(x):
+    ...     return np.array([10 * (x[1] - x[0]**2), (1 - x[0])])
+    >>> def jac_rosenbrock(x):
+    ...     return np.array([
+    ...         [-20 * x[0], 10],
+    ...         [-1, 0]
+    ...      ])
+    >>>
+    >>> x0_rosenbrock = np.array([2, 2])
+    ...
+    >>> res_1 = least_squares(fun_rosenbrock, x0_rosenbrock, jac_rosenbrock)
+    ...
+    >>> res_1.x, res_1.cost, res_1.optimality
+    array([ 1.,  1.])
+    >>> res_1.cost
+    2.4651903288156619e-30
+    >>> res_1.optimality
+    4.4408920985006262e-14
+
+    Now we specify bounds such that the previous solution becomes infeasible.
+    You see that the new solution lies on the bound.
+
+    >>> res_2 = least_squares(fun_rosenbrock, x0_rosenbrock, jac_rosenbrock,
+    ...                       bounds=([-np.inf, 1.5], np.inf))
+    >>> res_2.x
+    array([ 1.22437075,  1.5       ])
+    >>> res_2.cost
+    0.025213093946805685
+    >>> res_2.optimality
+    1.5885401433157753e-07
+
+    Now we solve a system of equations (the found minimum sum of squares
+    will be very close to zero) for Broyden tridiagonal vector-valued
+    function of 100000 variables. This function has a sparse Jacobian matrix.
+    We tell the algorithm to estimate it by finite differences and provide
+    sparsity structure of Jacobian to significantly speed up this process.
+
+    >>> from scipy.sparse import lil_matrix
+    ...
+    >>> def fun_broyden(x):
+    ...     f = (3 - x) * x + 1
+    ...     f[1:] -= x[:-1]
+    ...     f[:-1] -= 2 * x[1:]
+    ...     return f
+    ...
+    >>> def sparsity_broyden(n):
+    ...     sparsity = lil_matrix((n, n), dtype=int)
+    ...     i = np.arange(n)
+    ...     sparsity[i, i] = 1
+    ...     i = np.arange(1, n)
+    ...     sparsity[i, i - 1] = 1
+    ...     i = np.arange(n - 1)
+    ...     sparsity[i, i + 1] = 1
+    ...     return sparsity
+    ...
+    >>> n = 100000
+    >>> x0_broyden = -np.ones(n)
+    ...
+    >>> res_3 = least_squares(fun_broyden, x0_broyden,
+    ...                       jac_sparsity=sparsity_broyden(n))
+    >>> res_3.cost
+    4.5687161966109073e-23
+    >>> res_3.optimality
+    1.1650454296851518e-11
     """
     if method not in ['trf', 'dogbox', 'lm']:
         raise ValueError("`method` must be 'trf', 'dogbox' or 'lm'.")
