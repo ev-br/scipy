@@ -142,30 +142,31 @@ def least_squares(
         F(x) = 0.5 * ||f(x)||**2 = 0.5 * sum(f_i(x)**2, i = 1, ..., m)
         lb <= x <= ub
 
-    We use terms: f(x) - a vector of residuals or simply residuals,
-    F(x) - a cost function or simply cost.
+    Here: f(x) is a vector of residuals, and F(x) is the so-called cost function.
 
     Partial derivatives of f with respect to x form m-by-n matrix called
-    Jacobian, where an element (i, j) equals to a partial derivative of f[i]
+    Jacobian, where an element (i, j) equals the partial derivative of f[i]
     with respect to x[j].
 
     Parameters
     ----------
     fun : callable
-        Function which computes a vector of residuals. The argument x passed
-        to this function is ndarray of shape (n,) (never a scalar, even
-        if n=1). It must return 1-d array_like of shape (m,) or a scalar.
+        Function which computes the vector of residuals. The signature
+        of this function must be of the form ``f(x, *args, **kwds)``, i.e.,
+        the minimization proceeds with respect to it's first argument.
+        The argument ``x`` passed to this function is ndarray of shape (n,) 
+        (never a scalar, even for ``n=1``). 
+        It must return a 1-d array_like of shape (m,) or a scalar.
     x0 : array_like with shape (n,) or float
-        Initial guess on independent variables. If float, for internal usage
-        it will be converted to 1-d array.
+        Initial guess on independent variables to start the minimzation from.
     jac : '2-point', '3-point' or callable, optional
         Method of computing the Jacobian matrix. If set to '2-point' or
         '3-point', the Jacobian matrix is estimated by the corresponding
         finite difference scheme. The scheme '3-point' is more accurate, but
         requires twice as much operations compared to '2-point' (default).
-        If callable, then it should return a reasonable approximation of
-        Jacobian as array_like (np.atleast_2d is applied), sparse matrix or
-        LinearOperator, all with shape  (m, n).
+        If callable, then it should return an approximation for the Jacobian as
+        an array_like (np.atleast_2d is applied), a sparse matrix or
+        a LinearOperator, all with shape  (m, n).
     bounds : 2-tuple of array_like, optional
         Lower and upper bounds on independent variables. Defaults to no bounds.
         Each array must match the size of `x0` or be a scalar, in the latter
@@ -179,32 +180,32 @@ def least_squares(
               typical use case is small problems with bounds. Not recommended
               to use in rank-deficient problems.
             * 'lm' - Levenberg-Marquardt algorithm as implemented in MINPACK.
-              Doesn't handle bounds and sparse Jacobians, but usually most
-              efficient for small unconstrained problems.
+              Doesn't handle bounds and sparse Jacobians. Is usually the most
+              efficient one for small unconstrained problems.
         Default is 'trf'. See Notes for more information.
     ftol : float, optional
         Tolerance for termination by the change of the cost function.
-        Default is square root of machine epsilon. The optimization process is
-        stopped when ``dF < ftol * F``, and there was adequate agreement
+        Default is the square root of machine epsilon. The optimization process
+         is stopped when ``dF < ftol * F``, and there was an adequate agreement
         between a local quadratic model and the true model in the last step.
     xtol : float, optional
         Tolerance for termination by the change of the independent variables.
-        Default is square root of machine epsilon. The exact condition checked
-        depends on a `method` used:
-            * For 'trf' and 'dogbox' : ``norm(dx) < xtol * (xtol + norm(x))``
+        Default is the square root of machine epsilon. The exact condition
+        checked depends on the `method` used:
+            * For 'trf' and 'dogbox': ``norm(dx) < xtol * (xtol + norm(x))``
             * For 'lm': ``Delta < xtol * norm(scaled_x)``, where Delta is a
               trust-region radius and scaled_x is a scaled value of x
               according to `scaling` parameter (see below).
     gtol : float, optional
-        Tolerance for termination by the norm of gradient. Default is
-        square root of machine epsilon. The exact condition depends
+        Tolerance for termination by the norm of the gradient. Default is
+        the square root of machine epsilon. The exact condition depends
         on a `method` used:
             * For 'trf' : ``norm(g_scaled, ord=np.inf) < gtol``, where
-              g_scaled is the properly scaled gradient to account for the
-              presence of bounds [STIR]_.
+              ``g_scaled`` is the value of the gradient, additionally scaled
+              to account for the presence of the bounds [STIR]_.
             * For 'dogbox' : ``norm(g_free, ord=np.inf) < gtol``, where
               g_free is the gradient with respect to the variables which
-              aren't in the optimal state on the boundary.
+              are not in the optimal state on the boundary.
             * For 'lm' : the maximum cosine of angles between columns of
               Jacobian and the residual vector is less than `gtol`, or the
               residual vector is zero.
@@ -216,52 +217,55 @@ def least_squares(
               otherwise (because 'lm' counts function calls in Jacobian
               estimation).
     scaling : array_like or 'jac', optional
-        Applies variables scaling to potentially improve algorithm convergence.
+        Applies scaling of variables to potentially improve the convergence.
         Default is 1.0, which means no scaling. Scaling should be used to
         equalize the influence of each variable on the cost function.
         Alternatively you can think of `scaling` as diagonal elements of
         a matrix which determines the shape of a trust region. Use smaller
-        values for variables which have bigger characteristic scale compared
+        values for variables which have larger characteristic scale compared
         to others. A scalar value won't affect the algorithm (except maybe
         fixing/introducing numerical issues and changing termination criteria).
-        If 'jac', then scaling is proportional to the norms of Jacobian
-        columns. The latter option is often helpful in unconstrained problems,
-        but not so much in constrained ones. From experience usage of 'jac'
-        scaling is not recommended for bounded problems with 'trf' method.
+        If 'jac', then scaling is proportional to the norms of columns of the
+        Jacobian matrix. The latter option is often helpful in unconstrained
+        problems, but not so much in constrained ones. From experience, the
+        use of ``scalin='jac'`` is not recommended for bounded problems with
+        'trf' method.
     diff_step : None or array_like, optional
-        Determines the step size for finite difference Jacobian approximation.
-        The actual step is computed as ``x * diff_step``. If None (default),
-        `diff_step` is assigned to a conventional "optimal" power of machine
-        epsilon depending on a finite difference approximation method [NR]_,
-        Sec. 5.7.
+        Determines the relative step size for the finite difference
+        approximation of the Jacobian. The actual step is computed as
+        ``x * diff_step``. If None (default), then `diff_step` is taken to be a
+        conventional "optimal" power of machine epsilon for the finite
+        difference scheme used [NR]_.
     tr_solver : {None, 'exact', 'lsmr'}, optional
         Method for solving trust-region subproblems, relevant only for 'trf'
         and 'dogbox' methods.
-            * 'exact' is suitable for not very large problems, which have
-              dense Jacobian matrices. It requires work comparable to a single
-              SVD of Jacobian per iteration.
+            * 'exact' is suitable for not very large problems, with dense
+            Jacobian matrices. The computational complexity per iteration is
+            comparable to a single SVD (Singular value decomposition) of the
+            Jacobian matrix.
             * 'lsmr' is suitable for problems with sparse and large Jacobian
-              matrices. It uses iterative ``scipy.sparse.linalg.lsmr``
-              procedure for finding a solution of linear least squares and
-              requires only matrix-vector product evaluations.
+              matrices. It uses an iterative procedure, `scipy.sparse.linalg.lsmr`,
+              for finding a solution of linear least squares and only requires
+              matrix-vector product evaluations.
         If None (default) the solver is chosen based on type of Jacobian
         returned on the first iteration.
     tr_options : dict, optional
         Keyword options passed to trust-region solver.
-            * ``tr_solver='exact'`` : `tr_options` are ignored.
-            * ``tr_solver='lsmr'`` : options for ``scipy.sparse.linalg.lsmr``.
-              Additionally  ``method='trf'`` supports 'regularize' option
-              (bool, default True) - add regularization term to the normal
-              equation, which improves convergence with rank-deficient
-              Jacobian [Byrd]_ (eq. 3.4).
+            * ``tr_solver='exact'``: `tr_options` are ignored.
+            * ``tr_solver='lsmr'``: options for `scipy.sparse.linalg.lsmr`.
+              Additionally  ``method='trf'`` supports an additional 
+              'regularize' option (bool, default True) which adds a 
+              regularization term to the normal equations, which improves
+              convergence with rank-deficient Jacobian [Byrd]_ (eq. 3.4).
     jac_sparsity : {None, array_like, sparse matrix}, optional
-        Defines Jacobian sparsity structure for finite differencing. Provide
-        this parameter to greatly speed up finite difference Jacobian
-        estimation, if it has only few non-zeros in *each* row [Curtis]_.
-        Should has shape (m, n). A zero element means that a corresponding
-        element in Jacobian is identically zero. Forces `tr_solver` to 'lsmr'
-        if it wasn't set. If None (default) then dense differencing will be
-        used. Has no effect for ``method='lm'``.
+        Defines the sparsity structure of the Jacobian matrix for finite
+        differences. If the Jacobian has only few non-zeros in *each* row,
+        providing the explicit structure can greatly speed up the
+        calculations [Curtis]_. Should have shape ``(m, n)``. A zero entry
+        means that a corresponding element in Jacobian is identically zero. 
+        If provided, forces the use of the LSMR trust-region solver. 
+        If None (default) then dense differencing will be used. Has no effect
+        for ``method='lm'``.
     verbose : {0, 1, 2}, optional
         Level of algorithm's verbosity:
             * 0 (default) - work silently.
@@ -277,9 +281,9 @@ def least_squares(
     -------
     OptimizeResult with the following fields defined.
     x : ndarray, shape (n,)
-        Found solution.
+        The solution found.
     cost : float
-        Half sum of squares at the solution.
+        The value of the cost function at the solution.
     fun : ndarray, shape (m,)
         Vector of residuals at the solution.
     jac : ndarray, sparse matrix or LinearOperator, shape (m, n)
@@ -291,22 +295,22 @@ def least_squares(
         quantity which was compared with `gtol` during iterations.
     active_mask : ndarray of int, shape (n,)
         Each component shows whether a corresponding constraint is active
-        (a variable is on the bound):
+        (that is, whether a variable is at the bound):
             *  0 - a constraint is not active.
             * -1 - a lower bound is active.
             *  1 - an upper bound is active.
         Might be somewhat arbitrary for 'trf' method as it does strictly
-        feasible iterates and `active_mask` is determined with tolerance
+        feasible iterates and `active_mask` is determined within a tolerance
         threshold.
     nfev : int
-        Number of function evaluations done. Methods 'trf' and 'dogbox' don't
-        count function calls for numerical Jacobian approximation, opposed to
-        'lm' method.
+        Number of function evaluations done. Methods 'trf' and 'dogbox' do not
+        count function calls for numerical Jacobian approximation, as opposed to
+        the method 'lm'.
     njev : int or None
         Number of Jacobian evaluations done. If numerical Jacobian
-        approximation is used in 'lm' method, it is set to None.
+        approximation is used in the 'lm' method, it is set to None.
     status : int
-        Reason for algorithm termination:
+        The reason for algorithm termination:
             * -1 - improper input parameters status returned from MINPACK.
             *  0 - the maximum number of function evaluations is exceeded.
             *  1 - `gtol` termination condition is satisfied.
@@ -320,10 +324,9 @@ def least_squares(
 
     See Also
     --------
-    scipy.linalg.svd : Singular value decomposition.
-    scipy.sparse.linalg.LinearOperator : Abstraction for matrix-vector
-        product evaluations.
-    scipy.sparse.linalg.lsmr : Iterative solver for least-squares problems.
+    leastsq : a legacy wrapper for the MINPACK implementation of the 
+              Levenberg-Marquadt algorithm
+    curve_fit
 
     Notes
     -----
@@ -333,52 +336,52 @@ def least_squares(
     The implementation is based on paper [JJMore]_, it is very robust and
     efficient with a lot of smart tricks. It should be your first choice
     for unconstrained problems. Note that it doesn't support bounds. Also
-    it doesn't work when m < n.
+    it doesn't work when ``m < n``.
 
     Method 'trf' (Trust Region Reflective) is motivated by the process of
-    solving a system of equations, which constitutes the first-order optimality
+    solving a system of equations, which constitute the first-order optimality
     condition for a bound-constrained minimization problem as formulated in
     [STIR]_. The algorithm iteratively solves trust-region subproblems
     augmented by special diagonal quadratic term and with trust-region shape
     determined by the distance from the bounds and the direction of the
-    gradient. This enhancements help not to take steps directly into bounds
-    and explore the whole variable space. To improve convergence speed the
-    reflected from the first bound search direction is considered. To obey
-    theoretical requirements the algorithm keeps iterates strictly feasible.
-    Trust-region subproblems are solved by exact method very similar to one
-    described in [JJMore]_ and implemented in MINPACK, but with the help of
-    one per iteration singular value decomposition of the Jacobian matrix.
+    gradient. This enhancements help to avoid making steps directly into bounds
+    and explore the whole space of variables. To further improve convergence,
+    the algorithm also considers search directions reflected from the bounds.
+    To obey theoretical requirements, the algorithm keeps iterates strictly
+    feasible. Trust-region subproblems are solved by an exact method very similar
+    to the one described in [JJMore]_ (and implemented in MINPACK). The main
+    difference from the MINPACK implementation is that we employ the singular
+    value decomposition (SVD) of the Jacobian matrix once per iteration.
     The algorithm's performance is generally comparable to MINPACK in
     unbounded problems. The algorithm works quite robust in unbounded and
     bounded problems, thus it is chosen as a default algorithm.
 
     Method 'dogbox' operates in a trust-region framework, but considers
-    rectangular trust regions as opposed to conventional elliptical [Voglis]_.
+    rectangular trust regions as opposed to conventional ellipsoids [Voglis]_.
     The intersection of a current trust region and initial bounds is again
     rectangular, so on each iteration a quadratic minimization problem subject
-    to bounds is solved approximately by Powell's dogleg method [NumOpt]_,
-    Chapter 4. The algorithm is likely to exhibit slow convergence when the
-    rank of Jacobian is less than the number of variables. The algorithm often
-    outperform 'trf' in bounded problems with small number of variables.
+    to bounds is solved approximately by Powell's dogleg method [NumOpt]_. 
+    The algorithm is likely to exhibit slow convergence when the rank of
+    Jacobian is less than the number of variables. The algorithm often
+    outperforms 'trf' in bounded problems with small number of variables.
 
     .. versionadded: 0.17.0
 
     References
     ----------
-    .. [STIR] Branch, M.A., T.F. Coleman, and Y. Li, "A Subspace, Interior,
+    .. [STIR] M. A. Branch, T. F. Coleman, and Y. Li, "A Subspace, Interior,
           and Conjugate Gradient Method for Large-Scale Bound-Constrained
           Minimization Problems," SIAM Journal on Scientific Computing,
-          Vol. 21, Number 1, pp 1-23, 1999.
+          Vol. 21, Number 1, pp 1-23 (1999).
     .. [NR] William H. Press et. al. "Numerical Recipes. The Art of Scientific
-            Computing. 3rd edition".
+            Computing. 3rd edition", Sec. 5.7.
     .. [Byrd] R. H. Byrd, R. B. Schnabel and G. A. Shultz, "Approximate
               solution of the trust region problem by minimization over
-              two-dimensional subspaces", Math. Programming, 40 (1988),
-              pp. 247-263.
+              two-dimensional subspaces", Math. Programming, 40, pp. 247-263 (1988).
     .. [Curtis] A. Curtis, M. J. D. Powell, and J. Reid, "On the estimation of
                 sparse Jacobian matrices", Journal of the Institute of
-                Mathematics and its Applications, 13 (1974), pp. 117-120.
-    .. [JJMore] More, J. J., "The Levenberg-Marquardt Algorithm: Implementation
+                Mathematics and its Applications, 13, pp. 117-120  (1974).
+    .. [JJMore] J. J. More, "The Levenberg-Marquardt Algorithm: Implementation
                 and Theory," Numerical Analysis, ed. G. A. Watson, Lecture
                 Notes in Mathematics 630, Springer Verlag, pp. 105-116, 1977.
     .. [Voglis] C. Voglis and I. E. Lagaris, "A Rectangular Trust Region
@@ -386,38 +389,45 @@ def least_squares(
                 Nonlinear Optimization", WSEAS International Conference on
                 Applied Mathematics, Corfu, Greece, 2004.
     .. [NumOpt] J. Nocedal and S. J. Wright, "Numerical optimization,
-                2nd edition".
+                2nd edition", Chapter 4.
 
     Examples
     --------
-    In this example we find a minimum of Rosenbrock function without bounds
-    on the independed variables. We provide analytical Jacobian to
-    `least_squares`.
+    In this example we find a minimum of the Rosenbrock function without bounds
+    on independed variables. 
 
-    >>> import numpy as np
-    >>> from scipy.optimize import least_squares
-    ...
     >>> def fun_rosenbrock(x):
     ...     return np.array([10 * (x[1] - x[0]**2), (1 - x[0])])
-    >>> def jac_rosenbrock(x):
-    ...     return np.array([
-    ...         [-20 * x[0], 10],
-    ...         [-1, 0]
-    ...      ])
-    >>>
+
+    Notice that we only provide the vector of the residuals. The algorithm
+    constructs the cost function as a sum of squares of the residuals, which
+    gives the Rosenbrock function. The exact minimum is at `x = [1.0, 1.0]`.
+
+    >>> from scipy.optimize import least_squares
     >>> x0_rosenbrock = np.array([2, 2])
-    ...
-    >>> res_1 = least_squares(fun_rosenbrock, x0_rosenbrock, jac_rosenbrock)
-    ...
-    >>> res_1.x, res_1.cost, res_1.optimality
+    >>> res_1 = least_squares(fun_rosenbrock, x0_rosenbrock)
+    >>> res_1.x
     array([ 1.,  1.])
     >>> res_1.cost
     2.4651903288156619e-30
     >>> res_1.optimality
     4.4408920985006262e-14
 
-    Now we specify bounds such that the previous solution becomes infeasible.
-    You see that the new solution lies on the bound.
+    We now constrain the variables, in such a way that the previous solution
+    becomes infeasible. Specifically, we require that ``x[0] > 1.5``, and 
+    ``x[1]`` is unconstrained. To this end, we specify the `bounds` parameter
+    to `least_squares` in the form ``bounds=([-np.inf, 1.5], np.inf)``.
+
+    We also provide the analytic Jacobian:
+
+    >>> def jac_rosenbrock(x):
+    ...     return np.array([
+    ...         [-20 * x[0], 10],
+    ...         [-1, 0]
+    ...      ])
+    >>>
+
+    Putting this all together, we see that the new solution lies on the bound:
 
     >>> res_2 = least_squares(fun_rosenbrock, x0_rosenbrock, jac_rosenbrock,
     ...                       bounds=([-np.inf, 1.5], np.inf))
@@ -428,20 +438,21 @@ def least_squares(
     >>> res_2.optimality
     1.5885401433157753e-07
 
-    Now we solve a system of equations (the found minimum sum of squares
-    will be very close to zero) for Broyden tridiagonal vector-valued
-    function of 100000 variables. This function has a sparse Jacobian matrix.
-    We tell the algorithm to estimate it by finite differences and provide
-    sparsity structure of Jacobian to significantly speed up this process.
+    Now we solve a system of equations (i.e., the cost function should be zero
+    at a minimum) for a Broyden tridiagonal vector-valued function of 100000
+    variables:
 
-    >>> from scipy.sparse import lil_matrix
-    ...
     >>> def fun_broyden(x):
     ...     f = (3 - x) * x + 1
     ...     f[1:] -= x[:-1]
     ...     f[:-1] -= 2 * x[1:]
     ...     return f
-    ...
+
+    The corresponding Jacobian matrix is sparse. We tell the algorithm to
+    estimate it by finite differences and provide the sparsity structure of
+    Jacobian to significantly speed up this process.
+
+    >>> from scipy.sparse import lil_matrix
     >>> def sparsity_broyden(n):
     ...     sparsity = lil_matrix((n, n), dtype=int)
     ...     i = np.arange(n)
@@ -461,6 +472,7 @@ def least_squares(
     4.5687161966109073e-23
     >>> res_3.optimality
     1.1650454296851518e-11
+
     """
     if method not in ['trf', 'dogbox', 'lm']:
         raise ValueError("`method` must be 'trf', 'dogbox' or 'lm'.")
