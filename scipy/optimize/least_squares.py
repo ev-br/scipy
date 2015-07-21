@@ -186,7 +186,7 @@ def least_squares(
     ftol : float, optional
         Tolerance for termination by the change of the cost function.
         Default is the square root of machine epsilon. The optimization process
-         is stopped when ``dF < ftol * F``, and there was an adequate agreement
+        is stopped when ``dF < ftol * F``, and there was an adequate agreement
         between a local quadratic model and the true model in the last step.
     xtol : float, optional
         Tolerance for termination by the change of the independent variables.
@@ -194,8 +194,8 @@ def least_squares(
         checked depends on the `method` used:
             * For 'trf' and 'dogbox': ``norm(dx) < xtol * (xtol + norm(x))``
             * For 'lm': ``Delta < xtol * norm(scaled_x)``, where Delta is a
-              trust-region radius and scaled_x is a scaled value of x
-              according to `scaling` parameter (see below).
+              trust-region radius and scaled_x is the value of x scaled
+              according to the `scaling` parameter (see below).
     gtol : float, optional
         Tolerance for termination by the norm of the gradient. Default is
         the square root of machine epsilon. The exact condition depends
@@ -206,9 +206,9 @@ def least_squares(
             * For 'dogbox' : ``norm(g_free, ord=np.inf) < gtol``, where
               g_free is the gradient with respect to the variables which
               are not in the optimal state on the boundary.
-            * For 'lm' : the maximum cosine of angles between columns of
-              Jacobian and the residual vector is less than `gtol`, or the
-              residual vector is zero.
+            * For 'lm' : the maximum value of the cosine of angles between
+              columns of Jacobian and the residual vector is less than `gtol`,
+              or the residual vector is zero.
     max_nfev : None or int, optional
         Maximum number of function evaluations before the termination.
         If None (default), the value is chosen automatically:
@@ -240,13 +240,13 @@ def least_squares(
         Method for solving trust-region subproblems, relevant only for 'trf'
         and 'dogbox' methods.
             * 'exact' is suitable for not very large problems, with dense
-            Jacobian matrices. The computational complexity per iteration is
-            comparable to a single SVD (Singular value decomposition) of the
-            Jacobian matrix.
-            * 'lsmr' is suitable for problems with sparse and large Jacobian
+              Jacobian matrices. The computational complexity per iteration is
+              comparable to a single SVD (Singular value decomposition) of the
+              Jacobian matrix.
+            * 'lsmr' is suitable for problems with large and sparse Jacobian
               matrices. It uses an iterative procedure, `scipy.sparse.linalg.lsmr`,
-              for finding a solution of linear least squares and only requires
-              matrix-vector product evaluations.
+              for finding a solution of linear least squares problem and only
+              requires matrix-vector product evaluations.
         If None (default) the solver is chosen based on type of Jacobian
         returned on the first iteration.
     tr_options : dict, optional
@@ -254,7 +254,7 @@ def least_squares(
             * ``tr_solver='exact'``: `tr_options` are ignored.
             * ``tr_solver='lsmr'``: options for `scipy.sparse.linalg.lsmr`.
               Additionally  ``method='trf'`` supports an additional 
-              'regularize' option (bool, default True) which adds a 
+              'regularize' option (bool, default is True) which adds a 
               regularization term to the normal equations, which improves
               convergence with rank-deficient Jacobian [Byrd]_ (eq. 3.4).
     jac_sparsity : {None, array_like, sparse matrix}, optional
@@ -401,7 +401,7 @@ def least_squares(
 
     Notice that we only provide the vector of the residuals. The algorithm
     constructs the cost function as a sum of squares of the residuals, which
-    gives the Rosenbrock function. The exact minimum is at `x = [1.0, 1.0]`.
+    gives the Rosenbrock function. The exact minimum is at ``x = [1.0, 1.0]``.
 
     >>> from scipy.optimize import least_squares
     >>> x0_rosenbrock = np.array([2, 2])
