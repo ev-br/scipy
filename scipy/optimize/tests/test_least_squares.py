@@ -122,7 +122,7 @@ class BaseMixin(object):
         # Test that args and kwargs are passed correctly to the functions.
         # And that kwargs are not supported by 'lm'.
         a = 3.0
-        for jac in ['2-point', '3-point', jac_trivial]:
+        for jac in ['2-point', '3-point', 'cs', jac_trivial]:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", UserWarning)
                 res = least_squares(fun_trivial, 2.0, jac, args=(a,),
@@ -141,7 +141,7 @@ class BaseMixin(object):
     def test_jac_options(self):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)
-            for jac in ['2-point', '3-point', jac_trivial]:
+            for jac in ['2-point', '3-point', 'cs', jac_trivial]:
                 res = least_squares(fun_trivial, 2.0, jac, method=self.method)
                 assert_allclose(res.x, 0, atol=1e-4)
 
@@ -226,7 +226,7 @@ class BaseMixin(object):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)
             for scaling in [1.0, np.array([1.0, 5.0]), 'jac']:
-                for jac in ['2-point', '3-point', jac_rosenbrock]:
+                for jac in ['2-point', '3-point', 'cs', jac_rosenbrock]:
                     res = least_squares(fun_rosenbrock, x0, jac,
                                         scaling=scaling, method=self.method)
                     assert_allclose(res.x, x_opt)
@@ -315,7 +315,7 @@ class BoundsMixin(object):
         ]
         for x0, bounds in problems:
             for scaling in [1.0, [1.0, 2.0], 'jac']:
-                for jac in ['2-point', '3-point', jac_rosenbrock]:
+                for jac in ['2-point', '3-point', 'cs', jac_rosenbrock]:
                     res = least_squares(fun_rosenbrock, x0, jac, bounds,
                                         method=self.method, scaling=scaling)
                     assert_allclose(res.optimality, 0.0, atol=1e-5)
@@ -370,7 +370,7 @@ class SparseMixin(object):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', UserWarning)
             for tr_solver, jac in product(['exact', 'lsmr'],
-                                          ['2-point', '3-point']):
+                                          ['2-point', '3-point', 'cs']):
                 res_dense = least_squares(
                     p.fun, p.x0, jac, method=self.method, tr_solver=tr_solver)
                 res_sparse = least_squares(
@@ -386,7 +386,7 @@ class SparseMixin(object):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", UserWarning)
             for jac, tr_solver, jac_sparsity in product(
-                    [p.jac, '2-point', '3-point'],
+                    [p.jac, '2-point', '3-point', 'cs'],
                     ['exact', 'lsmr'],
                     [None, p.sparsity]):
                 res_1 = least_squares(p.fun, p.x0, jac, bounds=(p.lb, np.inf),

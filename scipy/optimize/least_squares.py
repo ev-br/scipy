@@ -159,11 +159,14 @@ def least_squares(
         It must return a 1-d array_like of shape (m,) or a scalar.
     x0 : array_like with shape (n,) or float
         Initial guess on independent variables to start the minimzation from.
-    jac : '2-point', '3-point' or callable, optional
+    jac : '2-point', '3-point', 'cs' or callable, optional
         Method of computing the Jacobian matrix. If set to '2-point' or
         '3-point', the Jacobian matrix is estimated by the corresponding
         finite difference scheme. The scheme '3-point' is more accurate, but
         requires twice as much operations compared to '2-point' (default).
+        Complex-step finite difference scheme, 'cs', can be faster and more
+        accurate than other schemes, but it can return bogus results if
+        the user function does not handle complex arguments.
         If callable, then it should return an approximation for the Jacobian as
         an array_like (np.atleast_2d is applied), a sparse matrix or
         a LinearOperator, all with shape  (m, n).
@@ -503,7 +506,7 @@ def least_squares(
     if method == 'lm' and not np.all((lb == -np.inf) & (ub == np.inf)):
         raise ValueError("Method 'lm' doesn't support bounds.")
 
-    if jac not in ['2-point', '3-point'] and not callable(jac):
+    if jac not in ['2-point', '3-point', 'cs'] and not callable(jac):
         raise ValueError("`jac` must be '2-point', '3-point' or callable.")
 
     scaling = check_scaling(scaling, x0)
@@ -516,7 +519,7 @@ def least_squares(
     def fun_wrapped(x):
         return np.atleast_1d(fun(x, *args, **kwargs))
 
-    if jac in ['2-point', '3-point']:
+    if jac in ['2-point', '3-point', 'cs']:
         if jac_sparsity is not None:
             if method == 'lm':
                 warn("`jac_sparsity` is ignored for method='lm', dense "
@@ -604,10 +607,10 @@ def least_squares(
     if method == 'lm':
         if jac == '2-point':
             jac_wrapped = None
-        elif jac == '3-point':
+        elif jac in ['3-point', 'cs']:
             jac_wrapped = None
-            warn("jac='3-point' works equivalently to '2-point' "
-                 "for 'lm' method.")
+            warn("jac='%s' works equivalently to '2-point' "
+                 "for 'lm' method." % jac)
 
         if scaling == 'jac':
             scaling = None
