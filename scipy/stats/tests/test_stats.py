@@ -2752,9 +2752,11 @@ def test_normalitytests():
 
 class TestRankSums(TestCase):
     def test_ranksums_result_attributes(self):
-        res = stats.ranksums(np.arange(5), np.arange(25))
-        attributes = ('statistic', 'pvalue')
-        check_named_results(res, attributes)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', DeprecationWarning)
+            res = stats.ranksums(np.arange(5), np.arange(25))
+            attributes = ('statistic', 'pvalue')
+            check_named_results(res, attributes)
 
 
 class TestJarqueBera(TestCase):

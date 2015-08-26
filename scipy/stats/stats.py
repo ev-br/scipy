@@ -4710,7 +4710,6 @@ def mann_whitney_u(x, y, correction=True, exact='auto', alternative='two-sided')
     test the hypothesis. The u1 and u2 statistics are returned as well,
     corresponding to x and y, respectively.
 
-
     .. versionadded:: 0.17.0
 
     References
@@ -4718,91 +4717,82 @@ def mann_whitney_u(x, y, correction=True, exact='auto', alternative='two-sided')
     .. [1] H.B. Mann and D.R. Whitney, "On a test of whether one of two random
            variables is stochastically larger than the other", The Annals of
            Mathematical Statistics, Vol. 18, pp. 50-60, 1947.
+           DOI:10.1214/aoms/1177730491
     .. [2] http://en.wikipedia.org/wiki/Mann-Whitney_U_test
+
     """
-    x = asarray(x)
-    y = asarray(y)
-    if len(np.shape(x)) > 1 or len(np.shape(y)) > 1:
-        raise ValueError('Expected 1-d arrays.')
-    n1 = len(x)
-    n2 = len(y)
-    if exact == 'auto':
-        exact = ((n1 < 10 or n2 < 10) and n1 + n2 < 100000
-                 and -np.log(n1 + n2 + 1) - special.betaln(n1 + 1, n2 + 1) < np.log(100000))
-    ranked = rankdata(np.concatenate((x,y)))
-    rankx = ranked[0:n1]       # get the x-ranks
-    T = tiecorrect(ranked)
-    if T == 0:
-        raise ValueError('All numbers are identical')
     if alternative not in ('two-sided', 'less', 'greater'):
         raise AttributeError("Alternative should be one of: "
                              "'two-sided', 'less', or 'greater'")
+
+    x = asarray(x)
+    y = asarray(y)
+    if x.ndim > 1 or x.ndim > 1:
+        raise ValueError('Expected 1-d arrays.')
+
+    n1, n2 = x.size, y.size
+    if exact == 'auto':
+        maxn = 100000
+        exact = ((n1 < 10 or n2 < 10) and n1 + n2 < maxn)
+        exact = exact and (-np.log(n1 + n2 + 1) -
+                            special.betaln(n1 + 1, n2 + 1) < np.log(maxn))
+
+    ranked = rankdata(np.concatenate((x,y)))
+    T = tiecorrect(ranked)
+    if T == 0:
+        raise ValueError('All numbers are identical')
+    rankx = ranked[0:n1]       # get the x-ranks
+
+    # Given ranks, calculate U for x; remainder is U for y
+    u1 = rankx.sum() - n1*(n1+1)/2
+    u2 = n1*n2 - u1
+    if not exact:
+        u1, u2 = u2, u1   # 'exact' code path calculates an empirical cdf
+                          # normal approx uses sf instead
+
+    if alternative == 'two-sided':
+        bigu, smallu = max(u1, u2), min(u1, u2)
+    elif alternative == 'greater':
+        bigu, smallu = u2, u1
+    else:
+        bigu, smallu = u1, u2
+
+    # For small sample sizes, do an exact calculation; otherwise use the
+    # normal approximation.
     if exact:
-        a = list(range(n1, n1+n2))
+        a = np.arange(n1, n1 + n2)
+        a_range = np.arange(n2)
         u = [0]
-        while sum(a) != sum(range(n2)):   # When in leftmost position, a == list(range(n2))
+        while a.sum() != n2*(n2-1)/2:   # When in leftmost position, a == list(range(n2))
             # Do the shift operation
-            i = 0
-            while a[i] == i:
-                i += 1
-            a[i] -= 1
-            j = i - 1
-            while j >= 0:
-                a[j] = a[i] - (i - j)
-                j -= 1
+            i = np.nonzero(a - a_range)[0][0]
+            a[:i+1] = a[i] + np.arange(-i-1, 0)
+
             # count(a < a1) = U2
-            u1 = 0
-            for i, x in enumerate(a):
-                u1 += n1 - x + i
+            u1 = n1*n2 + n2*(n2-1)/2 - a.sum()
             u2 = n1*n2 - u1
             # store min U value to array
-            if alternative == 'two-sided':
-                u.append(min(u1, u2))
-            else:
-                u.append(u1)
-        u1 = 0
+            val = min(u1, u2) if alternative == 'two-sided' else u1
+            u.append(val)
         u = np.array(u)
-        # for i, x in enumerate(sorted(rankx)):
-        #     u1 += x - 1 - i
-        u1 = rankx.sum() - n1*(n1+1)/2
-        u2 = n1 * n2 - u1
-        if alternative == 'two-sided':
-            smallu = min(u1, u2)
-        elif alternative == 'greater':
-            smallu = u1
-        else:
-            smallu = u2
-        p = sum(u <= smallu) / len(u)
-        u = smallu
+        p = np.count_nonzero(u <= smallu) / u.size
     else:
-        u1 = n1*n2 + n1*(n1+1)/2.0 - np.sum(rankx, axis=0)  # calc U for x
-        u2 = n1*n2 - u1                            # remainder is U for y
-        if alternative == 'two-sided':
-            bigu = max(u1, u2)
-            smallu = min(u1, u2)
-        elif alternative == 'greater':
-            bigu = u2
-            smallu = u1
-        else:
-            bigu = u1
-            smallu = u2
-
-        sd = np.sqrt(T*n1*n2*(n1+n2+1)/12.0)
+        sd = np.sqrt(T * n1 * n2 * (n1 + n2 + 1) / 12.0)
         c = -0.5 if correction else 0
-        z = (bigu+c-n1*n2/2.0) / sd
+        z = (bigu + c - n1*n2/2.0) / sd
         if alternative == 'two-sided':
             p = 2 * distributions.norm.sf(abs(z))
         else:
             p = distributions.norm.sf(z)
-        u = smallu
-    if alternative == 'two-sided':
-        alt = 'x and y are sampled from different populations'
-    elif alternative == 'less':
-        alt = 'x is sampled from a population of smaller values than y'
-    else:
-        alt = 'x is sampled from a population of larger values than y'
-    s = Bunch(statistic=u, pvalue=p, alternative=alt, u1=u1, u2=u2)
-    return s
+
+    dct = {'two-sided': 'x and y are sampled from different populations',
+           'less': 'x is sampled from a population of smaller values than y',
+           'greater': 'x is sampled from a population of larger values than y'}
+    return Bunch(statistic=smallu,
+                 pvalue=p,
+                 alternative=dct[alternative],
+                 u1=u1, u2=u2)
+
 
 @np.deprecate(new_name='mann_whitney_u')
 def ranksums(x, y):
