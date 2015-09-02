@@ -1960,8 +1960,8 @@ add_newdoc("scipy.special", "kn",
 
     Calculate for a single value at multiple orders:
 
-    >>> print(kn([4, 5, 6], 1))
-    [   44.23241425   360.96060181  3653.83837891]
+    >>> kn([4, 5, 6], 1)
+    array([44.23241425, 360.96060181, 3653.83837891])
     """)
 
 add_newdoc("scipy.special", "kolmogi",
@@ -1987,7 +1987,7 @@ add_newdoc("scipy.special", "kolmogorov",
     """)
 
 add_newdoc("scipy.special", "kv",
-    """
+    r"""
     kv(v, z)
 
     Modified Bessel function of the second kind of real order `v`
@@ -2026,9 +2026,9 @@ add_newdoc("scipy.special", "kv",
 
     Calculate for a single value at multiple orders:
 
-    >>> print(kv([4, 4.5, 5], 1+2j))
-    [ 0.19920848+2.38918114j  2.34926017+3.59995073j  7.28267680+3.81037734j]
-
+    >>> kv([4, 4.5, 5], 1+2j)
+    array([ 0.19920848+2.38918114j,  2.34926017+3.59995073j,
+            7.28267680+3.81037734j])
     """)
 
 add_newdoc("scipy.special", "kve",
