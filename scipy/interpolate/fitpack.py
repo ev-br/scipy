@@ -10,6 +10,10 @@ from . import _fitpack_impl as _impl
 from ._bsplines import BSpline
 
 
+class PBSpline(BSpline):
+    pass
+
+
 def splprep(x, w=None, u=None, ub=None, ue=None, k=3, task=0, s=None, t=None,
             full_output=0, nest=None, per=0, quiet=1):
     """
@@ -156,7 +160,7 @@ def splprep(x, w=None, u=None, ub=None, ue=None, k=3, task=0, s=None, t=None,
     c = np.asarray(c)
     sh = tuple(range(c.ndim))
     c = c.transpose(sh[1:] + (0,))  # roll the first axis
-    spl = BSpline(t, c, k)
+    spl = PBSpline(t, c, k)
 
     if full_output:
         return (spl, u), fp, ier, mesg
@@ -367,7 +371,15 @@ def splev(x, tck, der=0, ext=0):
         # fitpack interpolates along the last axis
         sh = tuple(range(c.ndim))
         c = c.transpose(sh[1:] + (0,))  # roll the first axis
-        return _impl.splev(x, (t, c, k), der, ext)
+        res = _impl.splev(x, (t, c, k), der, ext)
+
+        # if the result came from splPrep, additionally transpose the result,
+        # so that ``splev(x, b) == b(x)``.
+        if isinstance(tck, PBSpline):
+            res = np.asarray(res)
+            sh = tuple(range(1, res.ndim)) + (0,)
+            res = list(res.transpose(sh))
+        return res
     else:
         return _impl.splev(x, tck, der, ext)
 
