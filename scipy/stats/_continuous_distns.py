@@ -3985,8 +3985,8 @@ class rice_gen(rv_continuous):
 
     def _rvs(self, b):
         # http://en.wikipedia.org/wiki/Rice_distribution
-        sz = self._size if self._size else 1
-        t = b/np.sqrt(2) + self._random_state.standard_normal(size=(2, sz))
+        t = b/np.sqrt(2) + self._random_state.standard_normal(size=(2,) +
+                                                              self._size)
         return np.sqrt((t*t).sum(axis=0))
 
     def _cdf(self, x, b):

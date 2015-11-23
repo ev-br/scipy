@@ -97,6 +97,67 @@ def test_all_distributions():
         yield check_distribution, dist, args, alpha
 
 
+def check_rvs_broadcast(distfunc, distname, args, loc, scale, shape):
+    sample = distfunc.rvs(*args, loc=loc, scale=scale)
+    assert_equal(sample.shape, shape, "%s: rvs failed to broadcast" % distname)
+
+
+def test_all_rvs_broadcast_shape():
+    # This test only checks the *shape* of the value returned by rvs().
+    for dist in dists:
+        if dist == 'pearson3':
+            # pearson3 needs work
+            continue
+        distfunc = getattr(stats, dist)
+        loc = np.zeros(2)
+        scale = np.ones((3, 1))
+        nargs = distfunc.numargs
+        bshape = [3, 2]
+        # Generate shape parameter arguments...
+        args = []
+        for k in range(4, 4 + nargs):
+            if dist == 'ncf':
+                p = 2
+            elif dist == 'reciprocal':
+                p = k - 3
+            else:
+                p = 0.5
+            shp = (k,) + (1,)*(k - 2)
+            args.append(p*np.ones(shp))
+            bshape.insert(0, k)
+        # bshape holds the expected shape when loc, scale, and the shape
+        # parameters are all broadcast together.
+        yield check_rvs_broadcast, distfunc, dist, args, loc, scale, bshape
+
+
+def test_rvs_gh2069_regression():
+    # Regression tests for gh-2069.  In scipy 0.16 and earlier,
+    # these tests would fail.
+    #
+    # A typical example of the broken behavior:
+    # >>> norm.rvs(loc=np.zeros(5), scale=np.ones(5))
+    # array([-2.49613705, -2.49613705, -2.49613705, -2.49613705, -2.49613705])
+    np.random.seed(123)
+    vals = stats.norm.rvs(loc=np.zeros(5), scale=1)
+    d = np.diff(vals)
+    assert_(np.all(d != 0), "All the values are equal, but they shouldn't be!")
+    vals = stats.norm.rvs(loc=0, scale=np.ones(5))
+    d = np.diff(vals)
+    assert_(np.all(d != 0), "All the values are equal, but they shouldn't be!")
+    vals = stats.norm.rvs(loc=np.zeros(5), scale=np.ones(5))
+    d = np.diff(vals)
+    assert_(np.all(d != 0), "All the values are equal, but they shouldn't be!")
+    vals = stats.norm.rvs(loc=np.array([[0], [0]]), scale=np.ones(5))
+    d = np.diff(vals.ravel())
+    assert_(np.all(d != 0), "All the values are equal, but they shouldn't be!")
+
+    assert_raises(ValueError, stats.norm.rvs, [[0, 0], [0, 0]],
+                  [[1, 1], [1, 1]], 1)
+    assert_raises(ValueError, stats.gamma.rvs, [2, 3, 4, 5], 0, 1, (2, 2))
+    assert_raises(ValueError, stats.gamma.rvs, [1, 1, 1, 1], [0, 0, 0, 0],
+                  [[1], [2]], (4,))
+
+
 def check_vonmises_pdf_periodic(k, l, s, x):
     vm = stats.vonmises(k, loc=l, scale=s)
     assert_almost_equal(vm.pdf(x), vm.pdf(x % (2*numpy.pi*s)))

@@ -597,7 +597,7 @@ def _parse_args(self, %(shape_arg_str)s %(locscale_in)s):
     return (%(shape_arg_str)s), %(locscale_out)s
 
 def _parse_args_rvs(self, %(shape_arg_str)s %(locscale_in)s, size=None):
-    return (%(shape_arg_str)s), %(locscale_out)s, size
+    return self._argcheck_rvs(%(shape_arg_str)s %(locscale_out)s, size=size)
 
 def _parse_args_stats(self, %(shape_arg_str)s %(locscale_in)s, moments='mv'):
     return (%(shape_arg_str)s), %(locscale_out)s, moments
@@ -820,6 +820,76 @@ class rv_generic(object):
         np.seterr(**olderr)
         return vals
 
+    def _argcheck_rvs(self, *args, **kwargs):
+        # Handle broadcasting and size validation of the rvs method.
+        # Subclasses should not have to override this method.
+        # The rule is that if `size` is not None, then `size` gives the
+        # shape of the result (integer values of `size` are treated as
+        # tuples with length 1; i.e. `size=3` is the same as `size=(3,)`.)
+        #
+        # `args` is expected to contain the shape parameters (if any), the
+        # location and the scale in a flat tuple (e.g. if there are two
+        # shape parameters `a` and `b`, `args` will be `(a, b, loc, scale)`).
+        # The only keyword argument expected is 'size'.
+        size = kwargs.get('size', None)
+        all_bcast = np.broadcast_arrays(*args)
+
+        def squeeze_left(a):
+            while a.ndim > 0 and a.shape[0] == 1:
+                a = a[0]
+            return a
+
+        # Eliminate trivial leading dimensions.  In the convention
+        # used by numpy's random variate generators, trivial leading
+        # dimensions are effectively ignored.  In other words, when `size`
+        # is given, trivial leading dimensions of the broadcast parameters
+        # in excess of the number of dimensions  in size are ignored, e.g.
+        #   >>> np.random.normal([[1, 3, 5]], [[[[0.01]]]], size=3)
+        #   array([ 1.00104267,  3.00422496,  4.99799278])
+        # If `size` is not given, the exact broadcast shape is preserved:
+        #   >>> np.random.normal([[1, 3, 5]], [[[[0.01]]]])
+        #   array([[[[ 1.00862899,  3.00061431,  4.99867122]]]])
+        #
+        all_bcast = [squeeze_left(a) for a in all_bcast]
+        bcast_shape = all_bcast[0].shape
+        bcast_ndim = all_bcast[0].ndim
+
+        if size is None:
+            size_ = bcast_shape
+        else:
+            size_ = tuple(np.atleast_1d(size))
+
+        # Check compatibility of size_ with the broadcast shape of all
+        # the parameters.  This check is intended to be consistent with
+        # how the numpy random variate generators (e.g. np.random.normal,
+        # np.random.beta) handle their arguments.  TODO: Document this
+        # broadcasting behavior.
+
+        # This is the standard broadcasting convention of extending the
+        # shape with fewer dimensions with enough dimensions of length 1
+        # so that the two shapes have the same number of dimensions.
+        ndiff = bcast_ndim - len(size_)
+        if ndiff < 0:
+            bcast_shape = (1,)*(-ndiff) + bcast_shape
+        elif ndiff > 0:
+            size_ = (1,)*ndiff + size_
+
+        # This compatibility test is not standard.  In "regular" broadcasting,
+        # two shapes are compatible if for each dimension, the lengths are the
+        # same or one of the lengths is 1.  Here, the length of a dimension in
+        # size_ must not be less than the corresponding length in bcast_shape.
+        ok = all([bcdim == 1 or bcdim == szdim
+                  for (bcdim, szdim) in zip(bcast_shape, size_)])
+        if not ok:
+            raise ValueError("size does not match the broadcast shape of "
+                             "the parameters.")
+
+        param_bcast = all_bcast[:-2]
+        loc_bcast = all_bcast[-2]
+        scale_bcast = all_bcast[-1]
+
+        return param_bcast, loc_bcast, scale_bcast, size_
+
     ## These are the methods you must define (standard form functions)
     ## NB: generic _pdf, _logpdf, _cdf are different for
     ## rv_continuous and rv_discrete hence are defined in there
@@ -835,8 +905,12 @@ class rv_generic(object):
             cond = logical_and(cond, (asarray(arg) > 0))
         return cond
 
-    ##(return 1-d using self._size to get number)
     def _rvs(self, *args):
+        # This method must handle self._size being a tuple, and it must
+        # properly broadcast *args and self._size.  self._size might be
+        # an empty tuple, which means a scalar random variate is to be
+        # generated.
+
         ## Use basic inverse cdf algorithm for RV generation as default.
         U = self._random_state.random_sample(self._size)
         Y = self._ppf(U, *args)
@@ -892,11 +966,6 @@ class rv_generic(object):
         if not np.all(cond):
             raise ValueError("Domain error in arguments.")
 
-        # self._size is total size of all output values
-        self._size = product(size, axis=0)
-        if self._size is not None and self._size > 1:
-            size = np.array(size, ndmin=1)
-
         if np.all(scale == 0):
             return loc*ones(size, 'd')
 
@@ -905,9 +974,11 @@ class rv_generic(object):
             random_state_saved = self._random_state
             self._random_state = check_random_state(rndm)
 
+        # `size` should just be an argument to _rvs(), but for, um,
+        # historical reasons, it is made an attribute that is read
+        # by _rvs().
+        self._size = size
         vals = self._rvs(*args)
-        if self._size is not None:
-            vals = reshape(vals, size)
 
         vals = vals * scale + loc
 
@@ -1468,7 +1539,6 @@ class rv_continuous(rv_generic):
         if b is None:
             self.b = inf
         self.xtol = xtol
-        self._size = 1
         self.moment_type = momtype
         self.shapes = shapes
         self._construct_argparser(meths_to_inspect=[self._pdf, self._cdf],
