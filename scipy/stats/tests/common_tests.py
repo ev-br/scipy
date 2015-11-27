@@ -256,11 +256,15 @@ def check_rvs_bcast(distfn, arg, distname):
     # check broadcasting in rvs w/ vectorized loc and default size
     vloc = np.array([1., 1., 1.])
     vscale = np.array([2., 2., 2.])
-    r = distfn.rvs(*arg, loc=vloc, scale=vscale, random_state=1234)
+    if isinstance(distfn, stats.rv_continuous):
+        r = distfn.rvs(*arg, loc=vloc, scale=vscale, random_state=1234)
+        rs = distfn.rvs(*arg, loc=vloc, scale=vscale, random_state=1234, size=3)
+
+    else:
+        r = distfn.rvs(*arg, loc=vloc, random_state=1234)
     assert_(not np.allclose(r,  r[0], atol=1e-16).all())
 
     # now specify size explicitly
-    rs = distfn.rvs(*arg, loc=vloc, scale=vscale, random_state=1234, size=3)
     assert_(not np.allclose(rs,  rs[0], atol=1e-16).all())   # this passes on master BTW
 
     assert_allclose(r, rs, atol=1e-15)
