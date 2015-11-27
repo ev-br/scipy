@@ -4,7 +4,7 @@ import warnings
 
 import numpy as np
 import numpy.testing as npt
-from numpy.testing import assert_allclose, assert_
+from numpy.testing import assert_allclose, assert_, assert_equal
 import numpy.ma.testutils as ma_npt
 
 from scipy._lib._version import NumpyVersion
@@ -259,12 +259,21 @@ def check_rvs_bcast(distfn, arg, distname):
     if isinstance(distfn, stats.rv_continuous):
         r = distfn.rvs(*arg, loc=vloc, scale=vscale, random_state=1234)
         rs = distfn.rvs(*arg, loc=vloc, scale=vscale, random_state=1234, size=3)
-
     else:
         r = distfn.rvs(*arg, loc=vloc, random_state=1234)
+        rs = distfn.rvs(*arg, loc=vloc, random_state=1234, size=3)
+
     assert_(not np.allclose(r,  r[0], atol=1e-16).all())
-
-    # now specify size explicitly
     assert_(not np.allclose(rs,  rs[0], atol=1e-16).all())   # this passes on master BTW
-
     assert_allclose(r, rs, atol=1e-15)
+
+
+    # now repeat with array-valued shapes
+    if arg:
+        varg = (np.array([a, a]) for a in arg)
+        vloc = np.array([[1], [1], [1]])
+
+        r = distfn.rvs(*varg, loc=vloc, random_state=1234)
+
+        assert_equal(r.shape, (3, 2))
+        assert_(not np.allclose(r,  r[0, 0], atol=1e-16).all())
