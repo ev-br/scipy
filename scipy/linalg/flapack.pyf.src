@@ -41,9 +41,9 @@ interface
      <ftype2> intent(out) :: pl
      <ftype2> intent(out) :: pr
      <ftype2> intent(out),dimension(2) :: dif
-     <ftype2> intent(out),dimension(MAX(lwork,1)) :: work
-     integer optional,intent(in),depend(m,n),check(lwork == -1 || lwork >= MAX(4*n+16,2*m*(n-m))) :: lwork=MAX(4*n+16,2*m*(n-m))
-     integer intent(out),dimension(MAX(1,liwork)) :: iwork
+     <ftype2> intent(out), depend(m, n, lwork), dimension(MAX(lwork,1)) :: work
+     integer optional,intent(in),depend(m, n), check(lwork == -1 || lwork >= MAX(4*n+16,2*m*(n-m))) :: lwork=MAX(4*n+16,2*m*(n-m))
+     integer intent(out),depend(liwork, n), dimension(MAX(1,liwork)) :: iwork
      integer optional,intent(in),depend(n),check(liwork == -1 || liwork >= n+6) :: liwork=n+6
      integer intent(out) :: info
    end subroutine <prefix2>tgsen
