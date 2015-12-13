@@ -38,6 +38,9 @@ def configuration(parent_package='', top_path=None):
     # flapack:
     sources = ['flapack.pyf.src']
     sources += get_g77_abi_wrappers(lapack_opt)
+    tgsen_prefix = join('src', 'tgsen')
+    tgsen_routines = [join(tgsen_prefix, c + 'tgsen.f') for c in 'cdsz']
+    sources += tgsen_routines
 
     config.add_extension('_flapack',
                          sources=sources,
