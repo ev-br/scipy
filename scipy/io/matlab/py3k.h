@@ -5,9 +5,25 @@
 
 #include "cStringIO.h"
 
-#define npy_PyFile_Dup(file, mode) PyFile_AsFile(file)
-#define npy_PyFile_DupClose(file, handle) (0)
 #define npy_PyFile_Check PyFile_Check
+
+static FILE *
+npy_PyFile_Dup(PyObject *file, const char *mode)
+{
+    FILE *fp = PyFile_AsFile(file);
+    PyFile_IncUseCount(file);
+    return fp;
+}
+
+static int
+npy_PyFile_DupClose(PyObject *file, FILE* handle)
+{
+    PyFile_DecUseCount(file);
+    return 0;
+}
+
+#define npy_PyFile_Check PyFile_Check
+
 
 #else
 
