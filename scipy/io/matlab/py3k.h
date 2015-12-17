@@ -1,15 +1,6 @@
 #include <Python.h>
 #include <stdio.h>
 
-#if PY_VERSION_HEX < 0x03000000
-
-#include "cStringIO.h"
-
-#define npy_PyFile_Dup(file, mode) PyFile_AsFile(file)
-#define npy_PyFile_DupClose(file, handle) (0)
-#define npy_PyFile_Check PyFile_Check
-
-#else
 
 /*
  * No-op implementation -- always fall back to the generic one.
@@ -101,4 +92,3 @@ npy_PyFile_Check(PyObject *file)
     return 1;
 }
 
-#endif
