@@ -3247,6 +3247,114 @@ class mielke_gen(rv_continuous):
 mielke = mielke_gen(a=0.0, name='mielke')
 
 
+class kappa4_gen(rv_continuous):
+    """Kappa 4 parameter distribution
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for kappa4 is::
+
+        kappa4.pdf(x, h, k) = (1.0 - k*x)**(1.0/k - 1.0)*
+                              (1.0 - h*(1.0 - k*x)**(1.0/k))**(1.0/h-1)
+
+    if ``h`` and ``k`` are not equal to 0.
+
+    kappa4 takes ``h`` and ``k`` as shape parameters, skew and
+    kurtosis respectively.
+
+    The kappa4 distribution return other distributions when certain
+    ``h`` and ``k`` values are used.
+
+    +------+-------------+--------------+---------------+
+    | h    | k=0.0       | k=1.0        | -2<=k<=2      |
+    +======+=============+==============+===============+
+    |  1.0 | Exponential | Uniform      | Generalized   |
+    |      |             |              | Pareto        |
+    +------+-------------+--------------+---------------+
+    |  0.0 | Gumbel      | Reverse      | Generalized   |
+    |      |             | Exponential  | Extreme Value |
+    |      |             | (note:not in |               |
+    |      |             | scipy)       |               |
+    +------+-------------+--------------+---------------+
+    | -1.0 | Logistic    |              | Generalized   |
+    |      |             |              | Logistic      |
+    +------+-------------+--------------+---------------+
+
+    %(after_notes)s
+
+    %(example)s
+
+    """
+    def _argcheck(self, h, k):
+        return (h >= -2) & (h <= 2) & (k >= -2) & (k <= 2)
+
+    def _pdf(self, x, h, k):
+        condlist = [np.logical_and(h != 0, k != 0),
+                    np.logical_and(h == 0, k != 0),
+                    np.logical_and(h != 0, k == 0),
+                    np.logical_and(h == 0, k == 0)]
+        choicelist = [(1.0 - k*x)**(1.0/k - 1.0)*(
+                          1.0 - h*(1.0 - k*x)**(1.0/k))**(1.0/h-1),
+                      (1.0 - k*x)**(1.0/k - 1.0)*np.exp(-(1.0
+                                                          - k*x)**(1.0/k)),
+                      np.exp(-x)*(1.0 - h*np.exp(-x))**(1.0/h - 1),
+                      np.exp(-x)*np.exp(-np.exp(-x))]
+        return np.select(condlist, choicelist)
+
+    def _cdf(self, x, h, k):
+        condlist = [np.logical_and(h != 0, k != 0),
+                    np.logical_and(h == 0, k != 0),
+                    np.logical_and(h != 0, k == 0),
+                    np.logical_and(h == 0, k == 0)]
+        choicelist = [(1.0 - h*(1.0 - k*x)**(1.0/k))**(1.0/h),
+                      np.exp(-(1.0 - k*x)**(1.0/k)),
+                      (1.0 - h*np.exp(-x))**(1.0/h),
+                      np.exp(-np.exp(-x))]
+        return np.select(condlist, choicelist)
+
+    def _ppf(self, x, h, k):
+        condlist = [np.logical_and(h != 0, k != 0),
+                    np.logical_and(h == 0, k != 0),
+                    np.logical_and(h != 0, k == 0),
+                    np.logical_and(h == 0, k == 0)]
+        choicelist = [1.0/k*(1.0 - ((1.0 - x**h)/h)**k),
+                      np.ones_like(x)/k,
+                      x*inf,
+                      x*inf]
+        return np.select(condlist, choicelist)
+kappa4 = kappa4_gen(name='kappa4')
+
+
+class kappa3_gen(rv_continuous):
+    """Kappa 3 parameter distribution
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `kappa` is::
+
+        kappa3.pdf(x, a) = a*[a + x**a]**(-(a + 1)/a)
+
+    for ``a > 0``.
+
+    `kappa3` takes ``a`` as a shape parameter.
+
+    %(after_notes)s
+
+    %(example)s
+
+    """
+    def _pdf(self, x, a):
+        return a*(a + x**a)**(-(a + 1.0)/a)
+
+    def _cdf(self, x, a):
+        return x*(a + x**a)**(-1.0/a)
+kappa3 = kappa3_gen(a=0.0, name='kappa3')
+
+
 class nakagami_gen(rv_continuous):
     """A Nakagami continuous random variable.
 

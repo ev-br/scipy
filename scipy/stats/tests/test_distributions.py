@@ -679,6 +679,79 @@ class TestPearson3(TestCase):
                                5.06649130e-01, 8.41442111e-01], atol=1e-6)
 
 
+class TestKappa4(TestCase):
+    def test_cdf_genpareto(self):
+        # h = 1 and k != 0 is generalized Pareto
+        x = [0.0, 0.1, 0.2, 0.5]
+        h = 1.0
+        for k in [-1.9, -1.0, -0.5, -0.2, -0.1, 0.1, 0.2, 0.5, 1.0,
+                  1.9]:
+            vals = stats.kappa4.cdf(x, h, k)
+            # shape parameter is opposite what is expected
+            vals_comp = stats.genpareto.cdf(x, -k)
+            assert_allclose(vals, vals_comp)
+
+    def test_cdf_genextreme(self):
+        # h = 0 and k != 0 is generalized extreme value
+        x = [-0.5, -0.2, -0.1, 0.0, 0.1, 0.2, 0.5]
+        h = 0.0
+        for k in [-1.9, -1.0, -0.5, -0.2, -0.1, 0.1, 0.2, 0.5, 1.0,
+                  1.9]:
+            vals = stats.kappa4.cdf(x, h, k)
+            vals_comp = stats.genextreme.cdf(x, k)
+            assert_allclose(vals, vals_comp)
+
+    def test_cdf_genlogistic(self):
+        # h = -1.0 and k != 0 is generalized logistic
+
+        # Couldn't get the generalized logistic test to work, I think
+        # mostly because of how to establish the "c" parameter for the
+        # general logistic distribution.
+        pass
+
+    def test_cdf_expon(self):
+        # h = 1 and k = 0 is exponential
+        x = [0.0, 0.1, 0.2, 0.5]
+        h = 1.0
+        k = 0.0
+        vals = stats.kappa4.cdf(x, h, k)
+        vals_comp = stats.expon.cdf(x)
+        assert_allclose(vals, vals_comp)
+
+    def test_cdf_gumbel_r(self):
+        # h = 0 and k = 0 is gumbel_r
+        x = [-0.5, -0.2, -0.1, 0.0, 0.1, 0.2, 0.5]
+        h = 0.0
+        k = 0.0
+        vals = stats.kappa4.cdf(x, h, k)
+        vals_comp = stats.gumbel_r.cdf(x)
+        assert_allclose(vals, vals_comp)
+
+    def test_cdf_logistic(self):
+        # h = -1 and k = 0 is logistic
+        x = [-0.5, -0.2, -0.1, 0.0, 0.1, 0.2, 0.5]
+        h = -1.0
+        k = 0.0
+        vals = stats.kappa4.cdf(x, h, k)
+        vals_comp = stats.logistic.cdf(x)
+        assert_allclose(vals, vals_comp)
+
+    def test_cdf_uniform(self):
+        # h = 1 and k = 1 is uniform
+        x = [0.0, 0.1, 0.2, 0.5]
+        h = 1.0
+        k = 1.0
+        vals = stats.kappa4.cdf(x, h, k)
+        vals_comp = stats.uniform.cdf(x)
+        assert_allclose(vals, vals_comp)
+
+    def test_cdf_reverse_exponential(self):
+        # h = 0.0 and k = 1.0 is reverse exponential
+
+        # scipy doesn't seem to have a reverse exponential distribution.
+        pass
+
+
 class TestPoisson(TestCase):
 
     def test_pmf_basic(self):
@@ -854,26 +927,26 @@ class TestSkewNorm(TestCase):
     def test_normal(self):
         # When the skewness is 0 the distribution is normal
         x = np.linspace(-5, 5, 100)
-        assert_array_almost_equal(stats.skewnorm.pdf(x, a=0), 
+        assert_array_almost_equal(stats.skewnorm.pdf(x, a=0),
                                   stats.norm.pdf(x))
 
     def test_rvs(self):
         shape = (3, 4, 5)
         x = stats.skewnorm.rvs(a=0.75, size=shape)
         assert_equal(shape, x.shape)
-        
+
         x = stats.skewnorm.rvs(a=-3, size=shape)
         assert_equal(shape, x.shape)
-        
+
     def test_moments(self):
         X = stats.skewnorm.rvs(a=4, size=int(1e6), loc=5, scale=2)
-        assert_array_almost_equal([np.mean(X), np.var(X), stats.skew(X), stats.kurtosis(X)], 
-                                   stats.skewnorm.stats(a=4, loc=5, scale=2, moments='mvsk'), 
+        assert_array_almost_equal([np.mean(X), np.var(X), stats.skew(X), stats.kurtosis(X)],
+                                   stats.skewnorm.stats(a=4, loc=5, scale=2, moments='mvsk'),
                                    decimal=2)
-        
+
         X = stats.skewnorm.rvs(a=-4, size=int(1e6), loc=5, scale=2)
-        assert_array_almost_equal([np.mean(X), np.var(X), stats.skew(X), stats.kurtosis(X)], 
-                                   stats.skewnorm.stats(a=-4, loc=5, scale=2, moments='mvsk'), 
+        assert_array_almost_equal([np.mean(X), np.var(X), stats.skew(X), stats.kurtosis(X)],
+                                   stats.skewnorm.stats(a=-4, loc=5, scale=2, moments='mvsk'),
                                    decimal=2)
 
 class TestExpon(TestCase):
@@ -1684,7 +1757,7 @@ class TestExpect(TestCase):
         assert_allclose(res_0,
                         p / (p - 1.) / np.log(1. - p), atol=1e-15)
 
-        # now check it with `loc` 
+        # now check it with `loc`
         res_l = stats.logser.expect(lambda k: k, args=(p,), loc=loc)
         assert_allclose(res_l, res_0 + loc, atol=1e-15)
 
