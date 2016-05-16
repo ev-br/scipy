@@ -3288,62 +3288,67 @@ class kappa4_gen(rv_continuous):
 
     """
     def _argcheck(self, h, k):
-        condlist = [np.logical_and(h > 0, k > 0),
-                    np.logical_and(h > 0, k == 0),
-                    np.logical_and(h > 0, k < 0),
-                    np.logical_and(h <= 0, k > 0),
-                    np.logical_and(h <= 0, k == 0),
-                    np.logical_and(h <= 0, k < 0)]
-        choicelist = [(1.0 - h - k)/k,
-                      np.log(h),
-                      (1.0 - h - k)/k,
-                      -np.inf,
-                      -np.inf,
-                      1.0/k]
-        self.a = np.select(condlist, choicelist)
-        choicelist = [1.0/k,
-                      np.inf,
-                      np.inf,
-                      1.0/k,
-                      np.inf,
-                      np.inf]
-        self.b = np.select(condlist, choicelist)
+        hc = np.atleast_1d(h)[0]
+        self.hc = hc
+        kc = np.atleast_1d(k)[0]
+        self.kc = kc
+        if hc > 0 and kc > 0:
+            self.a = (1.0 - hc - kc)/kc
+            self.b = 1.0/kc
+        elif hc > 0 and kc == 0:
+            self.a = np.log(hc)
+            self.b = np.inf
+        elif hc > 0 and kc < 0:
+            self.a = (1.0 - hc - kc)/kc
+            self.b = np.inf
+        elif hc <= 0 and kc > 0:
+            self.a = -np.inf
+            self.b = 1.0/kc
+        elif hc <= 0 and kc == 0:
+            self.a = -np.inf
+            self.b = 1.0/kc
+        elif hc <= 0 and kc < 0:
+            self.a = 1.0/kc
+            self.b = np.inf
         return (h == h)
 
     def _pdf(self, x, h, k):
-        condlist = [np.logical_and(h != 0, k != 0),
-                    np.logical_and(h == 0, k != 0),
-                    np.logical_and(h != 0, k == 0),
-                    np.logical_and(h == 0, k == 0)]
-        choicelist = [(1.0 - k*x)**(1.0/k - 1.0)*(
-                          1.0 - h*(1.0 - k*x)**(1.0/k))**(1.0/h-1),
-                      (1.0 - k*x)**(1.0/k - 1.0)*np.exp(-(1.0
-                                                          - k*x)**(1.0/k)),
-                      np.exp(-x)*(1.0 - h*np.exp(-x))**(1.0/h - 1),
-                      np.exp(-x)*np.exp(-np.exp(-x))]
-        return np.select(condlist, choicelist)
+        hc = self.hc
+        kc = self.kc
+        if hc != 0 and kc != 0:
+            return (1.0 - k*x)**(1.0/k - 1.0)*(
+                    1.0 - h*(1.0 - k*x)**(1.0/k))**(1.0/h-1)
+        elif hc == 0 and kc != 0:
+            return (1.0 - k*x)**(1.0/k - 1.0)*np.exp(-(
+                    1.0 - k*x)**(1.0/k))
+        elif hc != 0 and kc == 0:
+            return np.exp(-x)*(1.0 - h*np.exp(-x))**(1.0/h - 1.0)
+        elif hc == 0 and kc == 0:
+            return np.exp(-x)*np.exp(-np.exp(-x))
 
     def _cdf(self, x, h, k):
-        condlist = [np.logical_and(h != 0, k != 0),
-                    np.logical_and(h == 0, k != 0),
-                    np.logical_and(h != 0, k == 0),
-                    np.logical_and(h == 0, k == 0)]
-        choicelist = [(1.0 - h*(1.0 - k*x)**(1.0/k))**(1.0/h),
-                      np.exp(-(1.0 - k*x)**(1.0/k)),
-                      (1.0 - h*np.exp(-x))**(1.0/h),
-                      np.exp(-np.exp(-x))]
-        return np.select(condlist, choicelist)
+        hc = self.hc
+        kc = self.kc
+        if hc != 0 and kc != 0:
+            return (1.0 - h*(1.0 - k*x)**(1.0/k))**(1.0/h)
+        elif hc == 0 and kc != 0:
+            return np.exp(-(1.0 - k*x)**(1.0/k))
+        elif hc != 0 and kc == 0:
+            return (1.0 - h*np.exp(-x))**(1.0/h)
+        elif hc == 0 and kc == 0:
+            return np.exp(-np.exp(-x))
 
     def _ppf(self, x, h, k):
-        condlist = [np.logical_and(h != 0, k != 0),
-                    np.logical_and(h == 0, k != 0),
-                    np.logical_and(h != 0, k == 0),
-                    np.logical_and(h == 0, k == 0)]
-        choicelist = [1.0/k*(1.0 - ((1.0 - x**h)/h)**k),
-                      np.ones_like(x)/k,
-                      x*inf,
-                      x*inf]
-        return np.select(condlist, choicelist)
+        hc = self.hc
+        kc = self.kc
+        if hc != 0 and kc != 0:
+            return 1.0/k*(1.0 - ((1.0 - x**h)/h)**k)
+        elif hc == 0 and kc != 0:
+            return 1.0/k*(1.0 - (-np.log(x))**k)
+        elif hc != 0 and kc == 0:
+            return -np.log((1.0 - x**h)/h)
+        elif hc == 0 and kc == 0:
+            return -np.log(-np.log(x))
 kappa4 = kappa4_gen(name='kappa4')
 
 
