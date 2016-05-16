@@ -3293,20 +3293,20 @@ class kappa4_gen(rv_continuous):
         kc = np.atleast_1d(k)[0]
         self.kc = kc
         if hc > 0 and kc > 0:
-            self.a = (1.0 - hc - kc)/kc
+            self.a = (1.0 - hc**(-kc))/kc
             self.b = 1.0/kc
         elif hc > 0 and kc == 0:
             self.a = np.log(hc)
             self.b = np.inf
         elif hc > 0 and kc < 0:
-            self.a = (1.0 - hc - kc)/kc
+            self.a = (1.0 - hc**(-kc))/kc
             self.b = np.inf
         elif hc <= 0 and kc > 0:
             self.a = -np.inf
             self.b = 1.0/kc
         elif hc <= 0 and kc == 0:
             self.a = -np.inf
-            self.b = 1.0/kc
+            self.b = np.inf
         elif hc <= 0 and kc < 0:
             self.a = 1.0/kc
             self.b = np.inf
