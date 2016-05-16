@@ -3288,7 +3288,27 @@ class kappa4_gen(rv_continuous):
 
     """
     def _argcheck(self, h, k):
-        return (h >= -2) & (h <= 2) & (k >= -2) & (k <= 2)
+        condlist = [np.logical_and(h > 0, k > 0),
+                    np.logical_and(h > 0, k == 0),
+                    np.logical_and(h > 0, k < 0),
+                    np.logical_and(h <= 0, k > 0),
+                    np.logical_and(h <= 0, k == 0),
+                    np.logical_and(h <= 0, k < 0)]
+        choicelist = [(1.0 - h - k)/k,
+                      np.log(h),
+                      (1.0 - h - k)/k,
+                      -np.inf,
+                      -np.inf,
+                      1.0/k]
+        self.a = np.select(condlist, choicelist)
+        choicelist = [1.0/k,
+                      np.inf,
+                      np.inf,
+                      1.0/k,
+                      np.inf,
+                      np.inf]
+        self.b = np.select(condlist, choicelist)
+        return (h == h)
 
     def _pdf(self, x, h, k):
         condlist = [np.logical_and(h != 0, k != 0),
@@ -3338,7 +3358,7 @@ class kappa3_gen(rv_continuous):
 
         kappa3.pdf(x, a) = a*[a + x**a]**(-(a + 1)/a)
 
-    for ``a > 0``.
+    for ``a > 0`` and ``x > 0``.
 
     `kappa3` takes ``a`` as a shape parameter.
 
