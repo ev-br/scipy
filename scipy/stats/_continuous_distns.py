@@ -3367,6 +3367,9 @@ class kappa3_gen(rv_continuous):
     %(example)s
 
     """
+    def _argcheck(self, a):
+        return a > 0
+
     def _pdf(self, x, a):
         return a*(a + x**a)**(-(a + 1.0)/a)
 
