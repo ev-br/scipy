@@ -59,6 +59,40 @@ def _lazywhere(cond, arrays, f, fillvalue=None, f2=None):
     return out
 
 
+def _lazyselect(condlist, arrays, funclist, fillvalue=np.nan):
+    """
+    Mimic `np.select(condlist, choicelist)`.
+
+    Notice it assumes that all `arrays` are of the same shape, or can be
+    broadcasted together.
+
+    Examples
+    --------
+    >>> x = np.arange(6)
+    >>> np.select([x <3, x > 3], [x**2, x**3], default=0)
+    array([  0,   1,   4,   0,  64, 125])
+
+    >>> _lazyselect([x < 3, x > 3], (x,), [lambda x: x**2, lambda x: x**3])
+    array([   0.,    1.,    4.,   nan,   64.,  125.])
+
+    >>> a = -np.ones_like(x)
+    >>> _lazyselect([x < 3, x > 3], (x, a), [lambda x, a: x**2,
+    ...                                      lambda x, a: a * x**3])
+    array([   0.,    1.,    4.,   nan,  -64., -125.])
+
+    """
+    arrays = np.broadcast_arrays(*arrays)
+    tcode = np.mintypecode([a.dtype.char for a in arrays])
+    out = _valarray(np.shape(arrays[0]), value=fillvalue, typecode=tcode)
+
+    for j in range(len(condlist)):
+        func, cond = funclist[j], condlist[j]
+        temp = tuple(np.extract(cond, arr) for arr in arrays)
+        np.place(out, cond, func(*temp))
+
+    return out
+
+
 def _aligned_zeros(shape, dtype=float, order="C", align=None):
     """Allocate a new ndarray with aligned memory.
 
