@@ -9,7 +9,7 @@ from numpy.testing.decorators import knownfailureif
 
 from scipy.interpolate import (BSpline, BPoly, PPoly, make_interp_spline,
         make_lsq_spline, _bspl, splev, splrep, splprep, splder, splantider,
-         sproot, splint, spalde, insert)
+         sproot, splint, insert)
 import scipy.linalg as sl
 
 from scipy.interpolate._bsplines import _not_a_knot, _augknt
