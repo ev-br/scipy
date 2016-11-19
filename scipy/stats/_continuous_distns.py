@@ -5206,6 +5206,79 @@ class halfgennorm_gen(rv_continuous):
 halfgennorm = halfgennorm_gen(a=0, name='halfgennorm')
 
 
+class histogram_gen(rv_continuous):
+    """
+    Generates a distribution given by a histogram.
+    This is useful to generate a template distribution from a binned datasample.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    There are no additional shape parameters except for the loc and scale.
+    The pdf and cdf are defined as stepwise functions from the provided histogram.
+    In particular the cdf is not interpolated between bin boundaries and not differentiable.
+
+    %(after_notes)s
+
+    %(example)s
+
+    data = scipy.stats.norm.rvs(size=100000, loc=0, scale=1.5)
+    hist = np.histogram(data, bins=100)
+    template = scipy.stats.histogram_gen(hist)
+
+    """
+    _support_mask = rv_continuous._support_mask
+
+    def __init__(self, histogram, *args, **kwargs):
+        """
+        Create a new distribution using the given histogram
+        @param histogram the return value of np.histogram
+        """
+        self.histogram = histogram
+        pdf, bins = self.histogram
+        bin_widths = (np.roll(bins, -1) - bins)[:-1]
+        pdf = pdf / float(np.sum(pdf * bin_widths))
+        cdf = np.cumsum(pdf * bin_widths)[:-1]
+        self.template_bins = bins
+        self.template_bin_widths = bin_widths
+        self.template_pdf = np.hstack([0.0, pdf, 0.0])
+        self.template_cdf = np.hstack([0.0, cdf, 1.0])
+        # Set support
+        kwargs['a'] = self.template_bins[0]
+        kwargs['b'] = self.template_bins[-1]
+        super(histogram_gen, self).__init__(*args, **kwargs)
+
+    def _pdf(self, x):
+        """
+        PDF of the histogram
+        """
+        return self.template_pdf[np.digitize(x, bins=self.template_bins)]
+
+    def _cdf(self, x):
+        """
+        CDF calculated from the histogram
+        """
+        return np.interp(x, self.template_bins, self.template_cdf)
+
+    def _rvs(self):
+        """
+        Random numbers distributed like the original histogram
+        """
+        probabilities = self.template_pdf[1:-1]
+        choices = np.random.choice(len(self.template_pdf) - 2, size=self._size, p=probabilities / probabilities.sum())
+        uniform = np.random.uniform(size=self._size)
+        return self.template_bins[choices] + uniform * self.template_bin_widths[choices]
+
+    def _updated_ctor_param(self):
+        """
+        Set the histogram as additional constructor argument
+        """
+        dct = super(histogram_gen, self)._updated_ctor_param()
+        dct['histogram'] = self.histogram
+        return dct
+
+
 # Collect names of classes and objects in this module.
 pairs = list(globals().items())
 _distn_names, _distn_gen_names = get_distribution_names(pairs, rv_continuous)

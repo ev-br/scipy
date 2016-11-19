@@ -3008,5 +3008,88 @@ def test_burr12_ppf_small_arg():
     assert_allclose(quantile, 5.7735026918962575e-09)
 
 
+class TestHistogram(TestCase):
+    def setUp(self):
+        # We have 8 bins
+        # [1,2), [2,3), [3,4), [4,5), [5,6), [6,7), [7,8), [8,9)
+        # But actually np.histogram will put the last 9 also in the [8,9) bin!
+        # Therefore there is a slight difference below for the last bin, from what you might
+        # have expected.
+        histogram = np.histogram([1,2,2,3,3,3,4,4,4,4,5,5,5,5,5,6,6,6,6,7,7,7,8,8,9], bins=8)
+        self.template = stats.histogram_gen(histogram)
+
+    def test_pdf(self):
+        assert_almost_equal(self.template.pdf(0.0), 0.0/25.0)
+        assert_almost_equal(self.template.pdf(0.5), 0.0/25.0)
+        assert_almost_equal(self.template.pdf(1.0), 1.0/25.0)
+        assert_almost_equal(self.template.pdf(1.5), 1.0/25.0)
+        assert_almost_equal(self.template.pdf(2.0), 2.0/25.0)
+        assert_almost_equal(self.template.pdf(2.5), 2.0/25.0)
+        assert_almost_equal(self.template.pdf(3.0), 3.0/25.0)
+        assert_almost_equal(self.template.pdf(3.5), 3.0/25.0)
+        assert_almost_equal(self.template.pdf(4.0), 4.0/25.0)
+        assert_almost_equal(self.template.pdf(4.5), 4.0/25.0)
+        assert_almost_equal(self.template.pdf(5.0), 5.0/25.0)
+        assert_almost_equal(self.template.pdf(5.5), 5.0/25.0)
+        assert_almost_equal(self.template.pdf(6.0), 4.0/25.0)
+        assert_almost_equal(self.template.pdf(6.5), 4.0/25.0)
+        assert_almost_equal(self.template.pdf(7.0), 3.0/25.0)
+        assert_almost_equal(self.template.pdf(7.5), 3.0/25.0)
+        # As stated above the pdf in the bin [8,9) is greater than
+        # one would naively expect because np.histogram putted the 9
+        # into the [8,9) bin.
+        assert_almost_equal(self.template.pdf(8.0), 3.0/25.0)
+        assert_almost_equal(self.template.pdf(8.5), 3.0/25.0)
+        # 9 is outside our defined bins [8,9) hence the pdf is already 0
+        # for a continuous distribution this is fine, because a single value
+        # does not have a finite probability!
+        assert_almost_equal(self.template.pdf(9.0), 0.0/25.0)
+        assert_almost_equal(self.template.pdf(10.0), 0.0/25.0)
+
+    def test_cdf(self):
+        assert_almost_equal(self.template.cdf(0.0), 0.0/25.0)
+        assert_almost_equal(self.template.cdf(0.5), 0.0/25.0)
+        assert_almost_equal(self.template.cdf(1.0), 0.0/25.0)
+        assert_almost_equal(self.template.cdf(1.5), 0.5/25.0)
+        assert_almost_equal(self.template.cdf(2.0), 1.0/25.0)
+        assert_almost_equal(self.template.cdf(2.5), 2.0/25.0)
+        assert_almost_equal(self.template.cdf(3.0), 3.0/25.0)
+        assert_almost_equal(self.template.cdf(3.5), 4.5/25.0)
+        assert_almost_equal(self.template.cdf(4.0), 6.0/25.0)
+        assert_almost_equal(self.template.cdf(4.5), 8.0/25.0)
+        assert_almost_equal(self.template.cdf(5.0), 10.0/25.0)
+        assert_almost_equal(self.template.cdf(5.5), 12.5/25.0)
+        assert_almost_equal(self.template.cdf(6.0), 15.0/25.0)
+        assert_almost_equal(self.template.cdf(6.5), 17.0/25.0)
+        assert_almost_equal(self.template.cdf(7.0), 19.0/25.0)
+        assert_almost_equal(self.template.cdf(7.5), 20.5/25.0)
+        assert_almost_equal(self.template.cdf(8.0), 22.0/25.0)
+        assert_almost_equal(self.template.cdf(8.5), 23.5/25.0)
+        assert_almost_equal(self.template.cdf(9.0), 25.0/25.0)
+        assert_almost_equal(self.template.cdf(10.0), 25.0/25.0)
+
+    def test_rvs(self):
+        N = 10000
+        sample = self.template.rvs(size=N, random_state=123)
+        assert_equal(np.sum(sample < 1.0), 0.0)
+        assert_allclose(np.sum(sample <= 2.0), 1.0/25.0 * N, rtol=0.2)
+        assert_allclose(np.sum(sample <= 2.5), 2.0/25.0 * N, rtol=0.2)
+        assert_allclose(np.sum(sample <= 3.0), 3.0/25.0 * N, rtol=0.1)
+        assert_allclose(np.sum(sample <= 3.5), 4.5/25.0 * N, rtol=0.1)
+        assert_allclose(np.sum(sample <= 4.0), 6.0/25.0 * N, rtol=0.1)
+        assert_allclose(np.sum(sample <= 4.5), 8.0/25.0 * N, rtol=0.1)
+        assert_allclose(np.sum(sample <= 5.0), 10.0/25.0 * N, rtol=0.05)
+        assert_allclose(np.sum(sample <= 5.5), 12.5/25.0 * N, rtol=0.05)
+        assert_allclose(np.sum(sample <= 6.0), 15.0/25.0 * N, rtol=0.05)
+        assert_allclose(np.sum(sample <= 6.5), 17.0/25.0 * N, rtol=0.05)
+        assert_allclose(np.sum(sample <= 7.0), 19.0/25.0 * N, rtol=0.05)
+        assert_allclose(np.sum(sample <= 7.5), 20.5/25.0 * N, rtol=0.05)
+        assert_allclose(np.sum(sample <= 8.0), 22.0/25.0 * N, rtol=0.05)
+        assert_allclose(np.sum(sample <= 8.5), 23.5/25.0 * N, rtol=0.05)
+        assert_allclose(np.sum(sample <= 9.0), 25.0/25.0 * N, rtol=0.05)
+        assert_allclose(np.sum(sample <= 9.0), 25.0/25.0 * N, rtol=0.05)
+        assert_equal(np.sum(sample > 9.0), 0.0)
+
+
 if __name__ == "__main__":
     run_module_suite()

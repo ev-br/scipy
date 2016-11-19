@@ -66,6 +66,7 @@ Continuous distributions
    halflogistic      -- Half Logistic
    halfnorm          -- Half Normal
    halfgennorm       -- Generalized Half Normal
+   histogram_gen     -- Histogram (Generator)
    hypsecant         -- Hyperbolic Secant
    invgamma          -- Inverse Gamma
    invgauss          -- Inverse Gaussian
