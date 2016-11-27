@@ -5225,15 +5225,17 @@ class rv_histogram(rv_continuous):
     --------
 
     Create a scipy.stats distribution from a numpy histogram
+    >>> import scipy.stats
+    >>> import numpy as np
     >>> data = scipy.stats.norm.rvs(size=100000, loc=0, scale=1.5, random_state=123)
     >>> hist = np.histogram(data, bins=100)
     >>> hist_dist = scipy.stats.rv_histogram(hist)
 
     Behaves like an ordinary scipy rv_continuous distribution
     >>> hist_dist.pdf(1.0)
-    3.5
+    0.20538577847618705
     >>> hist_dist.cdf(2.0)
-    2.0
+    0.90818568543056499
 
     PDF is zero above (below) the highest (lowest) bin of the histogram,
     defined by the max (min) of the original dataset
@@ -5242,11 +5244,12 @@ class rv_histogram(rv_continuous):
     >>> hist_dist.cdf(np.max(data))
     1.0
     >>> hist_dist.pdf(np.min(data))
-    0.0
+    7.7591907244498314e-05
     >>> hist_dist.cdf(np.min(data))
     0.0
 
     PDF and CDF follow the histogram
+    >>> import matplotlib.pyplot as plt
     >>> X = np.linspace(-5.0, 5.0, 100)
     >>> plt.title("PDF from Template")
     >>> plt.hist(data, normed=True, bins=100)
@@ -5303,15 +5306,6 @@ class rv_histogram(rv_continuous):
         Percentile function calculated from the histogram
         """
         return np.interp(x, self._hcdf, self._hbins)
-
-    def _rvs(self):
-        """
-        Random numbers distributed like the original histogram
-        """
-        probabilities = self._hpdf[1:-1]
-        choices = np.random.choice(len(self._hpdf) - 2, size=self._size, p=probabilities / probabilities.sum())
-        uniform = np.random.uniform(size=self._size)
-        return self._hbins[choices] + uniform * self._hbin_widths[choices]
 
     def _munp(self, n):
         """Compute the n-th non-central moment."""
