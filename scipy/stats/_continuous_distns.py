@@ -5206,7 +5206,7 @@ class halfgennorm_gen(rv_continuous):
 halfgennorm = halfgennorm_gen(a=0, name='halfgennorm')
 
 
-class histogram_gen(rv_continuous):
+class rv_histogram(rv_continuous):
     """
     Generates a distribution given by a histogram.
     This is useful to generate a template distribution from a binned datasample.
@@ -5216,16 +5216,43 @@ class histogram_gen(rv_continuous):
     Notes
     -----
     There are no additional shape parameters except for the loc and scale.
-    The pdf and cdf are defined as stepwise functions from the provided histogram.
-    In particular the cdf is not interpolated between bin boundaries and not differentiable.
+    The pdf is defined as a stepwise function from the provided histogram
+    The cdf is a linear interpolation of the pdf.
 
     %(after_notes)s
 
-    %(example)s
+    Examples
+    --------
 
-    data = scipy.stats.norm.rvs(size=100000, loc=0, scale=1.5)
-    hist = np.histogram(data, bins=100)
-    template = scipy.stats.histogram_gen(hist)
+    Create a scipy.stats distribution from a numpy histogram
+    >>> data = scipy.stats.norm.rvs(size=100000, loc=0, scale=1.5, random_state=123)
+    >>> hist = np.histogram(data, bins=100)
+    >>> hist_dist = scipy.stats.rv_histogram(hist)
+
+    Behaves like an ordinary scipy rv_continuous distribution
+    >>> hist_dist.pdf(1.0)
+    3.5
+    >>> hist_dist.cdf(2.0)
+    2.0
+
+    PDF is zero above (below) the highest (lowest) bin of the histogram,
+    defined by the max (min) of the original dataset
+    >>> hist_dist.pdf(np.max(data))
+    0.0
+    >>> hist_dist.cdf(np.max(data))
+    1.0
+    >>> hist_dist.pdf(np.min(data))
+    0.0
+    >>> hist_dist.cdf(np.min(data))
+    0.0
+
+    PDF and CDF follow the histogram
+    >>> X = np.linspace(-5.0, 5.0, 100)
+    >>> plt.title("PDF from Template")
+    >>> plt.hist(data, normed=True, bins=100)
+    >>> plt.plot(X, hist_dist.pdf(X), label='PDF')
+    >>> plt.plot(X, hist_dist.cdf(X), label='CDF')
+    >>> plt.show()
 
     """
     _support_mask = rv_continuous._support_mask
@@ -5233,49 +5260,74 @@ class histogram_gen(rv_continuous):
     def __init__(self, histogram, *args, **kwargs):
         """
         Create a new distribution using the given histogram
-        @param histogram the return value of np.histogram
+
+        Parameters
+        ----------
+        histogram : tuple of array_like
+          Tuple containing two array_like objects
+          The first containing the content of n bins
+          The second containing the (n+1) bin boundaries
+          In particular the return value np.histogram is accepted
         """
-        self.histogram = histogram
-        pdf, bins = self.histogram
-        bin_widths = (np.roll(bins, -1) - bins)[:-1]
-        pdf = pdf / float(np.sum(pdf * bin_widths))
-        cdf = np.cumsum(pdf * bin_widths)[:-1]
-        self.template_bins = bins
-        self.template_bin_widths = bin_widths
-        self.template_pdf = np.hstack([0.0, pdf, 0.0])
-        self.template_cdf = np.hstack([0.0, cdf, 1.0])
+        self._histogram = histogram
+        if len(histogram) != 2:
+            raise ValueError("Expected length 2 for parameter histogram")
+        self._hpdf = np.asarray(histogram[0])
+        self._hbins = np.asarray(histogram[1])
+        if len(self._hpdf) + 1 != len(self._hbins):
+            raise ValueError("Number of elements in histogram content and histogram boundaries do not match, expected n and n+1")
+        self._hbin_widths = self._hbins[1:] - self._hbins[:-1]
+        self._hpdf = self._hpdf / float(np.sum(self._hpdf * self._hbin_widths))
+        self._hcdf = np.cumsum(self._hpdf * self._hbin_widths)
+        self._hpdf = np.hstack([0.0, self._hpdf, 0.0])
+        self._hcdf = np.hstack([0.0, self._hcdf])
         # Set support
-        kwargs['a'] = self.template_bins[0]
-        kwargs['b'] = self.template_bins[-1]
-        super(histogram_gen, self).__init__(*args, **kwargs)
+        kwargs['a'] = self._hbins[0]
+        kwargs['b'] = self._hbins[-1]
+        super(rv_histogram, self).__init__(*args, **kwargs)
 
     def _pdf(self, x):
         """
         PDF of the histogram
         """
-        return self.template_pdf[np.digitize(x, bins=self.template_bins)]
+        return self._hpdf[np.digitize(x, bins=self._hbins)]
 
     def _cdf(self, x):
         """
         CDF calculated from the histogram
         """
-        return np.interp(x, self.template_bins, self.template_cdf)
+        return np.interp(x, self._hbins, self._hcdf)
+
+    def _ppf(self, x):
+        """
+        Percentile function calculated from the histogram
+        """
+        return np.interp(x, self._hcdf, self._hbins)
 
     def _rvs(self):
         """
         Random numbers distributed like the original histogram
         """
-        probabilities = self.template_pdf[1:-1]
-        choices = np.random.choice(len(self.template_pdf) - 2, size=self._size, p=probabilities / probabilities.sum())
+        probabilities = self._hpdf[1:-1]
+        choices = np.random.choice(len(self._hpdf) - 2, size=self._size, p=probabilities / probabilities.sum())
         uniform = np.random.uniform(size=self._size)
-        return self.template_bins[choices] + uniform * self.template_bin_widths[choices]
+        return self._hbins[choices] + uniform * self._hbin_widths[choices]
+
+    def _munp(self, n):
+        """Compute the n-th non-central moment."""
+        integrals = (self._hbins[1:]**(n+1) - self._hbins[:-1]**(n+1)) / (n+1)
+        return np.sum(self._hpdf[1:-1] * integrals)
+
+    def _entropy(self):
+        """Compute entropy of distribution"""
+        return - np.sum(self._hpdf[1:-1] * _lazywhere(self._hpdf[1:-1] > 0.0, (self._hpdf[1:-1],), np.log, 0.0) * self._hbin_widths)
 
     def _updated_ctor_param(self):
         """
         Set the histogram as additional constructor argument
         """
-        dct = super(histogram_gen, self)._updated_ctor_param()
-        dct['histogram'] = self.histogram
+        dct = super(rv_histogram, self)._updated_ctor_param()
+        dct['histogram'] = self._histogram
         return dct
 
 
@@ -5283,4 +5335,4 @@ class histogram_gen(rv_continuous):
 pairs = list(globals().items())
 _distn_names, _distn_gen_names = get_distribution_names(pairs, rv_continuous)
 
-__all__ = _distn_names + _distn_gen_names
+__all__ = _distn_names + _distn_gen_names + ['rv_histogram']
