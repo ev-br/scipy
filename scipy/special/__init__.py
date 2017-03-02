@@ -597,6 +597,7 @@ Other Special Functions
    factorial  -- The factorial of a number or array of numbers.
    factorial2 -- Double factorial.
    factorialk -- [+]Multifactorial of n of order k, n(!!...!).
+   owens_t    -- Owen's T function
    shichi     -- Hyperbolic sine and cosine integrals.
    sici       -- Sine and cosine integrals.
    spence     -- Spence's function, also known as the dilogarithm.

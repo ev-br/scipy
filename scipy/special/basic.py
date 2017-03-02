@@ -15,7 +15,7 @@ from numpy import (pi, asarray, floor, isscalar, iscomplex, real,
 from . import _ufuncs as ufuncs
 from ._ufuncs import (ellipkm1, mathieu_a, mathieu_b, iv, jv, gamma,
                       psi, _zeta, hankel1, hankel2, yv, kv, _gammaln,
-                      ndtri, poch, binom, hyp0f1)
+                      ndtri, poch, binom, hyp0f1, ndtr)
 from . import specfun
 from . import orthogonal
 from ._comb import _comb_int
@@ -32,7 +32,7 @@ __all__ = ['agm', 'ai_zeros', 'assoc_laguerre', 'bei_zeros', 'beip_zeros',
            'keip_zeros', 'kelvin_zeros', 'ker_zeros', 'kerp_zeros', 'kv',
            'kvp', 'lmbda', 'lpmn', 'lpn', 'lqmn', 'lqn', 'mathieu_a',
            'mathieu_b', 'mathieu_even_coef', 'mathieu_odd_coef', 'ndtri',
-           'obl_cv_seq', 'pbdn_seq', 'pbdv_seq', 'pbvv_seq', 'perm',
+           'obl_cv_seq', 'owens_t', 'pbdn_seq', 'pbdv_seq', 'pbvv_seq', 'perm',
            'polygamma', 'pro_cv_seq', 'psi', 'riccati_jn', 'riccati_yn',
            'sinc', 'sph_in', 'sph_inkn',
            'sph_jn', 'sph_jnyn', 'sph_kn', 'sph_yn', 'y0_zeros', 'y1_zeros',
@@ -2462,3 +2462,74 @@ def zeta(x, q=None, out=None):
         q = 1
     return _zeta(x, q, out)
 
+
+def owens_t(h, a):
+    r"""
+    Owen's T function.
+
+    Parameters
+    ----------
+    h: scalar
+        Input value.
+    a: float
+        Input value.
+        If ``a == 0``, the return value is 0.
+
+    Returns
+    -------
+    t: float
+        Probability of the event (X > h and 0 < Y < a * X),
+        where X and Y are independent standard normal random variables.
+
+    Examples
+    --------
+    >>> from scipy import special
+
+    >>> a = 3.5
+    >>> h = 0.78
+    >>> special.owens_t(h, a)
+    0.11317292784451626
+
+    References
+    ----------
+    .. [1] M. Patefield and D. Tandy, "Fast and accurate calculation of 
+           Owen’st function", Statistical Software vol. 5, pp. 1-25, 2000.
+
+    """
+    if not (np.isscalar(h) and np.isscalar(a)):
+        raise ValueError("arguments must be scalars.")
+
+    if h < 0:
+        return owens_t(-h, a)
+
+    if a < 0:
+        return -owens_t(h, -a)
+    elif a > 1:
+        ncdf_h = ndtr(h)
+        ncdf_ah = ndtr(a * h)
+        return (0.5 * (ncdf_h + ncdf_ah) - ncdf_h * ncdf_ah -
+            owens_t(a * h, 1 / a))
+
+    if a == 0:
+        return 0
+
+    if h == 0:
+        return 1 * np.arctan(a) / (2 * np.pi)
+
+    if a == 1:
+        ncdf = ndtr(h)
+        return 0.5 * ncdf * (1 - ncdf)
+
+    result = 0
+    z_prev = 0
+    z_curr = (ndtr(a * h) - 0.5) / h
+    ah_sq = -0.5 * h * h * a * a
+    pi_sq = np.power(2 * np.pi, -0.5)
+
+    for i in xrange(int(a * a * h * h / 2) + 1):
+        result += ((-1) ** (i - 1)) * z_curr
+        z_prev = z_curr
+        z_curr = ((2 * i - 1) * z_prev - pi_sq *
+                  np.power(a, 2 * i - 1) * np.exp(ah_sq) / (h * h))
+
+    return -pi_sq * np.exp(-0.5 * h * h) * result

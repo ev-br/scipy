@@ -3416,5 +3416,34 @@ def test_pseudo_huber():
     assert_func_equal(special.pseudo_huber, w, z, rtol=1e-13, atol=1e-13)
 
 
+def test_owens_t():
+    h = 5
+    a = 0.5
+    assert_equal(special.owens_t(h, a), special.owens_t(-h, a))
+    assert_equal(special.owens_t(h, -a), -special.owens_t(h, a))
+
+    h = 3
+    a = 0
+    assert_equal(special.owens_t(h, a), 0)
+
+    h = 0
+    a = 5
+    assert_almost_equal(special.owens_t(h, a), np.arctan(a) / (2 * np.pi))
+
+    h = 100
+    a = None
+    assert_raises(ValueError, special.owens_t, h, a)
+
+    h = 3.2
+    a = 1.5
+    assert_almost_equal(special.owens_t(h, a), special.owens_t(h, np.inf),
+                        decimal=3)
+
+    delta = (0.5 * (cephes.ndtr(h) + cephes.ndtr(a * h)) -
+        cephes.ndtr(h) * cephes.ndtr(a * h))
+    assert_almost_equal(special.owens_t(h, 1 / a) -
+        special.owens_t(h, a), delta, decimal=3)
+
+
 if __name__ == "__main__":
     run_module_suite()
