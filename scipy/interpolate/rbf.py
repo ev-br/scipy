@@ -44,14 +44,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 from __future__ import division, print_function, absolute_import
 
+from itertools import chain, combinations_with_replacement as combinations_w_r
 import sys
 import numpy as np
 
-from scipy import linalg
 from scipy._lib.six import callable, get_method_function, get_function_code
-from scipy.special import xlogy
+from scipy.misc import comb
+from scipy.sparse import bmat, linalg
+from scipy.special import xlogy, jn
 
 __all__ = ['Rbf']
+
+
+def combinations(n_features, degree):
+    # Same functionality as sklearn.preprocessing.PolynomialFeatures
+    return chain.from_iterable(combinations_w_r(range(n_features), i)
+                               for i in range(degree + 1))
 
 
 class Rbf(object):
@@ -82,10 +90,19 @@ class Rbf(object):
         parameter will be available as self.epsilon.  Other keyword
         arguments passed in will be available as well.
 
+    degree : integer, optional
+        Adjustable constant denoting the polynomial degree to include for
+        conditionally positive definite radial functions.
+        - defaults to None, which performs the default RBF interpolation
+          without any additional features.
     epsilon : float, optional
         Adjustable constant for gaussian or multiquadrics functions
         - defaults to approximate average distance between nodes (which is
         a good start).
+    m : float, optional
+        Adjustable constant for polyharmonic splines.
+    p : float, optional
+        Adjustable constant for bessel functions.
     smooth : float, optional
         Values greater than zero increase the smoothness of the
         approximation.  0 is for interpolation (default), the function will
@@ -125,6 +142,19 @@ class Rbf(object):
 
     def _h_gaussian(self, r):
         return np.exp(-(1.0/self.epsilon*r)**2)
+
+    def _h_bessel(self, r):
+        arg = 1.0/self.epsilon*r
+        return jn(self.p/2-1, arg)/(arg**(self.p/2-1))
+
+    def _h_inverse_quadratic(self, r):
+        return 1.0/(1.0 + (1.0/self.epsilon*r)**2)
+
+    def _h_polyharmonic(self, r):
+        return r**(2*self.m+1)
+
+    def _h_log_polyharmonic(self, r):
+        return xlogy(r**self.m, r)
 
     def _h_linear(self, r):
         return r
@@ -188,8 +218,8 @@ class Rbf(object):
         return a0
 
     def __init__(self, *args, **kwargs):
-        self.xi = np.asarray([np.asarray(a, dtype=np.float_).flatten()
-                           for a in args[:-1]])
+        self.xi = np.asarray([np.asarray(a, dtype=np.float64).flatten()
+                             for a in args[:-1]])
         self.N = self.xi.shape[-1]
         self.di = np.asarray(args[-1]).flatten()
 
@@ -197,11 +227,13 @@ class Rbf(object):
             raise ValueError("All arrays must be equal length.")
 
         self.norm = kwargs.pop('norm', self._euclidean_norm)
+        self.degree = kwargs.pop('degree', None)
         self.epsilon = kwargs.pop('epsilon', None)
+        self.m = kwargs.pop('m', None)
+        self.p = kwargs.pop('p', None)
         if self.epsilon is None:
             # default epsilon is the "the average distance between nodes" based
             # on a bounding hypercube
-            dim = self.xi.shape[0]
             ximax = np.amax(self.xi, axis=1)
             ximin = np.amin(self.xi, axis=1)
             edges = ximax-ximin
@@ -217,7 +249,9 @@ class Rbf(object):
         for item, value in kwargs.items():
             setattr(self, item, value)
 
-        self.nodes = linalg.solve(self.A, self.di)
+        self.A_aug = self._generate_augmented_matrix(self.xi.T)
+        self.di_aug = np.hstack((self.di, np.zeros(self.n_features)))
+        self.nodes = linalg.spsolve(self.A_aug, self.di_aug)
 
     @property
     def A(self):
@@ -240,6 +274,31 @@ class Rbf(object):
         if not all([x.shape == y.shape for x in args for y in args]):
             raise ValueError("Array lengths must be equal")
         shp = args[0].shape
-        xa = np.asarray([a.flatten() for a in args], dtype=np.float_)
+        xa = np.asarray([a.flatten() for a in args], dtype=np.float64)
         r = self._call_norm(xa, self.xi)
-        return np.dot(self._function(r), self.nodes).reshape(shp)
+        n_points, n_dims = shp[0] if len(shp) else 1, len(args)
+        POLY = np.empty((n_points, self.n_features), dtype=np.float64)
+        deg = self.degree if self.degree else -1
+        combs = combinations(n_dims, deg)
+        for i, c in enumerate(combs):
+            POLY[:, i] = xa[c, :].prod(axis=0)
+        return np.dot(np.hstack((self._function(r), POLY)), self.nodes).reshape(shp)
+
+    def _generate_augmented_matrix(self, xi):
+        """
+        Generates the augmented matrix as described in Section 2.1 of:
+        http://www.sciencedirect.com/science/article/pii/S0021999116301632
+        by adding polynomial coefficients generated from the data points.
+        """
+        n_points, n_dims = xi.shape
+        # closed-form formula for number of polynomial coefficients
+        deg = self.degree if self.degree else -1
+        self.n_features = int(comb(deg + n_dims, n_dims))
+
+        # allocate output data
+        POLY = np.empty((n_points, self.n_features), dtype=np.float64)
+
+        combs = combinations(n_dims, deg)
+        for i, c in enumerate(combs):
+            POLY[:, i] = xi[:, c].prod(axis=1)
+        return bmat([[self.A, POLY], [POLY.T, None]], format='csr')
