@@ -187,6 +187,7 @@ cdef void obl_rad1(double x0, double x1, double x2, double x3, double *y0, doubl
 cdef void obl_rad1_cv(double x0, double x1, double x2, double x3, double x4, double *y0, double *y1) nogil
 cdef void obl_rad2(double x0, double x1, double x2, double x3, double *y0, double *y1) nogil
 cdef void obl_rad2_cv(double x0, double x1, double x2, double x3, double x4, double *y0, double *y1) nogil
+cpdef double owens_t(double x0, double x1) nogil
 cdef void pbdv(double x0, double x1, double *y0, double *y1) nogil
 cdef void pbvv(double x0, double x1, double *y0, double *y1) nogil
 cdef void pbwa(double x0, double x1, double *y0, double *y1) nogil

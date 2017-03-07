@@ -1799,6 +1799,8 @@ cdef extern from "_ufuncs_defs.h":
 cdef extern from "_ufuncs_defs.h":
     cdef int _func_oblate_radial2_wrap "oblate_radial2_wrap"(double, double, double, double, double, double *, double *) nogil
 cdef extern from "_ufuncs_defs.h":
+    cdef double _func_owens_t "owens_t"(double, double) nogil
+cdef extern from "_ufuncs_defs.h":
     cdef int _func_pbdv_wrap "pbdv_wrap"(double, double, double *, double *) nogil
 cdef extern from "_ufuncs_defs.h":
     cdef int _func_pbvv_wrap "pbvv_wrap"(double, double, double *, double *) nogil
@@ -11267,6 +11269,28 @@ ufunc_obl_rad2_cv_ptr[2*1+1] = <void*>(<char*>"obl_rad2_cv")
 ufunc_obl_rad2_cv_data[0] = &ufunc_obl_rad2_cv_ptr[2*0]
 ufunc_obl_rad2_cv_data[1] = &ufunc_obl_rad2_cv_ptr[2*1]
 obl_rad2_cv = np.PyUFunc_FromFuncAndData(ufunc_obl_rad2_cv_loops, ufunc_obl_rad2_cv_data, ufunc_obl_rad2_cv_types, 2, 5, 2, 0, "obl_rad2_cv", ufunc_obl_rad2_cv_doc, 0)
+
+cdef np.PyUFuncGenericFunction ufunc_owens_t_loops[2]
+cdef void *ufunc_owens_t_ptr[4]
+cdef void *ufunc_owens_t_data[2]
+cdef char ufunc_owens_t_types[6]
+cdef char *ufunc_owens_t_doc = (
+    "Owen's T Function.")
+ufunc_owens_t_loops[0] = <np.PyUFuncGenericFunction>loop_d_dd__As_ff_f
+ufunc_owens_t_loops[1] = <np.PyUFuncGenericFunction>loop_d_dd__As_dd_d
+ufunc_owens_t_types[0] = <char>NPY_FLOAT
+ufunc_owens_t_types[1] = <char>NPY_FLOAT
+ufunc_owens_t_types[2] = <char>NPY_FLOAT
+ufunc_owens_t_types[3] = <char>NPY_DOUBLE
+ufunc_owens_t_types[4] = <char>NPY_DOUBLE
+ufunc_owens_t_types[5] = <char>NPY_DOUBLE
+ufunc_owens_t_ptr[2*0] = <void*>_func_owens_t
+ufunc_owens_t_ptr[2*0+1] = <void*>(<char*>"owens_t")
+ufunc_owens_t_ptr[2*1] = <void*>_func_owens_t
+ufunc_owens_t_ptr[2*1+1] = <void*>(<char*>"owens_t")
+ufunc_owens_t_data[0] = &ufunc_owens_t_ptr[2*0]
+ufunc_owens_t_data[1] = &ufunc_owens_t_ptr[2*1]
+owens_t = np.PyUFunc_FromFuncAndData(ufunc_owens_t_loops, ufunc_owens_t_data, ufunc_owens_t_types, 2, 2, 1, 0, "owens_t", ufunc_owens_t_doc, 0)
 
 cdef np.PyUFuncGenericFunction ufunc_pbdv_loops[2]
 cdef void *ufunc_pbdv_ptr[4]

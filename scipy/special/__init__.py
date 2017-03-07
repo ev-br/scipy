@@ -258,6 +258,7 @@ Raw Statistical Functions
    boxcox1p     -- Compute the Box-Cox transformation of 1 + `x`.
    inv_boxcox   -- Compute the inverse of the Box-Cox transformation.
    inv_boxcox1p -- Compute the inverse of the Box-Cox transformation.
+   owens_t      -- Owen's T Function.
 
 
 Information Theory Functions
@@ -597,7 +598,6 @@ Other Special Functions
    factorial  -- The factorial of a number or array of numbers.
    factorial2 -- Double factorial.
    factorialk -- [+]Multifactorial of n of order k, n(!!...!).
-   owens_t    -- Owen's T function
    shichi     -- Hyperbolic sine and cosine integrals.
    sici       -- Sine and cosine integrals.
    spence     -- Spence's function, also known as the dilogarithm.

@@ -786,6 +786,10 @@ Available Functions
 
         void obl_rad2_cv(double, double, double, double, double, double *, double *)
 
+- :py:func:`~scipy.special.owens_t`::
+
+        double owens_t(double, double)
+
 - :py:func:`~scipy.special.pbdv`::
 
         void pbdv(double, double, double *, double *)
@@ -1498,6 +1502,8 @@ cdef extern from "_ufuncs_defs.h":
     cdef npy_double _func_oblate_radial2_nocv_wrap "oblate_radial2_nocv_wrap"(npy_double, npy_double, npy_double, npy_double, npy_double *)nogil
 cdef extern from "_ufuncs_defs.h":
     cdef npy_int _func_oblate_radial2_wrap "oblate_radial2_wrap"(npy_double, npy_double, npy_double, npy_double, npy_double, npy_double *, npy_double *)nogil
+cdef extern from "_ufuncs_defs.h":
+    cdef npy_double _func_owens_t "owens_t"(npy_double, npy_double)nogil
 cdef extern from "_ufuncs_defs.h":
     cdef npy_int _func_pbdv_wrap "pbdv_wrap"(npy_double, npy_double, npy_double *, npy_double *)nogil
 cdef extern from "_ufuncs_defs.h":
@@ -2940,6 +2946,10 @@ def _obl_rad2_cv_pywrap(double x0, double x1, double x2, double x3, double x4):
     cdef double y1
     obl_rad2_cv(x0, x1, x2, x3, x4, &y0, &y1)
     return y0, y1
+
+cpdef double owens_t(double x0, double x1) nogil:
+    """See the documentation for scipy.special.owens_t"""
+    return _func_owens_t(x0, x1)
 
 cdef void pbdv(double x0, double x1, double *y0, double *y1) nogil:
     """See the documentation for scipy.special.pbdv"""

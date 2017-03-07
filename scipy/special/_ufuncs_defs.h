@@ -177,6 +177,7 @@ npy_double oblate_radial1_nocv_wrap(npy_double, npy_double, npy_double, npy_doub
 npy_int oblate_radial1_wrap(npy_double, npy_double, npy_double, npy_double, npy_double, npy_double *, npy_double *);
 npy_double oblate_radial2_nocv_wrap(npy_double, npy_double, npy_double, npy_double, npy_double *);
 npy_int oblate_radial2_wrap(npy_double, npy_double, npy_double, npy_double, npy_double, npy_double *, npy_double *);
+npy_double owens_t(npy_double, npy_double);
 npy_int pbdv_wrap(npy_double, npy_double, npy_double *, npy_double *);
 npy_int pbvv_wrap(npy_double, npy_double, npy_double *, npy_double *);
 npy_int pbwa_wrap(npy_double, npy_double, npy_double *, npy_double *);

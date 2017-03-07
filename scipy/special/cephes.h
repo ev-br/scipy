@@ -202,6 +202,8 @@ extern double kolmogorov ( double x );
 extern double kolmogi ( double p );
 
 extern double lanczos_sum_expg_scaled( double x );
+
+extern double owens_t( double h, double a );
   
 #ifdef __cplusplus
 }

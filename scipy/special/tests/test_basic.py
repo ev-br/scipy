@@ -3820,7 +3820,7 @@ owenst_dt = [[(1.950808048248291015625000000000000000000000000000000000000000000
 
 def test_owens_t():
     for data in owenst_dt:
-        assert_almost_equal(special.owens_t(data[0], data[1]), data[2], decimal=1)
+        assert_almost_equal(special.owens_t(data[0], data[1]), data[2], decimal=2)
 
 
 if __name__ == "__main__":

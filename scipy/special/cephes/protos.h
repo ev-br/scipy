@@ -169,4 +169,6 @@ extern double lanczos_sum_expg_scaled(double x);
 extern double lanczos_sum_near_1(double dx);
 extern double lanczos_sum_near_2(double dx);
 
+extern double owens_t(double h, double a);
+
 #endif

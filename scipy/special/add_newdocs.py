@@ -6369,3 +6369,8 @@ add_newdoc("scipy.special", "_cospi",
     """
     Internal function, do not use.
     """)
+
+add_newdoc("scipy.special", "owens_t",
+    """
+    Owen's T Function.
+    """)
