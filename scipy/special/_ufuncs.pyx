@@ -11275,7 +11275,35 @@ cdef void *ufunc_owens_t_ptr[4]
 cdef void *ufunc_owens_t_data[2]
 cdef char ufunc_owens_t_types[6]
 cdef char *ufunc_owens_t_doc = (
-    "Owen's T Function.")
+    "The function T(h, a) gives the probability of the event\n"
+    "(X > h and 0 < Y < a * X) where X and Y are independent\n"
+    "standard normal random variables.\n"
+    "\n"
+    "Parameters\n"
+    "----------\n"
+    "h: float64\n"
+    "    Input value.\n"
+    "a: float64\n"
+    "    Input value.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "t: float64\n"
+    "    Probability of the event (X > h and 0 < Y < a * X),\n"
+    "    where X and Y are independent standard normal random variables.\n"
+    "\n"
+    "Examples\n"
+    "--------\n"
+    ">>> from scipy import special\n"
+    ">>> a = 3.5\n"
+    ">>> h = 0.78\n"
+    ">>> special.owens_t(h, a)\n"
+    "0.10877216734852269\n"
+    "\n"
+    "References\n"
+    "----------\n"
+    ".. [1] M. Patefield and D. Tandy, \"Fast and accurate calculation of\n"
+    "       Owen's T Function\", Statistical Software vol. 5, pp. 1-25, 2000.")
 ufunc_owens_t_loops[0] = <np.PyUFuncGenericFunction>loop_d_dd__As_ff_f
 ufunc_owens_t_loops[1] = <np.PyUFuncGenericFunction>loop_d_dd__As_dd_d
 ufunc_owens_t_types[0] = <char>NPY_FLOAT
