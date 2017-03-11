@@ -11,7 +11,7 @@ static int SELECT_METHOD[] = {
     2, 3, 4, 4, 6, 6, 8, 8, 17, 17, 17, 17, 17, 12, 12,
     2, 3, 4, 4, 6, 6, 18, 18, 18, 18, 17, 17, 17, 12, 12};
 
-static double HRANGE[] = {0.2, 0.06, 0.09, 0.125, 0.26, 0.4, 0.6, 1.6,
+static double HRANGE[] = {0.02, 0.06, 0.09, 0.125, 0.26, 0.4, 0.6, 1.6,
     1.7, 2.33, 2.4, 3.36, 3.4, 4.8};
 
 static double ARANGE[] = {0.025, 0.09, 0.15, 0.36, 0.5, 0.9, 0.99999};
@@ -86,7 +86,7 @@ int get_method(double h, double a) {
     }
 
     for (i = 0; i < 7; i++) {
-        if (h <= HRANGE[i]) {
+        if (h <= ARANGE[i]) {
             iaint = i;
             break;
         }
@@ -106,14 +106,14 @@ double owens_t_norm2(double x) {
 double owensT1(double h, double a, double m) {
 
     double aa = a * a;
-    double hh = -1 * h * h / 2;
-    double h_exp = exp(hh);
+    double nhh = -1 * h * h / 2;
+    double h_exp = exp(nhh);
 
     int i = 0;
     int div = 1;
     double aj = a / (2 * NPY_PI);
-    double dj = expm1(hh);
-    double gj = hh * h_exp;
+    double dj = expm1(nhh);
+    double gj = nhh * h_exp;
 
     double result = atan(a) * (1 / (2 * NPY_PI));
 
@@ -122,7 +122,7 @@ double owensT1(double h, double a, double m) {
         div += 2;
         aj *= aa;
         dj = gj - dj;
-        gj *= hh / i;
+        gj *= nhh / i;
     }
 
     return result;
@@ -131,8 +131,8 @@ double owensT1(double h, double a, double m) {
 double owensT2(double h, double a, double m) {
 
     double hh = h * h;
-    double ah = -0.5 * h * h * a * a;
-    double pi_sq = sqrt(2 * NPY_PI);
+    double nah = -0.5 * h * h * a * a;
+    double pi_sq = 1 / sqrt(2 * NPY_PI);
 
     int i = 0;
     double z = (ndtr(a * h) - 0.5) / h;
@@ -142,10 +142,10 @@ double owensT2(double h, double a, double m) {
     for (i = 0; i <= (2 * m); i++) {
         result += pow(-1, i - 1) * z;
         z = ((2 * i - 1) * z - (pi_sq * pow(a, 2 * i - 1) *
-             exp(ah))) / (hh);
+            exp(nah))) / (hh);
     }
 
-    result *= -pi_sq * exp(-0.5 * hh);
+    result *= pi_sq * exp(-0.5 * hh);
 
     return result;
 }
@@ -160,7 +160,7 @@ double owensT3(double h, double a, double m) {
     double zi = owens_t_norm1(a * h) / h;
     double result = 0;
 
-    for(i = 0; i<= m; i++) {
+    for(i = 0; i<= 30; i++) {
         result += zi * C[i];
         zi = y * ((2 * i + 1) * zi - vi);
         vi *= aa;
@@ -174,10 +174,10 @@ double owensT3(double h, double a, double m) {
 double owensT4(double h, double a, double m) {
     double maxi = 2 * m + 1;
     double hh = h * h;
-    double aa = -a * a;
+    double naa = -a * a;
 
     int i = 1;
-    double ai = a * exp(-hh * (1 - aa) / 2) / (2 * NPY_PI);
+    double ai = a * exp(-hh * (1 - naa) / 2) / (2 * NPY_PI);
     double yi = 1;
     double result = 0;
 
@@ -190,7 +190,7 @@ double owensT4(double h, double a, double m) {
 
         i += 2;
         yi = (1 - hh * yi) / i;
-        ai *= aa;
+        ai *= naa;
     }
 
     return result;
@@ -200,12 +200,12 @@ double owensT5(double h, double a, double m) {
     double result = 0;
 
     double aa = a * a;
-    double hh = -0.5 * h * h;
+    double nhh = -0.5 * h * h;
     int i = 0;
 
     for (i = 1; i < 14; i++) {
         double r = 1 + aa * PTS[i - 1];
-        result += WTS[i - 1] * exp(hh * r) / r;
+        result += WTS[i - 1] * exp(nhh * r) / r;
     }
 
     result *= a;
@@ -216,8 +216,8 @@ double owensT5(double h, double a, double m) {
 double owensT6(double h, double a, double m) {
 
     double result = (0.5 * (ndtr(h)) * (1 - ndtr(h)) - atan((1 - a) /
-         (1 + a)) * exp(-0.5 * (1 - a) * h * h / atan((1 - a) /
-         (1 + a))) / (2 * NPY_PI));
+        (1 + a)) * exp(-0.5 * (1 - a) * h * h / atan((1 - a) /
+        (1 + a))) / (2 * NPY_PI));
 
     return result;
 }
@@ -238,7 +238,7 @@ double owens_t(double h, double a) {
         double ncdf_h = ndtr(h);
         double ncdf_ah = ndtr(a * h);
         return (0.5 * (ncdf_h + ncdf_ah) - ncdf_h * ncdf_ah -
-                owens_t(a * h, 1 / a));
+            owens_t(a * h, 1 / a));
     }
 
     if (a == 0) {
