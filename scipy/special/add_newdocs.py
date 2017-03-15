@@ -6395,7 +6395,7 @@ add_newdoc("scipy.special", "owens_t",
     >>> a = 3.5
     >>> h = 0.78
     >>> special.owens_t(h, a)
-    0.10877216734852269
+    0.10877216734852274
  
     References
     ----------

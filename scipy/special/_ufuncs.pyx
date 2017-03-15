@@ -11298,7 +11298,7 @@ cdef char *ufunc_owens_t_doc = (
     ">>> a = 3.5\n"
     ">>> h = 0.78\n"
     ">>> special.owens_t(h, a)\n"
-    "0.10877216734852269\n"
+    "0.10877216734852274\n"
     "\n"
     "References\n"
     "----------\n"

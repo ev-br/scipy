@@ -1,5 +1,8 @@
 #include "mconf.h"
 #include <math.h>
+#include <float.h>
+
+static double LOG_MAX_VALUE = 709.0;
 
 static int SELECT_METHOD[] = {
     1, 1, 2, 13, 13, 13, 13, 13, 13, 13, 13, 16, 16, 16, 9,
@@ -128,14 +131,14 @@ double owensT1(double h, double a, double m) {
     return result;
 }
 
-double owensT2(double h, double a, double m) {
+double owensT2(double h, double a, double ah, double m) {
 
     double hh = h * h;
     double nah = -0.5 * h * h * a * a;
     double pi_sq = 1 / sqrt(2 * NPY_PI);
 
     int i = 0;
-    double z = (ndtr(a * h) - 0.5) / h;
+    double z = (ndtr(ah) - 0.5) / h;
 
     double result = 0;
 
@@ -150,14 +153,14 @@ double owensT2(double h, double a, double m) {
     return result;
 }
 
-double owensT3(double h, double a, double m) {
+double owensT3(double h, double a, double ah) {
     double aa = a * a;
     double hh = h * h;
     double y = 1 / hh;
 
     int i = 0;
-    double vi = a * exp(-aa * hh / 2) / sqrt(2 * NPY_PI);
-    double zi = owens_t_norm1(a * h) / h;
+    double vi = a * exp(-ah * ah/ 2) / sqrt(2 * NPY_PI);
+    double zi = owens_t_norm1(ah) / h;
     double result = 0;
 
     for(i = 0; i<= 30; i++) {
@@ -196,7 +199,7 @@ double owensT4(double h, double a, double m) {
     return result;
 }
 
-double owensT5(double h, double a, double m) {
+double owensT5(double h, double a) {
     double result = 0;
 
     double aa = a * a;
@@ -213,46 +216,141 @@ double owensT5(double h, double a, double m) {
     return result;
 }
 
-double owensT6(double h, double a, double m) {
+double owensT6(double h, double a) {
 
-    double result = (0.5 * (ndtr(h)) * (1 - ndtr(h)) - atan((1 - a) /
-        (1 + a)) * exp(-0.5 * (1 - a) * h * h / atan((1 - a) /
-        (1 + a))) / (2 * NPY_PI));
+    double normh = owens_t_norm2(h);
+    double y = 1 - a;
+    double r = atan2(y, (1 + a));
+
+    double result = normh * (1 - normh) / 2;
+
+    if (r != 0) {
+        result -= r * exp(-y * h * h / (2 * r)) / (2 * NPY_PI);
+    }
 
     return result;
 }
 
-double owens_t(double h, double a) {
-    if (cephes_isnan(h) || cephes_isnan(a)) {
+double owensT1_accelerated(double h, double a, double target_precision) {
+    double hh_half = h * h / 2;
+    double a_pow = a;
+    double aa = a * a;
+    double exp_term = exp(-hh_half);
+    double one_minus_dj_sum = exp_term;
+    double sum = a_pow * exp_term;
+    double dj_pow = exp_term;
+    double term = sum;
+    double abs_err;
+    int j = 1;
+
+    int n = trunc(LOG_MAX_VALUE / 6);
+
+    double d = pow(3 + sqrt(8), n);
+    d = (d + 1 / d) / 2;
+    double b = -1;
+    double c = -d;
+    c = b - c;
+    sum *= c;
+    b = -n * n * b * 2;
+    abs_err = ldexp(fabs(sum), -DBL_DIG);
+
+    while (j < n) {
+        a_pow *= aa;
+        dj_pow *= hh_half / j;
+        one_minus_dj_sum += dj_pow;
+        term = one_minus_dj_sum * a_pow / (2 * j + 1);
+        c = b - c;
+        sum += c * term;
+        abs_err = ldexp(fmax(fabs(sum), fabs(c * term)), -DBL_DIG);
+        b = (j + n) * (j - n) * b / ((j + 0.5) * (j + 1));
+        j++;
+        if (j > 10 && fabs(sum * DBL_EPSILON) > fabs(c * term)) {
+            break;
+        }
+    }
+
+    abs_err += fabs(c * term);
+
+    if (sum < 0 || (abs_err / sum) > target_precision) {
         return NPY_NAN;
     }
 
-    if (h < 0) {
-        return owens_t(-h, a);
+    return (sum / d) / (2 * NPY_PI);
+}
+
+double owensT2_accelerated(double h, double a, double ah,
+        double target_precision) {
+    double hh = h * h;
+    double naa = -a * a;
+    double y = 1 / hh;
+
+    unsigned short int ii = 1;
+    double result = 0;
+    double vi = a * exp(-ah * ah / 2) / sqrt(2 * NPY_PI);
+    double z = owens_t_norm1(ah / h);
+    double last_z = fabs(z);
+
+    int n = trunc(LOG_MAX_VALUE / 6);
+
+    double d = pow(3 + sqrt(8), n);
+    d = (d + 1 / d) / 2;
+    double b = -1;
+    double c = -d;
+    int s = 1;
+
+    int k;
+    for (k = 0; k < n; k++) {
+        if (fabs(z) > last_z || (fabs(result) * DBL_EPSILON > fabs(c * s * z))
+            || (s * z < 0)) {
+            break;
+        }
+        c = b - c;
+        result += c * s * z;
+        b = (k + n) * (k - n) * b / ((k + 0.5) * (k + 1));
+        last_z = z;
+        s = -s;
+        z = y * (vi - ii * z);
+        vi *= naa;
+        ii += 2;
+    } 
+    double err = fabs(c * z) / result;
+
+    if (err > target_precision) {
+        return NPY_NAN;
     }
 
-    if (a < 0) {
-        return -owens_t(h, -a);
-    }
-    else if (a > 1) {
-        double ncdf_h = ndtr(h);
-        double ncdf_ah = ndtr(a * h);
-        return (0.5 * (ncdf_h + ncdf_ah) - ncdf_h * ncdf_ah -
-            owens_t(a * h, 1 / a));
+    return result * exp(-hh / 2) / (d * sqrt(2 * NPY_PI));
+}
+
+double owensT4_mp(double h, double a) {
+    double hh = h * h;
+    double naa = -a * a;
+
+    unsigned short ii = 1;
+    double ai = a * exp(-0.5 * hh * (1 - naa)) / (2 * NPY_PI);
+    double yi = 1.0;
+    double result = 0.0;
+
+    double lim = DBL_EPSILON;
+
+    while(1) {
+        double term = ai * yi;
+        result += term;
+        if ((yi != 0) && (fabs(result * lim) > fabs(term))) {
+            break;
+        }
+        ii += 2;
+        yi = (1.0 - hh * yi) / ii;
+        ai *= naa;
+        if (ii > 1500) {
+            return NPY_NAN;
+        }
     }
 
-    if (a == 0) {
-        return 0;
-    }
+    return result;
+}
 
-    if (h == 0) {
-        return 1 * atan(a) / (2 * NPY_PI);
-    }
-
-    if (a == 1) {
-        return owens_t_norm2(-h) * owens_t_norm2(h) / 2;
-    }
-
+double owens_t_dispatch_basic(double h, double a, double ah) {
     int index = get_method(h, a);
     int m = ORD[index];
     int meth_code = METHODS[index - 1];
@@ -263,20 +361,95 @@ double owens_t(double h, double a) {
             result = owensT1(h, a, m);
             break;
         case 2:
-            result = owensT2(h, a, m);
+            result = owensT2(h, a, ah, m);
             break;
         case 3:
-            result = owensT3(h, a, m);
+            result = owensT3(h, a, ah);
             break;
         case 4:
             result = owensT4(h, a, m);
             break;
         case 5:
-            result = owensT5(h, a, m);
+            result = owensT5(h, a);
             break;
         case 6:
-            result = owensT6(h, a, m);
+            result = owensT6(h, a);
             break;
+    }
+
+    return result;
+}
+
+double owens_t_dispatch(double h, double a, double ah) {
+    if (a == 0) {
+        return 0;
+    }
+
+    if (h == 0) {
+        return atan(a) / (2 * NPY_PI);
+    }
+
+    if (a == 1) {
+        return owens_t_norm2(-h) * owens_t_norm2(h) / 2;
+    }
+    
+    double target_precision = DBL_EPSILON * 1000;
+    double result_t1, result_t2;
+
+    if (ah < 3) {
+        result_t1 = owensT1_accelerated(h, a, target_precision);
+        if (!cephes_isnan(result_t1)) {
+            return result_t1;
+        }
+    }
+    if (ah > 1) {
+        result_t2 = owensT2_accelerated(h, a, ah, target_precision);
+        if (!cephes_isnan(result_t2)) {
+            return result_t2;
+        }
+    }
+
+    double result_mp = owensT4_mp(h, a);
+    if (!cephes_isnan(result_mp)) {
+        return result_mp;
+    }
+
+    return owens_t_dispatch_basic(h, a, ah);
+}
+
+double owens_t(double h, double a) {
+    if (cephes_isnan(h) || cephes_isnan(a)) {
+        return NPY_NAN;
+    }
+
+    if (h < 0) {
+        h = fabs(h);
+    }
+
+    double result = 0;
+    double fabs_a = fabs(a);
+    double fabs_ah = fabs_a * h;
+
+    if (fabs_a <= 1) {
+        result = owens_t_dispatch(h, fabs_a, fabs_ah);
+    }
+    else {
+        if (fabs_ah <= 0.67) {
+            double normh = owens_t_norm1(h);
+            double normah = owens_t_norm1(fabs_ah);
+            result = 0.25 - normh * normah -
+                owens_t_dispatch(fabs_ah, (1 / fabs_a), h);
+        }
+        else {
+            double normh = owens_t_norm2(h);
+            double normah = owens_t_norm2(fabs_ah);
+            result = (normh + normah) / 2 - normh * normah -
+                owens_t_dispatch(fabs_ah, (1 / fabs_a), h);
+        }
+    }
+
+    if (a < 0) {
+        return -result;
     }
 
     return result;
