@@ -6372,20 +6372,22 @@ add_newdoc("scipy.special", "_cospi",
 
 add_newdoc("scipy.special", "owens_t",
     """
+    Owen's T Function.
+
     The function T(h, a) gives the probability of the event
     (X > h and 0 < Y < a * X) where X and Y are independent
     standard normal random variables.
 
     Parameters
     ----------
-    h: float64
+    h: array_like
         Input value.
-    a: float64
+    a: array_like
         Input value.
  
     Returns
     -------
-    t: float64
+    t: scalar or ndarray
         Probability of the event (X > h and 0 < Y < a * X),
         where X and Y are independent standard normal random variables.
  

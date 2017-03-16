@@ -228,6 +228,7 @@ def test_cython_api():
         (special.obl_rad1_cv, cython_special._obl_rad1_cv_pywrap, ('ddddd',), "see gh-6211"),
         (special.obl_rad2, cython_special._obl_rad2_pywrap, ('dddd',), "see gh-6211"),
         (special.obl_rad2_cv, cython_special._obl_rad2_cv_pywrap, ('ddddd',), "see gh-6211"),
+        (special.owens_t, cython_special.owens_t, ('dd',), None),
         (special.pbdv, cython_special._pbdv_pywrap, ('dd',), None),
         (special.pbvv, cython_special._pbvv_pywrap, ('dd',), None),
         (special.pbwa, cython_special._pbwa_pywrap, ('dd',), "see gh-6208"),
@@ -271,8 +272,7 @@ def test_cython_api():
         (special.yn, cython_special.yn, ('ld', 'dd'), None),
         (special.yv, cython_special.yv, ('dd', 'dD'), None),
         (special.yve, cython_special.yve, ('dd', 'dD'), None),
-        (special.zetac, cython_special.zetac, ('d',), None),
-        (special.owens_t, cython_special.owens_t, ('dd',), None)
+        (special.zetac, cython_special.zetac, ('d',), None)
     ]
 
     # Check that everything is tested

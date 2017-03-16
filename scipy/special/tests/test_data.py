@@ -204,12 +204,6 @@ def clog1p(x, y):
     z = log1p(x + 1j*y)
     return z.real, z.imag
 
-def owens_t_nh(h, a):
-    return owens_t(-h, a)
-
-def owens_t_na(h, a):
-    return -owens_t(h, -a)
-
 def test_boost():
     TESTS = [
         data(arccosh, 'acosh_data_ipp-acosh_data', 0, 1, rtol=5e-13),
@@ -436,9 +430,8 @@ def test_boost():
         data(spherical_jn_, 'sph_bessel_data_ipp-sph_bessel_data', (0,1), 2, rtol=1e-13),
         data(spherical_yn_, 'sph_neumann_data_ipp-sph_neumann_data', (0,1), 2, rtol=8e-15),
 
-        data(owens_t, 'owenst_data_ipp-owenst', (0, 1), 2, rtol=5e-8),
-        data(owens_t_nh, 'owenst_data_ipp-owenst', (0, 1), 2, rtol=5e-8),
-        data(owens_t_na, 'owenst_data_ipp-owenst', (0, 1), 2, rtol=5e-8),
+        data(owens_t, 'owenst_data_ipp-owens_t', (0, 1), 2, rtol=5e-8),
+        data(owens_t, 'owenst_data_ipp-owens_t_alarge', (0, 1), 2, rtol=5e-15),
 
         # -- not used yet (function does not exist in scipy):
         # 'ellint_pi2_data_ipp-ellint_pi2_data',
@@ -488,8 +481,7 @@ def test_local():
         data_local(clog1p, 'log1p_expm1_complex', (0,1), (2,3), rtol=1e-14),
         data_local(cexpm1, 'log1p_expm1_complex', (0,1), (4,5), rtol=1e-14),
         data_local(gammainc, 'gammainc', (0, 1), 2, rtol=1e-12),
-        data_local(gammaincc, 'gammaincc', (0, 1), 2, rtol=1e-11),
-        data_local(owens_t, 'owens_t_tabulated', (0, 1), 2, rtol=1e-15)
+        data_local(gammaincc, 'gammaincc', (0, 1), 2, rtol=1e-11)
     ]
 
     for test in TESTS:
