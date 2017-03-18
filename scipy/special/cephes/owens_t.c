@@ -79,7 +79,7 @@ static double WTS[] = {
 int get_method(double h, double a) {
     int ihint = 14;
     int iaint = 7;
-    int i = 0;
+    int i;
 
     for (i = 0; i < 14; i++) {
         if (h <= HRANGE[i]) {
@@ -89,13 +89,13 @@ int get_method(double h, double a) {
     }
 
     for (i = 0; i < 7; i++) {
-        if (h <= ARANGE[i]) {
+        if (a <= ARANGE[i]) {
             iaint = i;
             break;
         }
     }
 
-    return SELECT_METHOD[iaint* 15 + ihint];
+    return SELECT_METHOD[iaint * 15 + ihint];
 }
 
 double owens_t_norm1(double x) {

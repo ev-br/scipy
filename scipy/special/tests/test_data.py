@@ -430,7 +430,7 @@ def test_boost():
         data(spherical_jn_, 'sph_bessel_data_ipp-sph_bessel_data', (0,1), 2, rtol=1e-13),
         data(spherical_yn_, 'sph_neumann_data_ipp-sph_neumann_data', (0,1), 2, rtol=8e-15),
 
-        data(owens_t, 'owenst_data_ipp-owens_t', (0, 1), 2, rtol=5e-8),
+        data(owens_t, 'owenst_data_ipp-owens_t', (0, 1), 2, rtol=5e-14),
         data(owens_t, 'owenst_data_ipp-owens_t_alarge', (0, 1), 2, rtol=5e-15),
 
         # -- not used yet (function does not exist in scipy):
