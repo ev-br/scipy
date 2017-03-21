@@ -120,7 +120,7 @@ double owensT1(double h, double a, double m) {
 
     double result = atan(a) * (1 / (2 * NPY_PI));
 
-    for (i = 0; i <= m; i++) {
+    for (i = 1; i <= m; i++) {
         result += dj * aj / div;
         div += 2;
         aj *= aa;
