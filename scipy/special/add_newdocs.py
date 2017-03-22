@@ -6372,6 +6372,8 @@ add_newdoc("scipy.special", "_cospi",
 
 add_newdoc("scipy.special", "owens_t",
     """
+    owens_t(h, a)
+
     Owen's T Function.
 
     The function T(h, a) gives the probability of the event

@@ -11275,6 +11275,8 @@ cdef void *ufunc_owens_t_ptr[4]
 cdef void *ufunc_owens_t_data[2]
 cdef char ufunc_owens_t_types[6]
 cdef char *ufunc_owens_t_doc = (
+    "owens_t(h, a)\n"
+    "\n"
     "Owen's T Function.\n"
     "\n"
     "The function T(h, a) gives the probability of the event\n"
