@@ -34,6 +34,10 @@ def test_owens_t():
     assert_allclose(special.owens_t(20, 700),
                     1.3768120593031168275e-89, rtol=5e-14)
 
+    assert_equal(special.owens_t(20, np.nan), np.nan)
+    assert_equal(special.owens_t(np.nan, 20), np.nan)
+    assert_equal(special.owens_t(np.nan, np.nan), np.nan)
+
 
 if __name__ == "__main__":
     run_module_suite()
