@@ -3384,6 +3384,58 @@ class rv_sample(rv_discrete):
         n = asarray(n)
         return np.sum(self.xk**n[np.newaxis, ...] * self.pk, axis=0)
 
+    def expect(self, func=None, args=(), loc=0, lb=None, ub=None,
+               conditional=False):
+        """
+        Calculate expected value of a function with respect to the distribution
+        for discrete distribution.
+
+        Parameters
+        ----------
+        func : callable, optional
+            Function for which the expectation value is calculated.
+            Takes only one argument.
+            The default is the identity mapping f(k) = k.
+        args : tuple, optional
+            Shape parameters of the distribution.
+        loc : float, optional
+            Location parameter.
+            Default is 0.
+        lb, ub : int, optional
+            Lower and upper bound for the summation, default is set to the
+            support of the distribution, inclusive (``ul <= k <= ub``).
+        conditional : bool, optional
+            If true then the expectation is corrected by the conditional
+            probability of the summation interval. The return value is the
+            expectation of the function, `func`, conditional on being in
+            the given interval (k such that ``ul <= k <= ub``).
+            Default is False.
+
+        Returns
+        -------
+        expect : float
+            Expected value.
+
+        """
+        if args:
+            raise ValueError("This distribution does not have shape parameters.")
+
+        if func is None:
+            def fun(x):
+                # loc is from outer scope
+                return (x+loc)*self._pmf(x)
+        else:
+            def fun(x):
+                return func(x+loc)*self._pmf(x)
+
+        lb = self.a if lb is None else lb - loc
+        ub = self.b if ub is None else ub - loc
+        invfac = self.sf(lb-1) - self.sf(ub) if conditional else 1.0
+
+        supp = self.xk[(lb <= self.xk) & (self.xk <= ub)]
+        res = np.sum(fun(supp), axis=0)
+        return res / invfac
+
     @np.deprecate(message="moment_gen method is not used anywhere any more "
                           "and is deprecated in scipy 0.18.")
     def moment_gen(self, t):
