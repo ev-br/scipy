@@ -1091,6 +1091,12 @@ class TestSkewNorm(TestCase):
                                    stats.skewnorm.stats(a=-4, loc=5, scale=2, moments='mvsk'),
                                    decimal=2)
 
+    def test_cdf_large_arg(self):
+        # gh-7746: cdf loses precision for large arguments
+        x = np.linspace(10, 50, 20)
+        assert_allclose(stats.skewnorm.cdf(x, -1), 1)
+
+
 
 class TestExpon(TestCase):
     def test_zero(self):
