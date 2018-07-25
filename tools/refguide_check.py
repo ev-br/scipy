@@ -858,6 +858,8 @@ def main(argv):
     if args.doctests or not args.skip_tutorial:
         init_matplotlib()
 
+    api_surface, num_depr, num_other = 0, 0, 0
+
     for module in modules:
         if dots:
             if module is not modules[0]:
@@ -868,18 +870,12 @@ def main(argv):
         all_dict, deprecated, others = get_all_dict(module)
         names = names_dict.get(module.__name__, set())
 
-        mod_results = []
-        mod_results += check_items(all_dict, names, deprecated, others, module.__name__)
-        mod_results += check_rest(module, set(names).difference(deprecated),
-                                  dots=dots)
-        if args.doctests:
-            mod_results += check_doctests(module, (args.verbose >= 2), dots=dots,
-                                          doctest_warnings=args.doctest_warnings)
+        print(module, len(all_dict))
+        api_surface += len(all_dict)
+        num_depr = len(deprecated)
+        num_other = len(others)
 
-        for v in mod_results:
-            assert isinstance(v, tuple), v
-
-        results.append((module, mod_results))
+    print("total = ", api_surface, "deprecated = ", num_depr, "other = ", num_other)
 
     if dots:
         sys.stderr.write("\n")
