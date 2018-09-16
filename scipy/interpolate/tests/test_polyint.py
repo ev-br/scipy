@@ -139,8 +139,9 @@ def _check_complex(ip):
     assert_allclose(y, p(x))
 
 
-def test_complex():
-    for ip in [KroghInterpolator, BarycentricInterpolator, pchip, CubicSpline]:
+def test_complex(): 
+    for ip in [KroghInterpolator, BarycentricInterpolator,
+               pchip, CubicSpline, Akima1DInterpolator]:
         _check_complex(ip)
 
 

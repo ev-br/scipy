@@ -16,6 +16,15 @@ __all__ = ["PchipInterpolator", "pchip_interpolate", "pchip",
            "Akima1DInterpolator", "CubicSpline"]
 
 
+def _real_or_complex(arr):
+    """Convert an integer array to float, leave complex intact."""
+    if np.issubdtype(arr.dtype, np.complexfloating):
+        dtype = complex
+    else:
+        dtype = float
+    return arr.astype(dtype, copy=False)
+
+
 class PchipInterpolator(BPoly):
     r"""PCHIP 1-d monotonic cubic interpolation.
 
@@ -289,11 +298,13 @@ class Akima1DInterpolator(PPoly):
         if x.size != y.shape[axis]:
             raise ValueError("x.shape must equal y.shape[%s]" % axis)
 
+        y = _real_or_complex(y)
+
         # move interpolation axis to front
         y = np.rollaxis(y, axis)
 
         # determine slopes between breakpoints
-        m = np.empty((x.size + 3, ) + y.shape[1:])
+        m = np.empty((x.size + 3, ) + y.shape[1:], dtype=y.dtype)
         dx = np.diff(x)
         dx = dx[(slice(None), ) + (None, ) * (y.ndim - 1)]
         m[2:-2] = np.diff(y, axis=0) / dx
@@ -323,7 +334,7 @@ class Akima1DInterpolator(PPoly):
         c = (3. * m[2:-2] - 2. * t[:-1] - t[1:]) / dx
         d = (t[:-1] + t[1:] - 2. * m[2:-2]) / dx ** 2
 
-        coeff = np.zeros((4, x.size - 1) + y.shape[1:])
+        coeff = np.zeros((4, x.size - 1) + y.shape[1:], dtype=y.dtype)
         coeff[3] = y[:-1]
         coeff[2] = t[:-1]
         coeff[1] = c
@@ -518,11 +529,7 @@ class CubicSpline(PPoly):
         if np.issubdtype(x.dtype, np.complexfloating):
             raise ValueError("`x` must contain real values.")
 
-        if np.issubdtype(y.dtype, np.complexfloating):
-            dtype = complex
-        else:
-            dtype = float
-        y = y.astype(dtype, copy=False)
+        y = _real_or_complex(y)
 
         axis = axis % y.ndim
         if x.ndim != 1:
