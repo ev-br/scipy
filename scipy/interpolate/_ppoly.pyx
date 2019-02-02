@@ -39,8 +39,8 @@ DEF MAX_DIMS = 64
 @cython.boundscheck(False)
 @cython.cdivision(True)
 def evaluate(double_or_complex[:,:,::1] c,
-             double[::1] x,
-             double[::1] xp,
+             const double[::1] x,
+             const double[::1] xp,
              int dx,
              bint extrapolate,
              double_or_complex[:,::1] out):
@@ -332,7 +332,7 @@ def fix_continuity(double_or_complex[:,:,::1] c,
 @cython.boundscheck(False)
 @cython.cdivision(True)
 def integrate(double_or_complex[:,:,::1] c,
-              double[::1] x,
+              const double[::1] x,
               double a,
               double b,
               bint extrapolate,
@@ -421,7 +421,10 @@ def integrate(double_or_complex[:,:,::1] c,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-def real_roots(double[:,:,::1] c, double[::1] x, double y, bint report_discont,
+def real_roots(double[:,:,::1] c,
+               const double[::1] x,
+               double y,
+               bint report_discont,
                bint extrapolate):
     """
     Compute real roots of a real-valued piecewise polynomial function.
@@ -1129,8 +1132,8 @@ cdef double_or_complex evaluate_bpoly1_deriv(double_or_complex s,
 @cython.boundscheck(False)
 @cython.cdivision(True)
 def evaluate_bernstein(double_or_complex[:,:,::1] c,
-             double[::1] x,
-             double[::1] xp,
+             const double[::1] x,
+             const double[::1] xp,
              int nu,
              bint extrapolate,
              double_or_complex[:,::1] out):

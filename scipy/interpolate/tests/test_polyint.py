@@ -662,3 +662,24 @@ class TestCubicSpline(object):
         # periodic condition, y[-1] must be equal to y[0]:
         assert_raises(ValueError, CubicSpline, x, y, 0, 'periodic', True)
 
+    def test_readonly(self):
+        # regression test for gh-9740: readonly buffers are rejected by Cython
+        x = np.linspace(-1, 1, 11)
+        y = x**3
+
+        x.flags.writeable = False
+        y.flags.writeable = False
+
+        cs = CubicSpline(x, y)
+
+        xp = np.array([0.1, 0.2, 0.5])
+        xp.flags.writeable = False
+
+        assert_allclose(cs(xp), xp**3, atol=1e-10)
+
+        # also check .integrate
+        assert_allclose(cs.integrate(0, 1), 0.25, atol=1e-14)
+
+        # .roots
+        assert_allclose(cs.solve(0.5), 0.5**(1/3.), atol=1e-14)
+

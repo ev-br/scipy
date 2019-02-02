@@ -1931,6 +1931,26 @@ class TestBPolyFromDerivatives(object):
         assert_almost_equal(p(0), 0)
         orders = 1
 
+    def test_readonly(self):
+        # cf TestCubisSpline.test_readonly in
+        # scipy/interpolate/tests/test_polyint.py
+        x = np.linspace(-1, 1, 11)
+        y = 2.0*x
+
+        x.flags.writeable = False
+        y.flags.writeable = False
+
+        # a linear interpolation of $y = 2x$
+        ls = BPoly.from_derivatives(x, y.reshape(-1, 1))
+
+        xp = np.array([0.1, 0.2, 0.5])
+        xp.flags.writeable = False
+
+        assert_allclose(ls(xp), 2.0*xp, atol=1e-10)
+
+        # also check .integrate
+        assert_allclose(ls.integrate(0, 1), 1.0, atol=1e-14)
+
 
 class TestNdPPoly(object):
     def test_simple_1d(self):
