@@ -142,14 +142,14 @@ class TestUnivariateSpline(object):
                         spl.integral(0.2, 0.6))
 
     def test_derivative_extrapolation(self):
-        # Regression test for #10195
+        # Regression test for gh-10195: for a const-extrapolation spline
+        # its derivative evaluates to zero for extrapolation
         x_values = [1, 2, 4, 6, 8.5]
         y_values = [0.5, 0.8, 1.3, 2.5, 5]
         f = UnivariateSpline(x_values, y_values, ext='const', k=3)
 
-        x = np.linspace(0, 10, 1000)
-        y = f(x)
-        assert_allclose(f.derivative()(x), np.diff(y) / np.diff(x))
+        x = [-1, 0, -0.5, 9, 9.5, 10]
+        assert_allclose(f.derivative()(x), 0, atol=1e-15)
 
     def test_nan(self):
         # bail out early if the input data contains nans
