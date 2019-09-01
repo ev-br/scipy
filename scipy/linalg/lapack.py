@@ -89,11 +89,6 @@ All functions
    cgeev_lwork
    zgeev_lwork
 
-   sgegv
-   dgegv
-   cgegv
-   zgegv
-
    sgehrd
    dgehrd
    cgehrd
@@ -650,7 +645,87 @@ empty_module = None
 from scipy.linalg._flapack import *
 del empty_module
 
-__all__ = ['get_lapack_funcs']
+__all__ = ['get_lapack_funcs',
+           'cgbsv', 'cgbtrf', 'cgbtrs', 'cgebal', 'cgecon', 'cgees',
+           'cgeev_lwork', 'cgegv', 'cgehrd', 'cgehrd_lwork', 'cgels',
+           'cgelsd', 'cgelsd_lwork', 'cgelss', 'cgelss_lwork', 'cgelsy',
+           'cgemqrt', 'cgeqp3', 'cgeqrf', 'cgeqrt', 'cgerqf', 'cgesdd',
+           'cgesv', 'cgesvd', 'cgesvd_lwork', 'cgesvx', 'cgetrf', 'cgetri',
+           'cgetrs', 'cgges', 'cggev', 'cgglse', 'cgglse_lwork', 'cgtsv',
+           'chbevx', 'checon', 'cheev', 'cheevd', 'cheevr', 'chegst',
+           'chegvd', 'chegvx', 'chesv', 'chesv_lwork', 'chesvx',
+           'chetrd', 'chetrd_lwork', 'chetrf', 'chetrf_lwork', 'chfrk',
+           'clarf', 'clarfg', 'clartg', 'claswp', 'clauum', 'cpbsv',
+           'cpbtrs', 'cpftrf', 'cpftri', 'cpftrs', 'cpocon', 'cposv',
+           'cpotrf', 'cpotri', 'cpotrs', 'cptsv', 'crot', 'csycon',
+           'csysv', 'csysv_lwork', 'csysvx', 'csysvx_lwork', 'csytf2',
+           'csytrf_lwork', 'ctfsm', 'ctfttp', 'ctfttr', 'ctgsen', 'ctpmqrt',
+           'ctpttf', 'ctpttr', 'ctrsyl', 'ctrtri', 'ctrtrs', 'ctrttf',
+           'ctzrzf', 'ctzrzf_lwork', 'cunghr', 'cunghr_lwork', 'cungqr',
+           'cunmqr', 'cunmrz', 'cunmrz_lwork', 'dgbsv', 'dgbtrf', 'dgbtrs',
+           'dgecon', 'dgees', 'dgeev', 'dgeev_lwork', 'dgegv', 'dgehrd',
+           'dgels', 'dgels_lwork', 'dgelsd', 'dgelsd_lwork', 'dgelss',
+           'dgelsy', 'dgelsy_lwork', 'dgemqrt', 'dgeqp3', 'dgeqrf',
+           'dgerqf', 'dgesdd', 'dgesdd_lwork', 'dgesv', 'dgesvd',
+           'dgesvx', 'dgetrf', 'dgetri', 'dgetri_lwork', 'dgetrs', 'dgges',
+           'dgglse', 'dgglse_lwork', 'dgtsv', 'dlamch', 'dlange', 'dlarf',
+           'dlartg', 'dlasd4', 'dlaswp', 'dlauum', 'dorghr', 'dorghr_lwork',
+           'dorgrq', 'dormqr', 'dormrz', 'dormrz_lwork', 'dpbsv', 'dpbtrf',
+           'dpftrf', 'dpftri', 'dpftrs', 'dpocon', 'dposv', 'dposvx',
+           'dpotri', 'dpotrs', 'dptsv', 'dsbev', 'dsbevd', 'dsbevx',
+           'dstebz', 'dstein', 'dstemr', 'dstemr_lwork', 'dsterf', 'dstev',
+           'dsyconv', 'dsyev', 'dsyevd', 'dsyevr', 'dsygst', 'dsygv',
+           'dsygvx', 'dsysv', 'dsysv_lwork', 'dsysvx', 'dsysvx_lwork',
+           'dsytrd', 'dsytrd_lwork', 'dsytrf', 'dsytrf_lwork', 'dtfsm',
+           'dtfttr', 'dtgsen', 'dtpmqrt', 'dtpqrt', 'dtpttf', 'dtpttr',
+           'dtrtri', 'dtrtrs', 'dtrttf', 'dtrttp', 'dtzrzf', 'dtzrzf_lwork',
+           'sgbsv', 'sgbtrf', 'sgbtrs', 'sgebal', 'sgecon', 'sgees',
+           'sgeev_lwork', 'sgegv', 'sgehrd', 'sgehrd_lwork', 'sgels',
+           'sgelsd', 'sgelsd_lwork', 'sgelss', 'sgelss_lwork', 'sgelsy',
+           'sgemqrt', 'sgeqp3', 'sgeqrf', 'sgeqrt', 'sgerqf', 'sgesdd',
+           'sgesv', 'sgesvd', 'sgesvd_lwork', 'sgesvx', 'sgetrf', 'sgetri',
+           'sgetrs', 'sgges', 'sggev', 'sgglse', 'sgglse_lwork', 'sgtsv',
+           'slange', 'slarf', 'slarfg', 'slartg', 'slasd4', 'slaswp',
+           'sorghr', 'sorghr_lwork', 'sorgqr', 'sorgrq', 'sormqr', 'sormrz',
+           'spbsv', 'spbtrf', 'spbtrs', 'spftrf', 'spftri', 'spftrs',
+           'sposv', 'sposvx', 'spotrf', 'spotri', 'spotrs', 'sptsv',
+           'ssbevd', 'ssbevx', 'ssfrk', 'sstebz', 'sstein', 'sstemr',
+           'ssterf', 'sstev', 'ssycon', 'ssyconv', 'ssyev', 'ssyevd',
+           'ssygst', 'ssygv', 'ssygvd', 'ssygvx', 'ssysv', 'ssysv_lwork',
+           'ssysvx_lwork', 'ssytf2', 'ssytrd', 'ssytrd_lwork', 'ssytrf',
+           'stfsm', 'stfttp', 'stfttr', 'stgsen', 'stpmqrt', 'stpqrt',
+           'stpttr', 'strsyl', 'strtri', 'strtrs', 'strttf', 'strttp',
+           'stzrzf_lwork', 'zgbsv', 'zgbtrf', 'zgbtrs', 'zgebal', 'zgecon',
+           'zgeev', 'zgeev_lwork', 'zgegv', 'zgehrd', 'zgehrd_lwork',
+           'zgels_lwork', 'zgelsd', 'zgelsd_lwork', 'zgelss',
+           'zgelsy', 'zgelsy_lwork', 'zgemqrt', 'zgeqp3', 'zgeqrf',
+           'zgerqf', 'zgesdd', 'zgesdd_lwork', 'zgesv', 'zgesvd',
+           'zgesvx', 'zgetrf', 'zgetri', 'zgetri_lwork', 'zgetrs', 'zgges',
+           'zgglse', 'zgglse_lwork', 'zgtsv', 'zhbevd', 'zhbevx', 'zhecon',
+           'zheevd', 'zheevr', 'zhegst', 'zhegv', 'zhegvd', 'zhegvx',
+           'zhesv_lwork', 'zhesvx', 'zhesvx_lwork', 'zhetrd',
+           'zhetrf', 'zhetrf_lwork', 'zhfrk', 'zlange', 'zlarf', 'zlarfg',
+           'zlaswp', 'zlauum', 'zpbsv', 'zpbtrf', 'zpbtrs', 'zpftrf',
+           'zpftrs', 'zpocon', 'zposv', 'zposvx', 'zpotrf', 'zpotri',
+           'zptsv', 'zrot', 'zsycon', 'zsyconv', 'zsysv', 'zsysv_lwork',
+           'zsysvx_lwork', 'zsytf2', 'zsytrf', 'zsytrf_lwork', 'ztfsm',
+           'ztfttr', 'ztgsen', 'ztpmqrt', 'ztpqrt', 'ztpttf', 'ztpttr',
+           'ztrtri', 'ztrtrs', 'ztrttf', 'ztrttp', 'ztzrzf', 'ztzrzf_lwork',
+           'zunghr_lwork', 'zungqr', 'zungrq', 'zunmqr', 'zunmrz',
+           'cgeev', 'cgels_lwork', 'cgelsy_lwork', 'cgesdd_lwork',
+           'chbevd', 'chegv', 'chesvx_lwork', 'clange', 'cpbtrf', 'cposvx',
+           'csytrf', 'ctpqrt', 'ctrttp', 'cungrq', 'dgebal', 'dgehrd_lwork',
+           'dgeqrt', 'dgesvd_lwork', 'dggev', 'dlarfg', 'dorgqr', 'dpbtrs',
+           'dsfrk', 'dsycon', 'dsygvd', 'dsytf2', 'dtfttp', 'dtrsyl',
+           'sgeev', 'sgels_lwork', 'sgelsy_lwork', 'sgesdd_lwork',
+           'slamch', 'slauum', 'sormrz_lwork', 'spocon', 'ssbev',
+           'ssyevr', 'ssysvx', 'ssytrf_lwork', 'stpttf', 'stzrzf', 'zgees',
+           'zgelss_lwork', 'zgeqrt', 'zgesvd_lwork', 'zggev', 'zheev',
+           'zhetrd_lwork', 'zlartg', 'zpftri', 'zpotrs', 'zsysvx', 'ztfttp',
+           'zunghr', 'zunmrz_lwork', 'cgetri_lwork', 'csyconv',
+           'dgelss_lwork', 'dpotrf', 'ilaver', 'sgetri_lwork', 'sstemr_lwork',
+           'zgels', 'zhesv', 'ztrsyl',
+]
 
 _dep_message = """The `*gegv` family of routines has been deprecated in
 LAPACK 3.6.0 in favor of the `*ggev` family of routines.

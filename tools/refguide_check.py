@@ -123,8 +123,6 @@ REFGUIDE_ALL_SKIPLIST = [
     r'scipy\.sparse\.csgraph',
     r'scipy\.sparse\.linalg',
     r'scipy\.spatial\.distance',
-    r'scipy\.linalg\.blas\.[sdczi].*',
-    r'scipy\.linalg\.lapack\.[sdczi].*',
 ]
 
 # these names are not required to be in an autosummary:: listing

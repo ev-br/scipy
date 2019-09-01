@@ -207,7 +207,27 @@ BLAS Level 3 functions
 
 from __future__ import division, print_function, absolute_import
 
-__all__ = ['get_blas_funcs', 'find_best_blas_type']
+__all__ = ['get_blas_funcs', 'find_best_blas_type',
+           'caxpy', 'ccopy', 'cdotc', 'cdotu', 'crotg', 'cscal', 'csrot',
+           'csscal', 'cswap', 'dasum', 'daxpy', 'dcopy', 'ddot', 'dnrm2',
+           'drot', 'drotg', 'drotm', 'drotmg', 'dscal', 'dswap', 'dzasum',
+           'dznrm2', 'icamax', 'idamax', 'isamax', 'izamax', 'sasum', 'saxpy',
+           'scasum', 'scnrm2', 'scopy', 'sdot', 'snrm2', 'srot', 'srotg',
+           'srotm', 'srotmg', 'sscal', 'sswap', 'zaxpy', 'zcopy', 'zdotc',
+           'zdotu', 'zdrot', 'zdscal', 'zrotg', 'zscal', 'zswap', 'sgbmv',
+           'sgemv', 'sger', 'ssbmv', 'sspr', 'sspr2', 'ssymv', 'ssyr', 'ssyr2',
+           'stbmv', 'stpsv', 'strmv', 'strsv', 'dgbmv', 'dgemv', 'dger',
+           'dsbmv', 'dspr', 'dspr2', 'dsymv', 'dsyr', 'dsyr2', 'dtbmv',
+           'dtpsv', 'dtrmv', 'dtrsv', 'cgbmv', 'cgemv', 'cgerc', 'cgeru',
+           'chbmv', 'chemv', 'cher', 'cher2', 'chpmv', 'chpr', 'chpr2',
+           'ctbmv', 'ctbsv', 'ctpmv', 'ctpsv', 'ctrmv', 'ctrsv', 'csyr',
+           'zgbmv', 'zgemv', 'zgerc', 'zgeru', 'zhbmv', 'zhemv', 'zher',
+           'zher2', 'zhpmv', 'zhpr', 'zhpr2', 'ztbmv', 'ztbsv', 'ztpmv',
+           'ztrmv', 'ztrsv', 'zsyr', 'sgemm', 'ssymm', 'ssyr2k', 'ssyrk',
+           'strmm', 'strsm', 'dgemm', 'dsymm', 'dsyr2k', 'dsyrk', 'dtrmm',
+           'dtrsm', 'cgemm', 'chemm', 'cher2k', 'cherk', 'csymm', 'csyr2k',
+           'csyrk', 'ctrmm', 'ctrsm', 'zgemm', 'zhemm', 'zher2k', 'zherk',
+           'zsymm', 'zsyr2k', 'zsyrk', 'ztrmm', 'ztrsm']
 
 import numpy as _np
 import functools
