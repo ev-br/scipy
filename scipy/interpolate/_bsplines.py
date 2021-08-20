@@ -8,7 +8,6 @@ from scipy.linalg import (get_lapack_funcs, LinAlgError,
 from . import _bspl
 from . import _fitpack_impl
 from . import _fitpack as _dierckx
-from . import _cubic
 from scipy._lib._util import prod
 from scipy.special import poch
 from itertools import combinations
@@ -742,7 +741,8 @@ class BSpline:
         .. [1] Tom Lyche and Knut Mørken, Spline Methods, 2005, Section 3.1.2
 
         """
-        if not isinstance(pp, _cubic.CubicSpline):
+        from ._cubic import CubicSpline
+        if not isinstance(pp, CubicSpline):
              raise NotImplementedError("Only CubicSpline objects are accepted for now.")
         x = pp.x
         coef = pp.c
