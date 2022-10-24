@@ -146,30 +146,40 @@ def evaluate_linear_2d(double[:, ::1] values,   # FIXME: double_or_complex
         # linear interpolation along axis=0
         for point in range(num_points):
             i0 = indices[0, point]
-            y0 = norm_distances[0, point]
-            summ = values[i0, 0]*(1 - y0) + values[i0+1, 0]*y0
-            result[point] = summ
+            if i0 >= 0:
+                y0 = norm_distances[0, point]
+                summ = values[i0, 0]*(1 - y0) + values[i0+1, 0]*y0
+                result[point] = summ
+            else:
+                # xi was nan: find_interval returns -1
+                result[point] = nan
     elif grid[0].shape[0] == 1:
         # linear interpolation along axis=1
         for point in range(num_points):
             i1 = indices[1, point]
-            y1 = norm_distances[1, point]
-            summ = values[0, i1]*(1 - y1) + values[0, i1+1]*y1
-            result[point] = summ
+            if i1 >= 0:
+                y1 = norm_distances[1, point]
+                summ = values[0, i1]*(1 - y1) + values[0, i1+1]*y1
+                result[point] = summ
+            else:
+                # xi was nan: find_interval returns -1
+                result[point] = nan
     else:
-
-        # xi is also (2, num_points); norm_distances is also (2, num_points)
         for point in range(num_points):
             i0, i1 = indices[0, point], indices[1, point]
-            y0, y1 = norm_distances[0, point], norm_distances[1, point]
+            if i0 >=0 and i1 >=0:
+                y0, y1 = norm_distances[0, point], norm_distances[1, point]
 
-            summ = 0.0
-            summ = summ + values[i0, i1] * (1 - y0) * (1 - y1)
-            summ = summ + values[i0, i1+1] * (1 - y0) * y1
-            summ = summ + values[i0+1, i1] * y0 * (1 - y1)
-            summ = summ + values[i0+1, i1+1] * y0 * y1
+                summ = 0.0
+                summ = summ + values[i0, i1] * (1 - y0) * (1 - y1)
+                summ = summ + values[i0, i1+1] * (1 - y0) * y1
+                summ = summ + values[i0+1, i1] * y0 * (1 - y1)
+                summ = summ + values[i0+1, i1+1] * y0 * y1
+                result[point] = summ
+            else:
+                # xi was nan
+                result[point] = nan
 
-            result[point] = summ
     return result
 
 

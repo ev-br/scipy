@@ -389,8 +389,8 @@ class RegularGridInterpolator:
 
             value3 = evaluate_linear_2d(self.values, indices, norm_distances, self.grid, out_of_bounds)
 
-
-            assert_equal(value3, value)
+            from numpy.testing import assert_allclose
+            assert_allclose(value3, value, atol=1e-15)
 
         return value2
 
