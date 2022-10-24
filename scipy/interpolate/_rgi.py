@@ -380,6 +380,32 @@ class RegularGridInterpolator:
 
         from numpy.testing import assert_equal
         assert_equal(value2, value)
+
+        # special-case d = 2
+        d, num_points = indices.shape     # # of points, dimensionality
+        ##assert d == 2
+
+        if d == 2:
+
+            print("CHECKING!")
+
+            value3 = np.zeros(num_points, dtype=self.values.dtype)
+
+            # xi is also (2, num_points); norm_distances is also (2, num_points)
+            for point in range(num_points):
+                i0, i1 = indices[0, point], indices[1, point]
+                y0, y1 = norm_distances[0, point], norm_distances[1, point]
+
+                summ = 0.0
+                summ += self.values[i0, i1] * (1 - y0) * (1 - y1)
+                summ += self.values[i0, i1+1] * (1 - y0) * y1
+                summ += self.values[i0+1, i1] * y0 * (1 - y1)
+                summ += self.values[i0+1, i1+1] * y0 * y1
+
+                value3[point] = summ
+
+            assert_equal(value3, value)
+
         return value2
 
     def _evaluate_nearest(self, indices, norm_distances, out_of_bounds):
