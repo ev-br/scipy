@@ -387,7 +387,7 @@ class RegularGridInterpolator:
 
         if d == 2:
 
-            value3 = evaluate_linear_2d(self.values, indices, norm_distances, out_of_bounds)
+            value3 = evaluate_linear_2d(self.values, indices, norm_distances, self.grid, out_of_bounds)
 
 
             assert_equal(value3, value)

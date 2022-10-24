@@ -1,3 +1,4 @@
+# cython: language_level=3
 import numpy as np
 cimport numpy as np
 cimport cython
@@ -125,23 +126,50 @@ def evaluate_linear(values, indices, norm_distances, out_of_bounds):
     return value
 
 
+@cython.wraparound(False)
+@cython.boundscheck(True)
+@cython.initializedcheck(False)
+def evaluate_linear_2d(double[:, ::1] values,   # FIXME: double_or_complex
+                       long[:, ::1]indices,
+                       double[:, ::1] norm_distances,
+                       tuple grid not None,
+                       out_of_bounds):
+    cdef:
+        long d = indices.shape[0]           # FIXME: npy_intp?
+        long num_points = indices.shape[1]
+        long i0, i1, point
+        double y0, y1
+        double summ
+        double[::1] result = np.zeros(num_points, dtype=float)
 
-def evaluate_linear_2d(values, indices, norm_distances, out_of_bounds):
-    d, num_points = indices.shape
-    result = np.zeros(num_points, dtype=values.dtype)
+    if grid[1].shape[0] == 1:
+        # linear interpolation along axis=0
+        for point in range(num_points):
+            i0 = indices[0, point]
+            y0 = norm_distances[0, point]
+            summ = values[i0, 0]*(1 - y0) + values[i0+1, 0]*y0
+            result[point] = summ
+    elif grid[0].shape[0] == 1:
+        # linear interpolation along axis=1
+        for point in range(num_points):
+            i1 = indices[1, point]
+            y1 = norm_distances[1, point]
+            summ = values[0, i1]*(1 - y1) + values[0, i1+1]*y1
+            result[point] = summ
+    else:
 
-    # xi is also (2, num_points); norm_distances is also (2, num_points)
-    for point in range(num_points):
-        i0, i1 = indices[0, point], indices[1, point]
-        y0, y1 = norm_distances[0, point], norm_distances[1, point]
+        # xi is also (2, num_points); norm_distances is also (2, num_points)
+        for point in range(num_points):
+            i0, i1 = indices[0, point], indices[1, point]
+            y0, y1 = norm_distances[0, point], norm_distances[1, point]
 
-        summ = 0.0
-        summ += values[i0, i1] * (1 - y0) * (1 - y1)
-        summ += values[i0, i1+1] * (1 - y0) * y1
-        summ += values[i0+1, i1] * y0 * (1 - y1)
-        summ += values[i0+1, i1+1] * y0 * y1
+            summ = 0.0
+            summ = summ + values[i0, i1] * (1 - y0) * (1 - y1)
+            summ = summ + values[i0, i1+1] * (1 - y0) * y1
+            summ = summ + values[i0+1, i1] * y0 * (1 - y1)
+            summ = summ + values[i0+1, i1+1] * y0 * y1
 
-        result[point] = summ
+            result[point] = summ
     return result
 
 
