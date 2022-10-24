@@ -127,7 +127,7 @@ def evaluate_linear(values, indices, norm_distances, out_of_bounds):
 
 
 @cython.wraparound(False)
-@cython.boundscheck(True)
+@cython.boundscheck(False)
 @cython.initializedcheck(False)
 def evaluate_linear_2d(double[:, ::1] values,   # FIXME: double_or_complex
                        long[:, ::1]indices,
@@ -180,11 +180,11 @@ def evaluate_linear_2d(double[:, ::1] values,   # FIXME: double_or_complex
                 # xi was nan
                 result[point] = nan
 
-    return result
+    return np.asarray(result)
 
 
 @cython.wraparound(False)
-@cython.boundscheck(True)
+@cython.boundscheck(False)
 @cython.cdivision(True)
 @cython.initializedcheck(False)
 def find_indices(tuple grid not None, double[:, :] xi):
