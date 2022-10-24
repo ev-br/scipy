@@ -125,6 +125,26 @@ def evaluate_linear(values, indices, norm_distances, out_of_bounds):
     return value
 
 
+
+def evaluate_linear_2d(values, indices, norm_distances, out_of_bounds):
+    d, num_points = indices.shape
+    result = np.zeros(num_points, dtype=values.dtype)
+
+    # xi is also (2, num_points); norm_distances is also (2, num_points)
+    for point in range(num_points):
+        i0, i1 = indices[0, point], indices[1, point]
+        y0, y1 = norm_distances[0, point], norm_distances[1, point]
+
+        summ = 0.0
+        summ += values[i0, i1] * (1 - y0) * (1 - y1)
+        summ += values[i0, i1+1] * (1 - y0) * y1
+        summ += values[i0+1, i1] * y0 * (1 - y1)
+        summ += values[i0+1, i1+1] * y0 * y1
+
+        result[point] = summ
+    return result
+
+
 @cython.wraparound(False)
 @cython.boundscheck(True)
 @cython.cdivision(True)
