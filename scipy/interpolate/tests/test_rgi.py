@@ -541,6 +541,21 @@ class TestRegularGridInterpolator:
         v2 = np.expand_dims(vs, axis=0)
         assert_allclose(v, v2, atol=1e-14, err_msg=method)
 
+    def test_gradients(self):
+        # first check the values
+        x = np.arange(8)
+        y = np.arange(7)
+        values = x**3 * y[:, None]**3
+        rgi = RegularGridInterpolator((x, y), values.T, method='cubic')
+
+        x1 = 0.5 * (x[1:] + x[:-1])
+        y1 = 0.5 * (y[1:] + y[:-1])
+        x1t, y1t = np.meshgrid(x1, y1)
+        vals = rgi(np.c_[x1t.ravel(), y1t.ravel()])
+
+        assert_allclose(vals,
+                        x1t.ravel()**3 * y1t.ravel()**3, atol=1e-11)
+
 
 class MyValue:
     """
