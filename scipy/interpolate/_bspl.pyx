@@ -480,26 +480,10 @@ def _make_design_matrix(const double[::1] x,
 
 
 
-import itertools   # XXX: remove
-from scipy._lib._util import prod
-def B(x, k, i, t):
-    if k == 0:
-        return 1.0 if t[i] <= x < t[i+1] else 0.0
-    if t[i+k] == t[i]:
-        c1 = 0.0
-    else:
-        c1 = (x - t[i])/(t[i+k] - t[i]) * B(x, k-1, i, t)
-    if t[i+k+1] == t[i+1]:
-        c2 = 0.0
-    else:
-        c2 = (t[i+k+1] - x)/(t[i+k+1] - t[i+1]) * B(x, k-1, i+1, t)
-    return c1 + c2
-
-
-
 @cython.wraparound(False)
-@cython.boundscheck(True)
-def _evaluate_ndbspline(const double[:, ::1] xi,
+@cython.boundscheck(False)
+@cython.nonecheck(False)
+def evaluate_ndbspline(const double[:, ::1] xi,
                         tuple t,
                         tuple ktuple,
                         const double[::1] c1r,
@@ -513,10 +497,10 @@ def _evaluate_ndbspline(const double[:, ::1] xi,
             npy_intp ndim = len(t)
 
             # 'intervals': indices for a point in xi into the knot arrays t
-            npy_intp[::1] i = np.empty(ndim, dtype=int)    # intervals
+            npy_intp[::1] i = np.empty(ndim, dtype=int)
 
             # container for non-zero b-splines at each point in xi
-            double[:, ::1] b = np.empty((ndim, max(ktuple)+1), dtype=float)    # non-zero b-splines
+            double[:, ::1] b = np.empty((ndim, max(ktuple)+1), dtype=float)
 
             const double[::1] x
             const double[::1] td
@@ -531,111 +515,51 @@ def _evaluate_ndbspline(const double[:, ::1] xi,
             
             npy_intp[::1] idx_c = np.empty(ndim, dtype=int)
             npy_intp idx_cflat_base
-            double[::1] result_flat = np.zeros(num_c_tr, dtype=float)
 
             double factor
         
             double[::1] wrk = np.empty(2*max(ktuple)+2, dtype=float)
 
+        # TODO: basic asserts of input shapes
+
         volume = 1
         for d in range(ndim):
             volume *= k[d] + 1
-
-        print(">>>>>>>>>>>>>>>>>>\n xi = ", np.asarray(xi))
-   
-        # 'intervals': indices for a point in xi into the knot arrays t
-#        i = [-101,]*ndim
-        # container for non-zero b-splines at each point in xi
- #       b = np.empty((ndim, max(k)+1), dtype=float) * np.nan
 
         ### Finally, iterate over the data points
         for j in range(xi.shape[0]):           
             x = xi[j]
 
-            print('----> ', j, np.asarray(x))
-
-            # get the indices in an ndim-dimensional vector
             for d in range(ndim):
                 td = t[d]
                 xd = x[d]
                 kd = k[d]
-                
 
-                # find the index for x[d]
-                if xd == td[kd]:
-                    i[d] = kd
-                else:
-                    i[d] = np.searchsorted(td, xd) - 1
-                assert td[i[d]] <= xd <= td[i[d]+1]
-                assert i[d] >= kd and i[d] < len(td) - kd
+                # get the location of x[d] in t[d]
+                i[d] = find_interval(td, kd, xd, kd, False)
+                # TODO: interval < 0
 
-                # (k+1) b-splines which are non-zero at x[d]
-##               _deBoor_D(&td[0], xval, kd, left, 0, &wrk[0])
-##                for a in range(kd+1):
-
- #               for jjj in range(kd+1):
- #                   print('jjj = ', jjj)
- #                   b[d, jjj] = B(xd, kd, i[d] - kd + jjj, td)
-#                _deBoor_D(&td[0], xval, kd, left, 0, &wrk[0])
-        ##        b[d, :kd + 1] = [B(xd, kd, j, td) for j in range(i[d] - kd, i[d]+1)]   
-
+                # compute non-zero b-splines at this value of xd in dimension d
                 _deBoor_D(&td[0], xd, kd, i[d], 0, &wrk[0])
+                b[d, :kd+1] = wrk[:kd+1]
 
-                for a in range(kd+1):
-                    #print(B(xd, kd, i[d] - kd + jjj, td), '--', wrk[a])
-                    b[d, a] = wrk[a]
-   #             print('<><><><><><><><><>')
-
-            # iterate over the dimensions, form linear combinations of
-            # products B(x_1) * B(x_2) * ... B(x_N) of (k+1)**N b-splines
-            # which are non-zero at `i = (i_1, i_2, ..., i_N)`.
-            result = np.zeros(num_c_tr, dtype=float)
-            iters = [range(i[d] - k[d], i[d] + 1) for d in range(ndim)]
-            for idx in itertools.product(*iters):
-                factor = prod(b[d, idx[d] - i[d] + k[d]] for d in range(ndim))
-                # loop over the trailing values of self.c explicitly
-                for i_c in range(num_c_tr):
-                    result[i_c] += c1[idx + (i_c,)] * factor
-            
-            
-            ### The above is in principle enough for a prototype.  ###
-            ### Replicate it with flat indexing below.             ###            
-#            volume = prod([kd + 1 for kd in k])  # (k+1)**ndim
             for i_c in range(num_c_tr):
-                result_flat[i_c] = 0.0
+                out[j, i_c] = 0.0
 
+            # iterate over the direct products
             for iflat in range(volume):
                 # idx_b = np.unravel_index(iflat, (k+1,)*ndim)   # equiv below
                 idx_b = indices_k1d[iflat, :]
-##                assert all(idx_b == np.unravel_index(iflat, [kd + 1 for kd in k])) # (k+1,)*ndim))
                 
                 # 1. Shift the subblock indices into indices into c1.ravel()
                 # 2. Collect the product of non-zero b-splines at this value of the $x$ vector
                 # 3. Compute the base index for iterating over the c1 array
-#                idx_c = [-101]*ndim
                 idx_cflat_base = 0
                 factor = 1.0
                 for d in range(ndim):
                     factor *= b[d, idx_b[d]]
                     idx_c[d] = idx_b[d] + i[d] - k[d]             # XXX: remove later
                     idx_cflat_base += idx_c[d] * strides_c1[d]
-
-                ##### double-check the above loop -- XXX: remove later
-                # Product of non-zero bsplines at this value of the $x$ vector.
-                factor2 = np.prod([b[d, idx_b[d]] for d in range(ndim)])
-        
-                # shift the indices into c1.ravel()
-                idx_c2 = list(idx_b)
-                for d in range(ndim):
-                    idx_c2[d] += i[d] - k[d] 
-
-                idx_cflat_base2 = sum(idx_c[d] * strides_c1[d] for d in range(ndim))
-
-                assert np.abs(factor - factor2) < 1e-10
-      #          print("idx_c = ", np.asarray(idx_c), "idx_c2 = ", idx_c2)
-                assert (np.asarray(idx_c2) == idx_c).all()
-                assert idx_cflat_base == idx_cflat_base2
-                ####### end double-check
                     
                 ### collect linear combinations of coef * factor
                 for i_c in range(num_c_tr):
@@ -643,8 +567,5 @@ def _evaluate_ndbspline(const double[:, ::1] xi,
                     # idx_cflat = np.ravel_multi_index(tuple(idx_c) + (i_c,), c1.shape)
                     # we pre-computed the first ndim strides of `c1r` array and use the
                     # fact that the `c1r` array is C-ordered by construction
-                    result_flat[i_c] += c1r[idx_cflat_base + i_c] * factor
-                    out[j, i_c] = result_flat[i_c]
-            print(np.asarray(result), '-- ', np.asarray(result_flat))
-            np.testing.assert_allclose(result, result_flat, atol=1e-14)
+                    out[j, i_c] += c1r[idx_cflat_base + i_c] * factor
 

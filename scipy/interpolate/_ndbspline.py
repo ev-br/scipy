@@ -4,6 +4,8 @@ import numpy as np
 
 from scipy._lib._util import prod
 
+from . import _bspl
+
 __all__ = ["NdBspline"]
 
 def _get_dtype(dtype):
@@ -91,6 +93,15 @@ class NdBSpline:
         shape = tuple(kd + 1 for kd in self.k)
         indices = np.unravel_index( np.arange(prod(shape)), shape)
         self._indices_k1d = np.asarray(indices).T
+
+        # replacement for np.ravel_multi_index for indexing of `c1`:
+        c1 = self.c.reshape(self.c.shape[:ndim] + (-1,))
+        strides_c1 = [1]*(ndim + 1)
+        for d in range(ndim-1, -1, -1):
+            strides_c1[d] = strides_c1[d+1] * c1.shape[d+1]
+        assert strides_c1 == [_//8 for _ in c1.strides]
+        assert strides_c1[-1] == 1
+        self._strides_c1 = np.asarray(strides_c1)
         
     def __call__(self, xi):
         """Evaluate the tensor product b-spline at coordinates.
@@ -127,114 +138,15 @@ class NdBSpline:
         num_c_tr = c1.shape[-1]  # # of trailing coefficients
         out = np.empty(xi.shape[:-1] + (num_c_tr,), dtype=float)    
 
-        # replacement for np.ravel_multi_index for indexing of `c1`
-        strides_c1 = [1]*(ndim + 1)
-        for d in range(ndim-1, -1, -1):
-            strides_c1[d] = strides_c1[d+1] * c1.shape[d+1]
-        assert strides_c1 == [_//8 for _ in c1.strides]
-        assert strides_c1[-1] == 1
-
-        # 'intervals': indices for a point in xi into the knot arrays t
-        i = [-101,]*ndim
-        # container for non-zero b-splines at each point in xi
-        b = np.empty((ndim, max(self.k)+1), dtype=float) * np.nan
-
-        ### Finally, iterate over the data points
-        for j in range(xi.shape[0]):           
-            x = xi[j]
-
-            # get the indices in an ndim-dimensional vector
-            for d in range(ndim):
-                td, xd = self.t[d], x[d]
-                k = self.k[d]
-
-                # find the index for x[d]
-                if xd == td[k]:
-                    i[d] = k
-                else:
-                    i[d] = np.searchsorted(td, xd) - 1
-                assert td[i[d]] <= xd <= td[i[d]+1]
-                assert i[d] >= k and i[d] < len(td) - k
-
-                # (k+1) b-splines which are non-zero at x[d] 
-                b[d, :k+1] = [B(xd, k, j, td) for j in range(i[d]-k, i[d]+1)]   
-
-            # iterate over the dimensions, form linear combinations of
-            # products B(x_1) * B(x_2) * ... B(x_N) of (k+1)**N b-splines
-            # which are non-zero at `i = (i_1, i_2, ..., i_N)`.
-            result = np.zeros(num_c_tr, dtype=float)
-            iters = [range(i[d] - self.k[d], i[d] + 1) for d in range(ndim)]
-            for idx in itertools.product(*iters):
-                factor = prod(b[d, idx[d] - i[d] + self.k[d]] for d in range(ndim))
-                # loop over the trailing values of self.c explicitly
-                for i_c in range(num_c_tr):
-                    result[i_c] += c1[idx + (i_c,)] * factor
-            
-            
-            ### The above is in principle enough for a prototype.  ###
-            ### Replicate it with flat indexing below.             ###
-            result_flat = np.zeros(num_c_tr, dtype=float)
-            
-            volume = prod([k+1 for k in self.k])  # (k+1)**ndim
-            for iflat in range(volume):
-                # idx_b = np.unravel_index(iflat, (k+1,)*ndim)   # equiv below
-                idx_b = self._indices_k1d[iflat, :]
-                assert all(idx_b == np.unravel_index(iflat, [kd+1 for kd in self.k])) # (k+1,)*ndim))
-                
-                # 1. Shift the subblock indices into indices into c1.ravel()
-                # 2. Collect the product of non-zero b-splines at this value of the $x$ vector
-                # 3. Compute the base index for iterating over the c1 array
-                idx_c = [-101]*ndim
-                idx_cflat_base = 0
-                factor = 1.0
-                for d in range(ndim):
-                    factor *= b[d, idx_b[d]]
-                    idx_c[d] = idx_b[d] + i[d] - self.k[d]             # XXX: remove later
-                    idx_cflat_base += idx_c[d] * strides_c1[d]
-
-                ##### double-check the above loop -- XXX: remove later
-                # Product of non-zero bsplines at this value of the $x$ vector.
-                factor2 = prod(b[d, idx_b[d]] for d in range(ndim))
-        
-                # shift the indices into c1.ravel()
-                idx_c2 = list(idx_b)
-                for d in range(ndim):
-                    idx_c2[d] += i[d] - self.k[d] 
-
-                idx_cflat_base2 = sum(idx_c[d] * strides_c1[d] for d in range(ndim))
-                    
-                assert idx_c2 == idx_c
-                assert factor == factor2
-                assert idx_cflat_base == idx_cflat_base2
-                ####### end double-check
-                    
-                ### collect linear combinations of coef * factor
-                for i_c in range(num_c_tr):
-                    # this is equivalent to 
-                    # idx_cflat = np.ravel_multi_index(tuple(idx_c) + (i_c,), c1.shape)
-                    # we pre-computed the first ndim strides of `c1r` array and use the
-                    # fact that the `c1r` array is C-ordered by construction
-                    result_flat[i_c] += c1r[idx_cflat_base + i_c] * factor
-                    out[j, i_c] = result_flat[i_c]
-
-            # XXX: remove later
-            from numpy.testing import assert_allclose
-            assert_allclose(result, out[j, :], atol=1e-15)
-            
-            # copy the result over: this is in fact a loop over num_c_tr
-            #out[j, ...] = result_flat
-        
-        from scipy.interpolate._bspl import _evaluate_ndbspline
-        out2 = np.empty(out.shape)
-        _evaluate_ndbspline(xi,
+        _bspl.evaluate_ndbspline(xi,
                             self.t,
                             self.k,
                             c1r,
                             num_c_tr,
-                            out2,
+                            out,
                             c1,
-                            np.asarray(self._indices_k1d),
-                            np.asarray(strides_c1)
+                            self._indices_k1d,
+                            self._strides_c1
                            )
         
-        return out2.reshape(xi_shape[:-1] + self.c.shape[ndim:])
+        return out.reshape(xi_shape[:-1] + self.c.shape[ndim:])

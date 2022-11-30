@@ -1647,8 +1647,6 @@ class TestNdBSpline:
         assert_allclose(bspl2(xi),
                         target, atol=1e-14)
 
-
-        breakpoint()
         # now check on a multidim xi
         rng = np.random.default_rng(12345)
         xi = rng.uniform(size=(4, 3, 2)) * 5
