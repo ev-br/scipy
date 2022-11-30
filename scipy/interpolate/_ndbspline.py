@@ -223,30 +223,18 @@ class NdBSpline:
             
             # copy the result over: this is in fact a loop over num_c_tr
             #out[j, ...] = result_flat
-            """            
-            from gobbledegook2 import _evaluate_ndbspline
-            out2 = np.empty_like(out)
-            _evaluate_ndbspline(xi,
-                                self.t,
-                                self.k,
-                                c1r,
-                                num_c_tr,
-                                out2,
-                                c1,
-                                np.asarray(self._indices_k1d),
-                                np.asarray(strides_c1)
-                               )
-            '''
-            def _evaluate_ndbspline(const double[:, ::1] xi,
-                        tuple t,
-                        tuple ktuple,
-                        const double[::1] c1r,
-                        npy_intp num_c_tr,
-                        double[:, ::1] out,
-                        c1,        # XXX: remove
-                        const npy_intp[:, ::] indices_k1d,
-                        const npy_intp[::1] strides_c1,
-            '''
-            assert_allclose(out, out2, atol=1e-14)
-            """
-        return out.reshape(xi_shape[:-1] + self.c.shape[ndim:])
+        
+        from scipy.interpolate._bspl import _evaluate_ndbspline
+        out2 = np.empty(out.shape)
+        _evaluate_ndbspline(xi,
+                            self.t,
+                            self.k,
+                            c1r,
+                            num_c_tr,
+                            out2,
+                            c1,
+                            np.asarray(self._indices_k1d),
+                            np.asarray(strides_c1)
+                           )
+        
+        return out2.reshape(xi_shape[:-1] + self.c.shape[ndim:])

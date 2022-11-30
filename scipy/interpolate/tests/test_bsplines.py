@@ -1646,7 +1646,9 @@ class TestNdBSpline:
         assert bspl2(xi).shape == (len(xi), )
         assert_allclose(bspl2(xi),
                         target, atol=1e-14)
-        
+
+
+        breakpoint()
         # now check on a multidim xi
         rng = np.random.default_rng(12345)
         xi = rng.uniform(size=(4, 3, 2)) * 5
@@ -1657,7 +1659,6 @@ class TestNdBSpline:
         x, y = xi.reshape((-1, 2)).T
         assert_allclose(result.ravel(),
                         x**3 * (y**3 + 2*y), atol=1e-14)
-
 
     def test_2D_separable_2(self):
         # test `c` with trailing dimensions, i.e. c.ndim > ndim
@@ -1675,7 +1676,8 @@ class TestNdBSpline:
         assert result.shape == (4,)
         assert_allclose(result,
                         [val_single,]*4, atol=1e-14)
-        
+ 
+   
         # now try the array xi : the output.shape is (3, 4)
         # where 3 is the number of points in xi and 4 is the trailing dimension of c
         assert bspl2_4(xi).shape == np.shape(xi)[:-1] + bspl2_4.c.shape[ndim:]
