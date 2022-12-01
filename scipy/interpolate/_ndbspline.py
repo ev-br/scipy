@@ -1,12 +1,12 @@
 import operator
-import itertools
 import numpy as np
 
 from scipy._lib._util import prod
 
 from . import _bspl
 
-__all__ = ["NdBspline"]
+__all__ = ["NdBSpline"]
+
 
 def _get_dtype(dtype):
     """Return np.complex128 for complex dtypes, np.float64 otherwise."""
@@ -15,20 +15,6 @@ def _get_dtype(dtype):
     else:
         return np.float_
 
-# XXX: remove
-def B(x, k, i, t):
-    if k == 0:
-        return 1.0 if t[i] <= x < t[i+1] else 0.0
-    if t[i+k] == t[i]:
-        c1 = 0.0
-    else:
-        c1 = (x - t[i])/(t[i+k] - t[i]) * B(x, k-1, i, t)
-    if t[i+k+1] == t[i+1]:
-        c2 = 0.0
-    else:
-        c2 = (t[i+k+1] - x)/(t[i+k+1] - t[i+1]) * B(x, k-1, i+1, t)
-    return c1 + c2
-    
 
 class NdBSpline:
     """Tensor product spline object.
@@ -48,7 +34,7 @@ class NdBSpline:
     def __init__(self, t, c, k=3):
         ndim = len(t)
         assert ndim <= len(c.shape)
-        
+
         try:
             len(k)
         except TypeError:
@@ -58,7 +44,7 @@ class NdBSpline:
         self.k = tuple(operator.index(ki) for ki in k)
         self.t = tuple(np.ascontiguousarray(ti, dtype=float) for ti in t)
         self.c = np.asarray(c)
-        
+
         if len(k) != ndim:
             raise ValueError(f"len(t) = {ndim} != {len(k)} = len(k)")
 
@@ -67,31 +53,39 @@ class NdBSpline:
             kd = self.k[d]
             n = td.shape[0] - kd - 1
             if kd < 0:
-                raise ValueError(f"Spline degree in dimension {d} cannot be negative.")
+                raise ValueError(f"Spline degree in dimension {d} cannot be"
+                                 f" negative.")
             if td.ndim != 1:
-                raise ValueError(f"Knot vector in dimension {d} must be one-dimensional.")           
+                raise ValueError(f"Knot vector in dimension {d} must be"
+                                 f" one-dimensional.")
             if n < kd + 1:
-                raise ValueError(f"Need at least {2*kd + 2} knots for degree {kd}"
-                                 f" in dimension {d}.")
+                raise ValueError(f"Need at least {2*kd + 2} knots for degree"
+                                 f" {kd} in dimension {d}.")
             if (np.diff(td) < 0).any():
-                raise ValueError(f"Knots in dimension {d} must be in a non-decreasing order.")
+                raise ValueError(f"Knots in dimension {d} must be in a"
+                                 f" non-decreasing order.")
             if len(np.unique(td[kd:n + 1])) < 2:
-                raise ValueError(f"Need at least two internal knots in dimension {d}.")
+                raise ValueError(f"Need at least two internal knots in"
+                                 f" dimension {d}.")
             if not np.isfinite(td).all():
-                raise ValueError(f"Knots in dimension {d} should not have nans or infs.")
+                raise ValueError(f"Knots in dimension {d} should not have"
+                                 f" nans or infs.")
             if self.c.ndim < ndim:
-                raise ValueError(f"Coefficients must be at least {d}-dimensional.")
+                raise ValueError(f"Coefficients must be at least"
+                                 f" {d}-dimensional.")
             if self.c.shape[d] < n:
-                raise ValueError(f"Knots, coefficients and degree in dimension {d} are inconsistent:"
-                                 f" got {self.c.shape[d]} coefficients for {len(td)} knots,"
-                                 f" need at least {n} for k={k}.")            
+                raise ValueError(f"Knots, coefficients and degree in dimension"
+                                 f" {d} are inconsistent:"
+                                 f" got {self.c.shape[d]} coefficients for"
+                                 f" {len(td)} knots, need at least {n} for"
+                                 f" k={k}.")
 
         dt = _get_dtype(self.c.dtype)
         self.c = np.ascontiguousarray(self.c, dtype=dt)
-                                 
+
         # tabulate the flat indices for iterating over the (k+1)**ndim subarray
         shape = tuple(kd + 1 for kd in self.k)
-        indices = np.unravel_index( np.arange(prod(shape)), shape)
+        indices = np.unravel_index(np.arange(prod(shape)), shape)
         self._indices_k1d = np.asarray(indices).T
 
         # replacement for np.ravel_multi_index for indexing of `c1`:
@@ -102,17 +96,17 @@ class NdBSpline:
         assert strides_c1 == [_//8 for _ in c1.strides]
         assert strides_c1[-1] == 1
         self._strides_c1 = np.asarray(strides_c1)
-        
+
     def __call__(self, xi):
         """Evaluate the tensor product b-spline at coordinates.
-        
+
         Parameters
         ----------
         xi : array_like, shape(..., ndim)
             The coordinates to evaluate the interpolator at.
             This can be a list or tuple of ndim-dimensional points
             or an array with the shape (num_points, ndim).
-            
+
         Returns
         -------
         values : ndarray, shape xi.shape[:-1] + self.c.shape[ndim:]
@@ -123,30 +117,28 @@ class NdBSpline:
         # prepare xi : shape (..., m1, ..., md) -> (1, m1, ..., md)
         xi = np.asarray(xi, dtype=float)
         xi_shape = xi.shape
-        xi = xi.reshape(-1, xi_shape[-1])        
+        xi = xi.reshape(-1, xi_shape[-1])
         xi = np.ascontiguousarray(xi)
 
         if xi_shape[-1] != ndim:
             raise ValueError(f"Shapes: xi.shape={xi_shape} and ndim={ndim}")
         assert xi_shape[-1] == xi.shape[-1]
-        
+
         # prepare the coefficients: flatten the trailing dimensions
         c1 = self.c.reshape(self.c.shape[:ndim] + (-1,))
         c1r = c1.ravel()
         assert c1r.flags.c_contiguous
-        
+
         num_c_tr = c1.shape[-1]  # # of trailing coefficients
-        out = np.empty(xi.shape[:-1] + (num_c_tr,), dtype=float)    
+        out = np.empty(xi.shape[:-1] + (num_c_tr,), dtype=float)
 
         _bspl.evaluate_ndbspline(xi,
-                            self.t,
-                            self.k,
-                            c1r,
-                            num_c_tr,
-                            out,
-                            c1,
-                            self._indices_k1d,
-                            self._strides_c1
-                           )
-        
+                                 self.t,
+                                 self.k,
+                                 c1r,
+                                 num_c_tr,
+                                 out,
+                                 self._indices_k1d,
+                                 self._strides_c1)
+
         return out.reshape(xi_shape[:-1] + self.c.shape[ndim:])

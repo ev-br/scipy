@@ -429,7 +429,7 @@ def _make_design_matrix(const double[::1] x,
 
     Note that only indices is passed, but not indptr because indptr is already
     precomputed in the calling Python function design_matrix.
-    
+
     Parameters
     ----------
     x : array_like, shape (n,)
@@ -449,7 +449,7 @@ def _make_design_matrix(const double[::1] x,
         The data array of a CSR array of the b-spline design matrix.
         In each row all the basis elements are evaluated at the certain point
         (first row - x[0], ..., last row - x[-1]).
-    
+
     indices
         The indices array of a CSR array of the b-spline design matrix.
     """
@@ -484,15 +484,14 @@ def _make_design_matrix(const double[::1] x,
 @cython.boundscheck(False)
 @cython.nonecheck(False)
 def evaluate_ndbspline(const double[:, ::1] xi,
-                        tuple t,
-                        tuple ktuple,
-                        const double[::1] c1r,
-                        npy_intp num_c_tr,
-                        double[:, ::1] out,
-                        c1,        # XXX: remove
-                        const npy_intp[:, ::] indices_k1d,
-                        const npy_intp[::1] strides_c1,
-                       ):
+                       tuple t,
+                       tuple ktuple,
+                       const double[::1] c1r,
+                       npy_intp num_c_tr,
+                       double[:, ::1] out,
+                       const npy_intp[:, ::] indices_k1d,
+                       const npy_intp[::1] strides_c1,
+                      ):
         cdef:
             npy_intp ndim = len(t)
 
@@ -507,14 +506,13 @@ def evaluate_ndbspline(const double[:, ::1] xi,
             double xd
             npy_intp kd
             const npy_intp[::1] k = np.asarray(ktuple, dtype=int)
-            
+
             npy_intp i_c      # index to loop over range(num_c_tr)
             npy_intp iflat    # index to loop over (k+1)**ndim non-zero terms
             npy_intp volume   # the number of non-zero terms
-            const npy_intp[:] idx_b   # ndim-dimensional index corresponding to iflat_idx 
-            
-            npy_intp[::1] idx_c = np.empty(ndim, dtype=int)
-            npy_intp idx_cflat_base
+            const npy_intp[:] idx_b   # ndim-dimensional index corresponding to iflat_idx
+
+            npy_intp idx_cflat_base, idx
 
             double factor
         
@@ -527,7 +525,7 @@ def evaluate_ndbspline(const double[:, ::1] xi,
             volume *= k[d] + 1
 
         ### Finally, iterate over the data points
-        for j in range(xi.shape[0]):           
+        for j in range(xi.shape[0]):
             x = xi[j]
 
             for d in range(ndim):
@@ -558,9 +556,9 @@ def evaluate_ndbspline(const double[:, ::1] xi,
                 factor = 1.0
                 for d in range(ndim):
                     factor *= b[d, idx_b[d]]
-                    idx_c[d] = idx_b[d] + i[d] - k[d]             # XXX: remove later
-                    idx_cflat_base += idx_c[d] * strides_c1[d]
-                    
+                    idx = idx_b[d] + i[d] - k[d]
+                    idx_cflat_base += idx * strides_c1[d]
+
                 ### collect linear combinations of coef * factor
                 for i_c in range(num_c_tr):
                     # this is equivalent to 
