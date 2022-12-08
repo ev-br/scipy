@@ -6,7 +6,7 @@ Routines for evaluating and manipulating B-splines.
 import numpy as np
 cimport numpy as cnp
 
-from numpy cimport npy_intp
+from numpy cimport npy_intp, npy_int64
 
 cimport cython
 from libc.math cimport NAN
@@ -681,7 +681,7 @@ def _not_a_knot(x, k):
     return t
 
 
-def make_ndbspl(xi, values, k):
+def make_ndbspl(xi, t, long[::1] k):
     """RGI look-alike"""
     cdef:
         npy_intp ndim = len(xi)
@@ -689,13 +689,11 @@ def make_ndbspl(xi, values, k):
         npy_intp[::1] i = np.empty(ndim, dtype=int)
 
         # container for non-zero b-splines at each point in xi
-        double[:, ::1] b = np.empty((ndim, k + 1), dtype=float)
+        double[:, ::1] b = np.empty((ndim, max(k) + 1), dtype=float)
 
      #   const double[::1] xv     # an ndim-dimensional input point
         double xd               # d-th component of x
-
         const double[::1] td    # knots in dimension d
-
         npy_intp kd             # d-th component of k
 
         npy_intp i_c      # index to loop over range(num_c_tr)
@@ -708,11 +706,9 @@ def make_ndbspl(xi, values, k):
         int out_of_bounds
         npy_intp idx
         double factor
-        double[::1] wrk = np.empty(2*k + 2, dtype=float)
+        double[::1] wrk = np.empty(2*max(k) + 2, dtype=float)
 
-    t = tuple(_not_a_knot(np.asarray(x, dtype=float), k) for x in xi)
-
-    shape = (k + 1,)*ndim
+    shape = tuple(kd + 1 for kd in k)
     indices = np.unravel_index(np.arange(np.prod(shape)), shape)
     indices_k1d = np.asarray(indices).T
 
@@ -723,7 +719,7 @@ def make_ndbspl(xi, values, k):
     # the number of non-zero terms for each point in ``xi``.
     volume = 1
     for d in range(ndim):
-        volume *= k + 1
+        volume *= k[d] + 1
 
     size = np.prod([len(x) for x in xi])
     matr = np.zeros((size, size), dtype=float)
@@ -745,7 +741,7 @@ def make_ndbspl(xi, values, k):
         for d in range(ndim):
             td = t[d]
             xd = xv[d]
-            kd = k
+            kd = k[d]
 
             # get the location of x[d] in t[d]
             extrapolate = False
@@ -769,7 +765,7 @@ def make_ndbspl(xi, values, k):
         # iterate over the direct products of non-zero b-splines
         for iflat in range(volume):
             #idx_b = indices_k1d[iflat, :]
-            idx_b = np.unravel_index(iflat, (k+1,)*ndim)
+            idx_b = np.unravel_index(iflat,  tuple(kd+1 for kd in k)) #(k+1,)*ndim)
 
             # The line above is equivalent to 
             # idx_b = np.unravel_index(iflat, (k+1,)*ndim)
@@ -790,7 +786,7 @@ def make_ndbspl(xi, values, k):
             idx_c = ['none']*ndim
             for d in range(ndim):
                 factor *= b[d, idx_b[d]]
-                idx_c[d] = idx_b[d] + i[d] - k
+                idx_c[d] = idx_b[d] + i[d] - kd
   #              idx_cflat_base += idx * strides_c1[d]
 
             idx_cflat = np.ravel_multi_index(tuple(idx_c), c.shape)
@@ -805,6 +801,7 @@ def make_ndbspl(xi, values, k):
             csr_indices[j*volume + iflat] = idx_cflat
             csr_data[j*volume + iflat] = factor
 
+    '''
     from numpy.linalg import solve
     coef = solve(matr, values.ravel())
 
@@ -815,6 +812,9 @@ def make_ndbspl(xi, values, k):
 
     from numpy.testing import assert_allclose
     assert_allclose(matr, matr_csr.toarray(), atol=1e-15)
+    '''
 
+#    return matr, t, coef.reshape(xi_shape), matr_csr
 
-    return matr, t, coef.reshape(xi_shape), matr_csr
+    # XXX: return the dense matrix, too
+    return csr_data, csr_indices, csr_indptr, matr

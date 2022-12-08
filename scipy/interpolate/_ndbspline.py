@@ -3,6 +3,10 @@ import numpy as np
 
 from scipy._lib._util import prod
 
+from scipy.sparse.linalg import spsolve
+from scipy.sparse import csr_array
+
+from ._bsplines import _not_a_knot
 from . import _bspl
 
 __all__ = ["NdBSpline"]
@@ -208,3 +212,54 @@ class NdBSpline:
                                  out,)
 
         return out.reshape(xi_shape[:-1] + self.c.shape[ndim:])
+
+
+def make_ndbspl(points, values, k=3):
+    """Construct an interpolating NdBspline.
+
+    Parameters
+    ----------
+    points : tuple of ndarrays of float, with shapes (m1,), ... (mN,)
+        The points defining the regular grid in N dimensions. The points in
+        each dimension (i.e. every elements of the points tuple) must be
+        strictly ascending or descending.      
+    values : ndarray of float, shape (m1, ..., mN, ...)
+        The data on the regular grid in n dimensions.
+    k : int, optional
+        The spline degree. Default is cubic, k=3
+
+    Returns
+    -------
+    spl : NdBSpline object
+    """
+   
+    # TODO: 1. check consistency of inputs
+    #       2. trailing dims of values
+    #       3. mixed k
+    ndim = len(points)
+    try:
+        len(k)
+    except TypeError:
+        # make k a tuple
+        k = (k,)*ndim
+
+    t = tuple(_not_a_knot(np.asarray(points[d], dtype=float), k[d])
+              for d in range(ndim))
+    xi_shape = tuple(len(x) for x in points)
+    v_shape = values.shape
+
+    # construct the colocation matrix
+    data, indices, indptr, dense = _bspl.make_ndbspl(points, t, np.asarray(k))
+    matr = csr_array((data, indices, indptr))
+
+    # Solve for the coefficients.
+    # First deal with the trailing dimensions: flatten first ndim dimensions
+    # and the trailing ones into a 2D array for the spsolve to undestand.
+    # Then solve and reshape the result
+    vals_shape = (prod(v_shape[:ndim]), prod(v_shape[ndim:]))
+    vals = values.reshape(vals_shape)
+    coef = spsolve(matr, vals)
+    coef = coef.reshape(xi_shape[:ndim] + v_shape[ndim:])
+
+    return NdBSpline(t, coef, k), dense
+
