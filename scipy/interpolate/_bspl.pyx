@@ -744,7 +744,7 @@ def make_ndbspl(xi, t, long[::1] k):
             kd = k[d]
 
             # get the location of x[d] in t[d]
-            extrapolate = False
+            extrapolate = True
             i[d] = find_interval(td, kd, xd, kd, extrapolate)
 
             if i[d] < 0:
@@ -801,18 +801,13 @@ def make_ndbspl(xi, t, long[::1] k):
             csr_indices[j*volume + iflat] = idx_cflat
             csr_data[j*volume + iflat] = factor
 
-    '''
-    from numpy.linalg import solve
-    coef = solve(matr, values.ravel())
-
-    xi_shape = tuple(len(x) for x in xi)
-
     from scipy.sparse import csr_array
     matr_csr = csr_array((csr_data, csr_indices, csr_indptr))
 
     from numpy.testing import assert_allclose
     assert_allclose(matr, matr_csr.toarray(), atol=1e-15)
-    '''
+
+    
 
 #    return matr, t, coef.reshape(xi_shape), matr_csr
 

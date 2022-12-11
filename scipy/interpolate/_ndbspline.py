@@ -261,5 +261,12 @@ def make_ndbspl(points, values, k=3):
     coef = spsolve(matr, vals)
     coef = coef.reshape(xi_shape[:ndim] + v_shape[ndim:])
 
+    from numpy.testing import assert_allclose
+    assert_allclose(dense, matr.toarray(), atol=1e-15)
+
+
+  ##  breakpoint()
+
+
     return NdBSpline(t, coef, k), dense
 

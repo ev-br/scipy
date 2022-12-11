@@ -2008,6 +2008,13 @@ class TestMakeND:
         bspl2 = NdBSpline(bspl.t, coef2.reshape((6, 6)), k=3)
         assert_allclose(rgi(xi), bspl2(xi), atol=1e-14)
 
+        # test the coefficients vs outer product of 1D coefficients
+        spl_x = make_interp_spline(x, x**3, k=3)
+        spl_y = make_interp_spline(y, y**3 + 2*y, k=3)
+        cc = spl_x.c[:, None] * spl_y.c[None, :]
+        assert_allclose(cc, bspl.c, atol=1e-15)
+
+
     def test_2D_separable_2(self):
         # test `c` with trailing dimensions, i.e. c.ndim > ndim
         x = np.arange(6)
@@ -2046,7 +2053,15 @@ class TestMakeND:
 
         bspl, dense = make_ndbspl((x, y), values, k=(3, 3))
 
+        from scipy.interpolate import make_interp_spline
+
+        spl_x = make_interp_spline(x, x**3, k=3)
+        spl_y = make_interp_spline(y, y**3 + 2*y, k=3)
+
+        cc = spl_x.c[:, None] * spl_y.c[None, :]
+
         breakpoint()
+
 
         assert_allclose(bspl(xi), values.ravel(), atol=1e-15)
 
