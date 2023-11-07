@@ -177,16 +177,6 @@
             "bdtri": "did->d"
         }
     },
-    "bdtrik": {
-        "cdf_wrappers.h": {
-            "cdfbin2_wrap": "ddd->d"
-        }
-    },
-    "bdtrin": {
-        "cdf_wrappers.h": {
-            "cdfbin3_wrap": "ddd->d"
-        }
-    },
     "bei": {
         "specfun_wrappers.h": {
             "bei_wrap": "d->d"
@@ -271,16 +261,6 @@
             "incbi": "ddd->d"
         }
     },
-    "btdtria": {
-        "cdf_wrappers.h": {
-            "cdfbet3_wrap": "ddd->d"
-        }
-    },
-    "btdtrib": {
-        "cdf_wrappers.h": {
-            "cdfbet4_wrap": "ddd->d"
-        }
-    },
     "cbrt": {
         "cephes.h": {
             "cbrt": "d->d"
@@ -299,31 +279,6 @@
     "chdtri": {
         "cephes.h": {
             "chdtri": "dd->d"
-        }
-    },
-    "chdtriv": {
-        "cdf_wrappers.h": {
-            "cdfchi3_wrap": "dd->d"
-        }
-    },
-    "chndtr": {
-        "cdf_wrappers.h": {
-            "cdfchn1_wrap": "ddd->d"
-        }
-    },
-    "chndtridf": {
-        "cdf_wrappers.h": {
-            "cdfchn3_wrap": "ddd->d"
-        }
-    },
-    "chndtrinc": {
-        "cdf_wrappers.h": {
-            "cdfchn4_wrap": "ddd->d"
-        }
-    },
-    "chndtrix": {
-        "cdf_wrappers.h": {
-            "cdfchn2_wrap": "ddd->d"
         }
     },
     "cosdg": {
@@ -627,11 +582,6 @@
             "fdtri": "ddd->d"
         }
     },
-    "fdtridfd": {
-        "cdf_wrappers.h": {
-            "cdff4_wrap": "ddd->d"
-        }
-    },
     "fresnel": {
         "cephes.h": {
             "fresnl": "d*dd->*i"
@@ -686,21 +636,6 @@
     "gdtrc": {
         "cephes.h": {
             "gdtrc": "ddd->d"
-        }
-    },
-    "gdtria": {
-        "cdf_wrappers.h": {
-            "cdfgam4_wrap": "ddd->d"
-        }
-    },
-    "gdtrib": {
-        "cdf_wrappers.h": {
-            "cdfgam3_wrap": "ddd->d"
-        }
-    },
-    "gdtrix": {
-        "cdf_wrappers.h": {
-            "cdfgam2_wrap": "ddd->d"
         }
     },
     "hankel1": {
@@ -1074,61 +1009,6 @@
             "nbdtri": "iid->d"
         }
     },
-    "nbdtrik": {
-        "cdf_wrappers.h": {
-            "cdfnbn2_wrap": "ddd->d"
-        }
-    },
-    "nbdtrin": {
-        "cdf_wrappers.h": {
-            "cdfnbn3_wrap": "ddd->d"
-        }
-    },
-    "ncfdtr": {
-        "cdf_wrappers.h": {
-            "cdffnc1_wrap": "dddd->d"
-        }
-    },
-    "ncfdtri": {
-        "cdf_wrappers.h": {
-            "cdffnc2_wrap": "dddd->d"
-        }
-    },
-    "ncfdtridfd": {
-        "cdf_wrappers.h": {
-            "cdffnc4_wrap": "dddd->d"
-        }
-    },
-    "ncfdtridfn": {
-        "cdf_wrappers.h": {
-            "cdffnc3_wrap": "dddd->d"
-        }
-    },
-    "ncfdtrinc": {
-        "cdf_wrappers.h": {
-            "cdffnc5_wrap": "dddd->d"
-        }
-    },
-    "nctdtr": {
-        "cdf_wrappers.h": {
-            "cdftnc1_wrap": "ddd->d"
-        }
-    },
-    "nctdtridf": {
-        "cdf_wrappers.h": {
-            "cdftnc3_wrap": "ddd->d"
-        }
-    },
-    "nctdtrinc": {
-        "cdf_wrappers.h": {
-            "cdftnc4_wrap": "ddd->d"
-        }
-    },
-    "nctdtrit": {
-        "cdf_wrappers.h": {
-            "cdftnc2_wrap": "ddd->d"
-        }
-    },
     "ndtr": {
         "_faddeeva.h++": {
             "faddeeva_ndtr": "D->D"
@@ -1140,16 +1020,6 @@
     "ndtri": {
         "cephes.h": {
             "ndtri": "d->d"
-        }
-    },
-    "nrdtrimn": {
-        "cdf_wrappers.h": {
-            "cdfnor3_wrap": "ddd->d"
-        }
-    },
-    "nrdtrisd": {
-        "cdf_wrappers.h": {
-            "cdfnor4_wrap": "ddd->d"
         }
     },
     "obl_ang1": {
@@ -1223,11 +1093,6 @@
         },
         "cephes.h": {
             "pdtri": "id->d"
-        }
-    },
-    "pdtrik": {
-        "cdf_wrappers.h": {
-            "cdfpoi2_wrap": "dd->d"
         }
     },
     "poch": {
@@ -1387,21 +1252,6 @@
             "sph_harmonic": "iidd->D"
         }
     },
-    "stdtr": {
-        "cdf_wrappers.h": {
-            "cdft1_wrap": "dd->d"
-        }
-    },
-    "stdtridf": {
-        "cdf_wrappers.h": {
-            "cdft3_wrap": "dd->d"
-        }
-    },
-    "stdtrit": {
-        "cdf_wrappers.h": {
-            "cdft2_wrap": "dd->d"
-        }
-    },
     "struve": {
         "cephes.h": {
             "struve_h": "dd->d"
@@ -1410,11 +1260,6 @@
     "tandg": {
         "cephes.h": {
             "tandg": "d->d"
-        }
-    },
-    "tklmbda": {
-        "cdf_wrappers.h": {
-            "tukeylambdacdf": "dd->d"
         }
     },
     "wofz": {

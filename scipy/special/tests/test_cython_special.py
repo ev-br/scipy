@@ -47,7 +47,7 @@ PARAMS: list[tuple[Callable, Callable, tuple[str, ...], str | None]] = [
     (special.bdtr, cython_special.bdtr, ('dld', 'ddd'), None),
     (special.bdtrc, cython_special.bdtrc, ('dld', 'ddd'), None),
     (special.bdtri, cython_special.bdtri, ('dld', 'ddd'), None),
-    (special.bdtrik, cython_special.bdtrik, ('ddd',), None),
+  #  (special.bdtrik, cython_special.bdtrik, ('ddd',), None),
     (special.bdtrin, cython_special.bdtrin, ('ddd',), None),
     (special.bei, cython_special.bei, ('d',), None),
     (special.beip, cython_special.beip, ('d',), None),

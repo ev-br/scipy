@@ -75,73 +75,6 @@ amos_sources = [
   'amos/zwrsk.f'
 ]
 
-cdflib_sources = [
-  'cdflib/algdiv.f',
-  'cdflib/alngam.f',
-  'cdflib/alnrel.f',
-  'cdflib/apser.f',
-  'cdflib/basym.f',
-  'cdflib/bcorr.f',
-  'cdflib/betaln.f',
-  'cdflib/bfrac.f',
-  'cdflib/bgrat.f',
-  'cdflib/bpser.f',
-  'cdflib/bratio.f',
-  'cdflib/brcmp1.f',
-  'cdflib/brcomp.f',
-  'cdflib/bup.f',
-  'cdflib/cdfbet.f',
-  'cdflib/cdfbin.f',
-  'cdflib/cdfchi.f',
-  'cdflib/cdfchn.f',
-  'cdflib/cdff.f',
-  'cdflib/cdffnc.f',
-  'cdflib/cdfgam.f',
-  'cdflib/cdfnbn.f',
-  'cdflib/cdfnor.f',
-  'cdflib/cdfpoi.f',
-  'cdflib/cdft.f',
-  'cdflib/cdftnc.f',
-  'cdflib/cumbet.f',
-  'cdflib/cumbin.f',
-  'cdflib/cumchi.f',
-  'cdflib/cumchn.f',
-  'cdflib/cumf.f',
-  'cdflib/cumfnc.f',
-  'cdflib/cumgam.f',
-  'cdflib/cumnbn.f',
-  'cdflib/cumnor.f',
-  'cdflib/cumpoi.f',
-  'cdflib/cumt.f',
-  'cdflib/cumtnc.f',
-  'cdflib/devlpl.f',
-  'cdflib/dinvnr.f',
-  'cdflib/dinvr.f',
-  'cdflib/dt1.f',
-  'cdflib/dzror.f',
-  'cdflib/erf.f',
-  'cdflib/erfc1.f',
-  'cdflib/esum.f',
-  'cdflib/exparg.f',
-  'cdflib/fpser.f',
-  'cdflib/gam1.f',
-  'cdflib/gaminv.f',
-  'cdflib/gamln.f',
-  'cdflib/gamln1.f',
-  'cdflib/gamma_fort.f',
-  'cdflib/grat1.f',
-  'cdflib/gratio.f',
-  'cdflib/gsumln.f',
-  'cdflib/ipmpar.f',
-  'cdflib/psi_fort.f',
-  'cdflib/rcomp.f',
-  'cdflib/rexp.f',
-  'cdflib/rlog.f',
-  'cdflib/rlog1.f',
-  'cdflib/spmpar.f',
-  'cdflib/stvaln.f'
-]
-
 cephes_sources = [
   'cephes/airy.c',
   'cephes/bdtr.c',
@@ -220,7 +153,6 @@ ufuncs_sources = [
   '_cosine.c',
   'scaled_exp1.c',
   'amos_wrappers.c',
-  'cdf_wrappers.c',
   'specfun_wrappers.c',
   'sf_error.c'
 ]
@@ -247,14 +179,6 @@ amos_lib = static_library('amos',
   fortran_args: _fflag_Wno_maybe_uninitialized
 )
 
-cdflib_lib = static_library('cdflib',
-  cdflib_sources,
-  fortran_args: [
-    _fflag_Wno_maybe_uninitialized,
-    _fflag_Wno_unused_label,
-    _fflag_Wno_intrinsic_shadow
-  ]
-)
 
 mach_lib = static_library('mach',
   mach_sources,
@@ -339,7 +263,6 @@ py3.extension_module('_ufuncs',
   link_args: version_link_args,
   link_with: [
     amos_lib,
-    cdflib_lib,
     cephes_lib,
     mach_lib,
     specfun_lib
@@ -395,7 +318,6 @@ py3.extension_module('cython_special',
     '_cosine.c',
     'scaled_exp1.c',
     'amos_wrappers.c',
-    'cdf_wrappers.c',
     'specfun_wrappers.c',
     'sf_error.c'
   ],
@@ -405,7 +327,6 @@ py3.extension_module('cython_special',
   dependencies: [np_dep, npymath_lib, lapack],
   link_with: [
     amos_lib,
-    cdflib_lib,
     cephes_lib,
     mach_lib,
     specfun_lib
