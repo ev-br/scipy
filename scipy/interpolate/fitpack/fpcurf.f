@@ -168,6 +168,11 @@ c  backward substitution to obtain the b-spline coefficients.
 c  test whether the approximation sinf(x) is an acceptable solution.
         if(iopt.lt.0) go to 440
         fpms = fp-s
+
+c!        print*, "fpms: ", fpms, acc, s, ' -- ', abs(fpms).lt.acc
+c!        print*, "n, nmax, nest = ", n, nmax, nest
+c!        print*, "t = ", t
+
         if(abs(fpms).lt.acc) go to 440
 c  if f(p=inf) < s accept the choice of knots.
         if(fpms.lt.0.0d0) go to 250
@@ -186,6 +191,9 @@ c  determine the number of knots nplus we are going to add.
         rn = nplus
         if(fpold-fp.gt.acc) npl1 = rn*fpms/(fpold-fp)
         nplus = min0(nplus*2,max0(npl1,nplus/2,1))
+c!       print*, 'nplus = ', nplus, "n, nest = ", n, nest, "npl1 = ",npl1
+c!    * ,(fpold-fp)
+
  150    fpold = fp
 c  compute the sum((w(i)*(y(i)-s(x(i))))**2) for each knot interval
 c  t(j+k) <= x(i) <= t(j+k+1) and store it in fpint(j),j=1,2,...nrint.
@@ -216,6 +224,10 @@ c  t(j+k) <= x(i) <= t(j+k+1) and store it in fpint(j),j=1,2,...nrint.
         do 190 l=1,nplus
 c  add a new knot.
           call fpknot(x,m,t,n,fpint,nrdata,nrint,nest,1)
+
+c!          print*, "after fpkot: "
+c!          print*, "t = ", t(1:n)
+
 c  if n=nmax we locate the knots as for interpolation.
           if(n.eq.nmax) go to 10
 c  test whether we cannot further increase the number of knots.
