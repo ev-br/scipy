@@ -290,6 +290,12 @@ def splrep(x, y, w=None, xb=None, xe=None, k=3, task=0, s=None, t=None,
                 raise _iermess[ier][1](_iermess[ier][0])
             except KeyError as e:
                 raise _iermess['unknown'][1](_iermess['unknown'][0]) from e
+
+    if s > 0  and not per:
+        tt, _ = construct_knot_vector(x, y, s, k)
+        assert (tt == tck[0]).all()
+        print("yay!")
+
     if full_output:
         try:
             return tck, fp, ier, _iermess[ier][0]
@@ -803,3 +809,153 @@ def splantider(tck, n=1):
         k += 1
 
     return t, c, k
+
+
+
+
+
+################### 
+
+np.set_printoptions(linewidth=200)
+
+# Hardcoded in curfit.f
+TOL = 0.001
+MAXIT = 20
+
+
+def _groupby(t, arrs, k=3):
+    """ Split `x` array into buckets of `t[j] < x < t[j+1]`.
+
+    Parameters
+    ----------
+    t : ndarray
+        Knot vector. 1D, sorted, (k+1)-regular ``([t[0]]*(k+1), ..., [t[-1]]*(k+1))``.
+    arrs : tuple of array_likes
+        Values to group. Each is 1D, unsorted.
+        arrs = (x, ...)
+    k : int, optional
+        Default is k=3
+
+    Returns
+    -------
+    dct : Dict[int, ndarray]
+        Keys are indices to ``t``, values are indices into ``x`` which belong
+        to an _open_ interval $(t_{j}), t_{j+1}$.
+        The invariant is ``all((t[j] < dct[j]) & (dct[j] < t[j+1]))``.  FIXME
+
+    Notes
+    -----
+    This is almost ``np.bincount``, only we check for strict inequality.
+
+    """
+    assert isinstance(arrs, tuple)
+    x = arrs[0]
+
+    dct = {}
+    for j in range(k, len(t) - k):
+        mask = (t[j] < x) & (x < t[j+1])
+        xv = x[mask]
+        if xv.size > 0:
+            dct[j] = (xv,) + tuple(a[mask] for a in arrs[1:])
+    return dct
+
+
+def _get_residuals(x, y, t, k):
+    from scipy.interpolate._bsplines import make_lsq_spline
+
+    spl = make_lsq_spline(x, y, t=t, k=k)
+    residuals = (spl(x) - y)**2
+    return residuals
+
+
+def _add_knot(x, y, t, k=3):
+    """Replicate the FITPACK logic for adding a single knot.
+    """
+    residuals = _get_residuals(x, y, t, k)
+
+    # split `x` into knot intervals
+    groups = _groupby(t, (x, y, residuals), k)
+
+    # find the interval with a max deviation
+    sums = {grp[2].sum() : j for j, grp in groups.items()}
+    idx = sums[max(sums)]
+
+    # insert a new knot: `x` in the middle of that interval
+    xg = groups[idx][0]
+    newknot = xg[xg.size // 2]
+    
+    i = np.searchsorted(t, newknot)
+    new_t = np.r_[t[:i], newknot, t[i:]]
+    return new_t
+
+
+def construct_knot_vector(x, y, s, k=3):
+    """Replicate FITPACK's constructing the knot vector.
+    """
+    assert s > 0    # use `make_inerp_spline` for s=0
+    acc = s * TOL
+
+    m = x.size    # the number of data points
+
+    nmin = 2*(k+1)    # the number of knots for an LSQ polynomial approximation
+    nmax = m + k + 1  # the number of knots for the spline interpolation
+
+    # the max number of knots. This is set in _fitpack_impl.py line 274 & fitpack.pyf line 198
+    nest = max(m + k + 1, 2*k + 3) 
+
+    # start from no internal knots
+    # FIXME: for even k start with Greville sites instead
+  ###  assert k%2 == 1
+    xb, xe = min(x), max(x)
+    t = np.asarray([xb]*(k+1) + [xe]*(k+1), dtype=float)
+    fpold = 0.0
+
+    # c  main loop for the different sets of knots. m is a save upper bound
+    # c  for the number of trials.
+    for iter in range(m):
+
+        # construct the LSQ spline with this set of knots
+        residuals = _get_residuals(x, y, t, k)
+        fp = residuals.sum()
+        fpms = fp - s
+        n = len(t)
+
+        # c  test whether the approximation sinf(x) is an acceptable solution.
+        if abs(fpms) < acc:
+            return t, 0
+
+        # c  if f(p=inf) < s accept the choice of knots.
+        if(fpms < 0):
+            return t, 0  # go to 250 (compute the coefficients) 
+
+        # c  if n = nmax, sinf(x) is an interpolating spline.
+        if n == nmax:
+            return t, -1   # ier=-1   (via goto 430)
+
+        # ### c  increase the number of knots. ###
+
+        # c  if n=nest we cannot increase the number of knots because of
+        # c  the storage capacity limitation.
+        if n == nest:
+            return t, 1   # ier =1
+
+        # c  determine the number of knots nplus we are going to add.
+        if n == nmin:
+            # the first iteration
+            nplus = 1
+        else:
+            delta = fpold - fp
+            npl1 = int(nplus * fpms / delta) if delta > acc else nplus*2
+            nplus = min(nplus*2, max(npl1, nplus//2, 1))
+            # print(f"{nplus = }  {npl1 = } {delta}-- pyport")
+
+        for j in range(nplus):
+            t = _add_knot(x, y, t, k)
+            # print(f"{t = } -- {k = }")
+
+        fpold = fp
+
+    return t
+
+
+
