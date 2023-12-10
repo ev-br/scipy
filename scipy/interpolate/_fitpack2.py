@@ -241,6 +241,11 @@ class UnivariateSpline:
         self._data = data
         self._reset_class()
 
+        if data[6] > 0:
+            from ._fitpack_impl import construct_knot_vector
+            tt, _ = construct_knot_vector(x, y, data[6], k)
+            assert (tt == data[8]).all()
+
     @staticmethod
     def validate_input(x, y, w, bbox, k, s, ext, check_finite):
         x, y, bbox = np.asarray(x), np.asarray(y), np.asarray(bbox)

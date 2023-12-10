@@ -191,10 +191,11 @@ c  determine the number of knots nplus we are going to add.
         rn = nplus
         if(fpold-fp.gt.acc) npl1 = rn*fpms/(fpold-fp)
         nplus = min0(nplus*2,max0(npl1,nplus/2,1))
-c!       print*, 'nplus = ', nplus, "n, nest = ", n, nest, "npl1 = ",npl1
-c!    * ,(fpold-fp)
-
  150    fpold = fp
+
+       print*, 'nplus = ', nplus, "n, nest = ", n, nest, "npl1 = ",npl1
+     * ,fp
+
 c  compute the sum((w(i)*(y(i)-s(x(i))))**2) for each knot interval
 c  t(j+k) <= x(i) <= t(j+k+1) and store it in fpint(j),j=1,2,...nrint.
         fpart = 0.0d0
@@ -225,8 +226,8 @@ c  t(j+k) <= x(i) <= t(j+k+1) and store it in fpint(j),j=1,2,...nrint.
 c  add a new knot.
           call fpknot(x,m,t,n,fpint,nrdata,nrint,nest,1)
 
-c!          print*, "after fpkot: "
-c!          print*, "t = ", t(1:n)
+          print*, "after fpkot: "
+          print*, "t = ", t(1:n), "fp = ", fp
 
 c  if n=nmax we locate the knots as for interpolation.
           if(n.eq.nmax) go to 10
