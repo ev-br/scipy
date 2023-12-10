@@ -290,7 +290,7 @@ def splrep(x, y, w=None, xb=None, xe=None, k=3, task=0, s=None, t=None,
                 raise _iermess['unknown'][1](_iermess['unknown'][0]) from e
 
     if s > 0  and not per:
-        tt, _ = construct_knot_vector(x, y, s, k)
+        tt, _ = construct_knot_vector(x, y, s, k, w)
         assert (tt == tck[0]).all()
         print("yay!")
 
@@ -857,18 +857,25 @@ def _groupby(t, arrs, k=3):
     return dct
 
 
-def _get_residuals(x, y, t, k):
+def _get_residuals(x, y, t, k, w):
     from scipy.interpolate._bsplines import make_lsq_spline
 
-    spl = make_lsq_spline(x, y, t=t, k=k)
-    residuals = (spl(x) - y)**2
+    # FITPACK has (w*(spl(x)-y))**2; make_lsq_spline has w*(spl(x)-y)**2
+
+    if w is not None:
+        w2 = np.asarray(w)**2
+    else:
+        w2 = np.ones_like(y, dtype=float)
+
+    spl = make_lsq_spline(x, y, w=w2, t=t, k=k)
+    residuals = w2 * (spl(x) - y)**2
     return residuals
 
 
-def _add_knot(x, y, t, k=3):
+def _add_knot(x, y, t, k=3, w=None):
     """Replicate the FITPACK logic for adding a single knot.
     """
-    residuals = _get_residuals(x, y, t, k)
+    residuals = _get_residuals(x, y, t, k, w)
 
     # split `x` into knot intervals
     groups = _groupby(t, (x, y, residuals), k)
@@ -886,7 +893,7 @@ def _add_knot(x, y, t, k=3):
     return new_t
 
 
-def construct_knot_vector(x, y, s, k=3):
+def construct_knot_vector(x, y, s, k=3, w=None):
     """Replicate FITPACK's constructing the knot vector.
     """
     assert s > 0    # use `make_inerp_spline` for s=0
@@ -911,8 +918,10 @@ def construct_knot_vector(x, y, s, k=3):
     # c  for the number of trials.
     for iter in range(m):
 
+        breakpoint()
+
         # construct the LSQ spline with this set of knots
-        residuals = _get_residuals(x, y, t, k)
+        residuals = _get_residuals(x, y, t, k, w=w)
         fp = residuals.sum()
         fpms = fp - s
         n = len(t)
@@ -944,13 +953,16 @@ def construct_knot_vector(x, y, s, k=3):
             delta = fpold - fp
             npl1 = int(nplus * fpms / delta) if delta > acc else nplus*2
             nplus = min(nplus*2, max(npl1, nplus//2, 1))
-            # print(f"{nplus = }  {npl1 = } {delta}-- pyport")
+            #print(f"{nplus = }  {npl1 = } {delta}-- pyport")
 
         for j in range(nplus):
             t = _add_knot(x, y, t, k)
-            # print(f"{t = } -- {k = }")
+            print(f"{t = } -- {k = } -- {fp = }")
 
         fpold = fp
+
+
+    print(f"final: {t = } -- {k = } -- {fp = }")
 
     return t
 
