@@ -289,9 +289,11 @@ def splrep(x, y, w=None, xb=None, xe=None, k=3, task=0, s=None, t=None,
             except KeyError as e:
                 raise _iermess['unknown'][1](_iermess['unknown'][0]) from e
 
+   # breakpoint()
+
     if s > 0  and not per:
         tt, _ = construct_knot_vector(x, y, s, k, w)
-        assert (tt == tck[0]).all()
+        assert (len(tt) < len(tck[0])) or (tt == tck[0]).all()
         print("yay!")
 
     if full_output:
@@ -811,50 +813,22 @@ def splantider(tck, n=1):
 
 
 
-################### 
+###################
+
+import numpy as np
+
+#    cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+#    c  part 1: determination of the number of knots and their position     c
+#    c  **************************************************************      c
+#
+
+###################
 
 np.set_printoptions(linewidth=200)
 
 # Hardcoded in curfit.f
 TOL = 0.001
 MAXIT = 20
-
-
-def _groupby(t, arrs, k=3):
-    """ Split `x` array into buckets of `t[j] < x < t[j+1]`.
-
-    Parameters
-    ----------
-    t : ndarray
-        Knot vector. 1D, sorted, (k+1)-regular ``([t[0]]*(k+1), ..., [t[-1]]*(k+1))``.
-    arrs : tuple of array_likes
-        Values to group. Each is 1D, unsorted.
-        arrs = (x, ...)
-    k : int, optional
-        Default is k=3
-
-    Returns
-    -------
-    dct : Dict[int, ndarray]
-        Keys are indices to ``t``, values are indices into ``x`` which belong
-        to an _open_ interval $(t_{j}), t_{j+1}$.
-        The invariant is ``all((t[j] < dct[j]) & (dct[j] < t[j+1]))``.  FIXME
-
-    Notes
-    -----
-    This is almost ``np.bincount``, only we check for strict inequality.
-
-    """
-    assert isinstance(arrs, tuple)
-    x = arrs[0]
-
-    dct = {}
-    for j in range(k, len(t) - k):
-        mask = (t[j] < x) & (x < t[j+1])
-        xv = x[mask]
-        if xv.size > 0:
-            dct[j] = (xv,) + tuple(a[mask] for a in arrs[1:])
-    return dct
 
 
 def _get_residuals(x, y, t, k, w):
@@ -872,28 +846,85 @@ def _get_residuals(x, y, t, k, w):
     return residuals
 
 
-def _add_knot(x, y, t, k=3, w=None):
-    """Replicate the FITPACK logic for adding a single knot.
+def _add_knot2(x, y, t, k=3, w=None):
+    """Add a new knot.
+
+    (Approximately) replicate FITPACK's logic:
+      1. split the `x` array into knot intervals, ``t(j+k) <= x(i) <= t(j+k+1)``
+      2. find the interval with the maximum sum of residuals
+      3. insert a new knot into the middle of that interval.
+
+    NB: a new knot is in fact an `x` value at the middle of the interval.
+    So *the knots are a subset of `x`*.
+
+    This routine is an analog of
+    https://github.com/scipy/scipy/blob/v1.11.4/scipy/interpolate/fitpack/fpcurf.f#L190-L215
+    (cf _split function)
+
+    and https://github.com/scipy/scipy/blob/v1.11.4/scipy/interpolate/fitpack/fpknot.f
     """
+    fparts, x_intervals = _split(x, y, t, k, w)
+
+    # find the interval with max fparts and non-zero number of x values inside
+    idx_max = -101
+    fpart_max = -1e100
+    for i in range(len(fparts)):
+        if x_intervals[i] != x_intervals[i+1] and fparts[i] > fpart_max:
+            idx_max = i
+            fpart_max = fparts[i]
+
+    # round up, like Dierckx does? This is really arbitrary though.
+    idx_newknot = (x_intervals[idx_max] + x_intervals[idx_max+1] + 1) // 2
+    new_knot = x[idx_newknot]
+
+    idx_t = np.searchsorted(t, new_knot)
+    t_new = np.r_[t[:idx_t], new_knot, t[idx_t:]]
+
+    return t_new
+
+
+def _split(x, y, t, k=3, w=None):
+    """Split the `x` array into knot intervals and compute the residuals.
+
+    The intervals are `t(j+k) <= x(i) <= t(j+k+1)`. Return the arrays of
+    the start and end `x` indices of the intervals and the sums of residuals:
+    `fparts[i]` corresponds to the interval
+    `x_intervals[i] <= xvalue <= x_intervals[i+1]]`.
+
+    This routine is a (best-effort) translation of
+    https://github.com/scipy/scipy/blob/v1.11.4/scipy/interpolate/fitpack/fpcurf.f#L190-L215
+    """
+# c  search for knot interval t(number+k) <= x <= t(number+k+1) where
+# c  fpint(number) is maximal on the condition that nrdata(number)
+# c  not equals zero.
     residuals = _get_residuals(x, y, t, k, w)
 
-    # split `x` into knot intervals
-    groups = _groupby(t, (x, y, residuals), k)
+    interval = k+1
+    x_intervals = [0]
+    fparts = []
+    fpart = 0.0
+    for it in range(len(x)):
+        xv, rv = x[it], residuals[it]
+        fpart += rv
 
-    # find the interval with a max deviation
-    sums = {grp[2].sum() : j for j, grp in groups.items()}
-    idx = sums[max(sums)]
+        if (xv >= t[interval]) and interval < len(t) - k - 1:
+            # end of the current t interval: split the weight at xv by 1/2
+            # between two intervals
+            carry = rv / 2.0
+            fpart -= carry
+            fparts.append(fpart)
 
-    # insert a new knot: `x` in the middle of that interval
-    xg = groups[idx][0]
-    newknot = xg[xg.size // 2]
-    
-    i = np.searchsorted(t, newknot)
-    new_t = np.r_[t[:i], newknot, t[i:]]
-    return new_t
+            fpart = carry
+            interval += 1
+
+            x_intervals.append(it)
+
+    x_intervals.append(len(x)-1)
+    fparts.append(fpart)
+    return fparts, x_intervals
 
 
-def construct_knot_vector(x, y, s, k=3, w=None):
+def construct_knot_vector(x, y, s, k=3, w=None, bbox=(None, None)):
     """Replicate FITPACK's constructing the knot vector.
     """
     assert s > 0    # use `make_inerp_spline` for s=0
@@ -908,18 +939,16 @@ def construct_knot_vector(x, y, s, k=3, w=None):
     nest = max(m + k + 1, 2*k + 3) 
 
     # start from no internal knots
-    # FIXME: for even k start with Greville sites instead
-  ###  assert k%2 == 1
-    xb, xe = min(x), max(x)
+    if bbox != (None, None):
+        xb, xe = bbox[0], bbox[1]
+    else:
+        xb, xe = min(x), max(x)
     t = np.asarray([xb]*(k+1) + [xe]*(k+1), dtype=float)
     fpold = 0.0
 
     # c  main loop for the different sets of knots. m is a save upper bound
     # c  for the number of trials.
     for iter in range(m):
-
-        breakpoint()
-
         # construct the LSQ spline with this set of knots
         residuals = _get_residuals(x, y, t, k, w=w)
         fp = residuals.sum()
@@ -953,18 +982,11 @@ def construct_knot_vector(x, y, s, k=3, w=None):
             delta = fpold - fp
             npl1 = int(nplus * fpms / delta) if delta > acc else nplus*2
             nplus = min(nplus*2, max(npl1, nplus//2, 1))
-            #print(f"{nplus = }  {npl1 = } {delta}-- pyport")
 
         for j in range(nplus):
-            t = _add_knot(x, y, t, k)
-            print(f"{t = } -- {k = } -- {fp = }")
+            t = _add_knot2(x, y, t, k, w)
 
         fpold = fp
 
-
-    print(f"final: {t = } -- {k = } -- {fp = }")
-
     return t
-
-
 

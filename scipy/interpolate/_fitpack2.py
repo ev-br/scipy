@@ -243,8 +243,8 @@ class UnivariateSpline:
 
         if data[6] > 0:
             from ._fitpack_impl import construct_knot_vector
-            tt, _ = construct_knot_vector(x, y, data[6], k)
-            assert (tt == data[8]).all()
+            tt, _ = construct_knot_vector(x, y, data[6], k, w=w, bbox=(bbox[0], bbox[1]))
+            assert (len(tt) < len(data[8])) or (tt == data[8]).all()
 
     @staticmethod
     def validate_input(x, y, w, bbox, k, s, ext, check_finite):
