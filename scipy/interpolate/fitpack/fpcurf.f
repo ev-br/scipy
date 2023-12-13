@@ -224,10 +224,18 @@ c  t(j+k) <= x(i) <= t(j+k+1) and store it in fpint(j),j=1,2,...nrint.
         fpint(nrint) = fpart
         do 190 l=1,nplus
 c  add a new knot.
+
+          print*, "before fpkot: "
+          print*, "t = ", t(1:n), "fp = ", fp
+          print*, "fpint = ", fpint
+          print*
+
           call fpknot(x,m,t,n,fpint,nrdata,nrint,nest,1)
 
           print*, "after fpkot: "
           print*, "t = ", t(1:n), "fp = ", fp
+          print*, "fpint = ", fpint
+          print*
 
 c  if n=nmax we locate the knots as for interpolation.
           if(n.eq.nmax) go to 10
