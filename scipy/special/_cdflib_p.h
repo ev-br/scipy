@@ -9,6 +9,13 @@ inline double basym(double a, double b, double lmbda, double eps);
 inline double bcorr(double a0, double b0);
 inline double betaln(double a0, double b0);
 
+inline double gamln(double a);
+inline double gamln1(double a);
+
+inline double erfc1(int ind, double x);
+
+inline double psi(double xx);
+inline double gsumln(double a, double b);
 inline double devlpl(double *a, int n, double x);
 inline double rlog1(double x);
 
@@ -467,6 +474,206 @@ inline double betaln(double a0, double b0){
 
 
 
+// %%----------------------------------------- gamln
+inline double gamln(double a){
+    /*
+    Evaluation of ln(gamma(a)) for positive a
+    */
+    double t,w;
+    double c[6];
+    double d = .418938533204673;
+    int i,n;
+
+    c[0] = .833333333333333e-01;
+    c[1] = -.277777777760991e-02;
+    c[2] = .793650666825390e-03;
+    c[3] = -.595202931351870e-03;
+    c[4] = .837308034031215e-03;
+    c[5] = -.165322962780713e-02;
+
+    if (a <= 0.8){
+        return gamln1(a) - log(a);
+    }
+
+    if (a <= 2.25){
+        t = (a-0.5) - 0.5;
+        return gamln1(t);
+    }
+
+    if (a < 10) {
+        n = static_cast<int>(a - 1.25);
+        t = a;
+        w = 1.;
+        for(int i=0; i<n; i++){
+            t -= 1.;
+            w *= t;
+        }
+        return gamln1(t-1.) + log(w);
+    }
+
+    t = (1./a/a);
+    w = (((((c[5]*t+c[4])*t+c[3])*t+c[2])*t+c[1])*t+c[0])/a;
+    return (d + w) + (a-0.5)*(log(a) - 1.);
+}
+
+
+// %%----------------------------------------- gamln1
+inline double gamln1(double a){
+    /*
+    Evaluation of ln(gamma(1 + a)) for -0.2 <= A <= 1.25
+    */
+    double p[7];
+    double q[6];
+    double r[6];
+    double s[5];
+    double bot, top, w, x;
+
+    p[0] = .577215664901533e+00;
+    p[1] = .844203922187225e+00;
+    p[2] = -.168860593646662e+00;
+    p[3] = -.780427615533591e+00;
+    p[4] = -.402055799310489e+00;
+    p[5] = -.673562214325671e-01;
+    p[6] = -.271935708322958e-02;
+    q[0] = .288743195473681e+01;
+    q[1] = .312755088914843e+01;
+    q[2] = .156875193295039e+01;
+    q[3] = .361951990101499e+00;
+    q[4] = .325038868253937e-01;
+    q[5] = .667465618796164e-03;
+    r[0] = .422784335098467e+00;
+    r[1] = .848044614534529e+00;
+    r[2] = .565221050691933e+00;
+    r[3] = .156513060486551e+00;
+    r[4] = .170502484022650e-01;
+    r[5] = .497958207639485e-03;
+    s[0] = .124313399877507e+01;
+    s[1] = .548042109832463e+00;
+    s[2] = .101552187439830e+00;
+    s[3] = .713309612391000e-02;
+    s[4] = .116165475989616e-03;
+
+    if (a < 0.6){
+        top = ((((((p[6]
+                   )*a+p[5]
+                  )*a+p[4]
+                 )*a+p[3]
+                )*a+p[2]
+               )*a+p[1]
+              )*a+p[0];
+        bot = ((((((q[5]
+                   )*a+q[4]
+                  )*a+q[3]
+                 )*a+q[2]
+                )*a+q[1]
+               )*a+q[0]
+              )*a+1.;
+        w = top/bot;
+        return -a*w;
+    }
+    else {
+        x = (a - 0.5) - 0.5;
+        top = (((((r[5]
+                  )*x+r[4]
+                 )*x+r[3]
+                )*x+r[2]
+               )*x+r[1]
+              )*x+r[0];
+        bot = (((((s[4]
+                  )*x+s[3]
+                 )*x+s[2]
+                )*x+s[1]
+               )*x+s[0]
+              )*x+1.;
+        w = top/bot;
+        return x*w;
+    }
+}
+
+
+
+// %%-------------------------------------- erfc1
+inline double erfc1(int ind, double x){
+    /*
+        Evaluation of the complementary error function
+
+        Erfc1(ind,x) = erfc(x)            if ind = 0
+        Erfc1(ind,x) = exp(x*x)*erfc(x)   otherwise
+
+    */
+    double ax, bot, t, top, result;
+    double c = 0.564189583547756;
+    double a[5] = {.771058495001320e-04, -.133733772997339e-02,
+                        .323076579225834e-01, .479137145607681e-01,
+                        .128379167095513e+00};
+    double b[3] = {.301048631703895e-02, .538971687740286e-01,
+                        .375795757275549e+00};
+    double p[8] = {-1.36864857382717e-07, 5.64195517478974e-01,
+                        7.21175825088309e+00, 4.31622272220567e+01,
+                        1.52989285046940e+02, 3.39320816734344e+02,
+                        4.51918953711873e+02, 3.00459261020162e+02};
+    double q[8] = {1.00000000000000e+00, 1.27827273196294e+01,
+                        7.70001529352295e+01, 2.77585444743988e+02,
+                        6.38980264465631e+02, 9.31354094850610e+02,
+                        7.90950925327898e+02, 3.00459260956983e+02};
+    double r[5] = {2.10144126479064e+00, 2.62370141675169e+01,
+                        2.13688200555087e+01, 4.65807828718470e+00,
+                        2.82094791773523e-01};
+    double s[4] = {9.41537750555460e+01, 1.87114811799590e+02,
+                        9.90191814623914e+01, 1.80124575948747e+01};
+
+    if (x <= -5.6){
+        return ind != 0 ? 2*exp(x*x) : 2.0;
+    }
+
+    // sqrt(log(np.finfo(np.float64).max)) ~= 26.64
+    if ((ind == 0) && (x > 26.64)){
+        return 0.;
+    }
+
+    ax = abs(x);
+
+    if (ax <= 0.5){
+        t = x*x;
+        top = (((((a[0])*t+a[1])*t+a[2])*t+a[3])*t+a[4]) + 1.;
+        bot = (((b[0])*t+b[1])*t+b[2])*t + 1.;
+        result = 0.5 + (0.5 - x*(top/bot));
+        return ind ==0 ? result : result*exp(t);
+    }
+
+    if ((0.5 < ax) && (ax <= 4.)){
+        top = (((((((p[0]
+                    )*ax+p[1]
+                   )*ax+p[2]
+                  )*ax+p[3]
+                 )*ax+p[4]
+                )*ax+p[5]
+               )*ax+p[6]
+              )*ax + p[7];
+        bot = (((((((q[0]
+                  )*ax+q[1]
+                 )*ax+q[2]
+                )*ax+q[3]
+               )*ax+q[4]
+              )*ax+q[5]
+             )*ax+q[6])*ax + q[7];
+        result = top / bot;
+    }
+    else {
+        t = (1 / x / x);
+        top = (((r[0]*t+r[1])*t+r[2])*t+r[3])*t + r[4];
+        bot = (((s[0]*t+s[1])*t+s[2])*t+s[3])*t + 1.;
+        result = (c - t*(top/bot)) / ax;
+    }
+
+    if (ind == 0){
+        result *= exp(-(x*x));
+        return x < 0 ? 2.-result : result;
+    }
+    else {
+        return x<0 ? (2.*exp(x*x) - result) : result;
+    }
+}
 
 // %%----------------------------------------- devlpl
 inline double devlpl(double *a, int n, double x){
@@ -503,6 +710,158 @@ inline double devlpl(double *a, int n, double x){
     return temp;
 }
 
+
+// %%-------------------------------------- gsumln
+inline double gsumln(double a, double b){
+    /*
+    Evaluation of the function ln(gamma(a + b))
+    for 1 <= A <= 2  And  1 <= B <= 2
+    */
+    double x;
+
+    x = a + b - 2;
+    if(x <= 0.25) {
+        return gamln1(1. + x);
+    }
+
+    if (x <= 1.25){
+        return gamln1(x) + alnrel(x);
+    }
+
+    return gamln1(x - 1.) + log(x*(1. + x));
+}
+
+
+// %%-------------------------------------- psi_fort
+inline double psi(double xx){
+    /*
+                Evaluation of the digamma function
+
+                          -----------
+
+    Psi(xx) is assigned the value 0 when the digamma function cannot
+    be computed.
+
+    The main computation involves evaluation of rational chebyshev
+    approximations published in math. Comp. 27, 123-127(1973) By
+    cody, strecok and thacher.
+
+    ----------------------------------------------------------------
+    Psi was written at Argonne National Laboratory for the FUNPACK
+    package of special function subroutines. Psi was modified by
+    A.H. Morris (nswc).
+    */
+    double aug, den, dx0, sgn, upper, w, x, xmax1, xmx0, xsmall, z;
+    double p1[7];
+    double q1[6];
+    double p2[4];
+    double q2[4];
+    int nq, i;
+
+    dx0 = 1.461632144968362341262659542325721325;
+    p1[0] = .895385022981970e-02;
+    p1[1] = .477762828042627e+01;
+    p1[2] = .142441585084029e+03;
+    p1[3] = .118645200713425e+04;
+    p1[4] = .363351846806499e+04;
+    p1[5] = .413810161269013e+04;
+    p1[6] = .130560269827897e+04;
+    q1[0] = .448452573429826e+02;
+    q1[1] = .520752771467162e+03;
+    q1[2] = .221000799247830e+04;
+    q1[3] = .364127349079381e+04;
+    q1[4] = .190831076596300e+04;
+    q1[5] = .691091682714533e-05;
+    p2[0] = -.212940445131011e+01;
+    p2[1] = -.701677227766759e+01;
+    p2[2] = -.448616543918019e+01;
+    p2[3] = -.648157123766197e+00;
+    q2[0] = .322703493791143e+02;
+    q2[1] = .892920700481861e+02;
+    q2[2] = .546117738103215e+02;
+    q2[3] = .777788548522962e+01;
+
+    xmax1 = 4503599627370496.0;
+    xsmall = 1e-9;
+    x = xx;
+    aug = 0.;
+    if (x < 0.5){
+        if (abs(x) <= xsmall){
+            if (x == 0.){
+                return 0.;
+            }
+            aug = -1./x;
+        }
+        else {
+            // 10
+            w = -x;
+            sgn = M_PI / 4;
+            if (w <= 0.){
+                w = -w;
+                sgn = -sgn;
+            }
+            // 20
+            if (w >= xmax1){
+                return 0.;
+            }
+
+            w -= static_cast<int>(w);
+            nq = static_cast<int>(w*4.);
+            w = 4.*(w - 0.25*nq);
+
+            if (nq % 2 == 1) {
+                w = 1. - w;
+            }
+            z = (M_PI / 4.)*w;
+
+            // if (nq // 2) % 2 == 1:   # XXX: check
+            if (static_cast<int>(nq / 2) % 2 == 1) {
+                sgn = -sgn;
+            }
+
+            //if ((nq + 1) // 2) % 2 == 1:   # XXX: check
+            if ( static_cast<int>((nq + 1) / 2) % 2 == 1 ) {
+                aug = sgn * (tan(z)*4.);
+            }
+            else {
+                if (z == 0.){
+                    return 0.;
+                }
+                aug = sgn * (4./tan(z));
+            }
+        }
+        x = 1 - x;
+    }
+
+    if (x <= 3.) {
+        // 50
+        den = x;
+        upper = p1[0]*x;
+        for(int i=0; i<5; i++){
+            den = (den + q1[i])*x;
+            upper = (upper + p1[i+1])*x;
+        }
+        den = (upper + p1[6]) / (den + q1[5]);
+        xmx0 = x - dx0;
+        return (den * xmx0) + aug;
+    }
+    else {
+        // 70
+        if (x < xmax1){
+            w = 1. / (x*x);
+            den = w;
+            upper = p2[0]*w;
+
+            //for i in range(3):
+            for(int i=0; i<3; i++) {
+                den = (den + q2[i])*w;
+                upper = (upper + p2[i+1])*w;
+            }
+            aug += upper / (den + q2[3]) - 0.5/x ;
+        }
+        return aug + log(x);
+    }
+}
 
 // %%-------------------------------------- rlog1
 inline double rlog1(double x){
