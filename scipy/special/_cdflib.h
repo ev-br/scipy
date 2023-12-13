@@ -10,9 +10,11 @@ cnp.import_array()
 from libc.math cimport sin, tan, log, exp, sqrt, floor
 from numpy.math cimport INFINITY, PI
 
-double[3] spmpar = [np.finfo(np.float64).eps,
+
+double spmpar[3] = {np.finfo(np.float64).eps,
                          np.finfo(np.float64).tiny,
-                         np.finfo(np.float64).max]
+                         np.finfo(np.float64).max};
+
 
 
 // %%----------------------------------------- algdiv
@@ -402,6 +404,7 @@ inline double betaln(double a0, double b0){
     return w + log(z) + (gamln(a) + gamln(b) - gsumln(a, b))
 }
 
+
 // %%----------------------------------------- bfrac
 inline double bfrac(double a, double b, double x, double y,
                          double lmbda, double eps){
@@ -458,6 +461,7 @@ inline double bfrac(double a, double b, double x, double y,
 
     return result*r
 }
+
 
 // %%----------------------------------------- bgrat
 inline (double, int) bgrat(double a, double b, double x , double y, double w,
