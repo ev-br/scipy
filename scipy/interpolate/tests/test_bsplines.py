@@ -1450,6 +1450,8 @@ def make_lsq_full_matrix(x, y, t, k=3):
     return c, (A, Y)
 
 
+parametrize_lsq_methods = pytest.mark.parametrize("method", ["norm-eq", "qr"])
+
 class TestLSQ:
     #
     # Test make_lsq_spline
@@ -1460,12 +1462,13 @@ class TestLSQ:
     y = np.random.random(n)
     t = _augknt(np.linspace(x[0], x[-1], 7), k)
 
-    def test_lstsq(self):
+    @parametrize_lsq_methods
+    def test_lstsq(self, method):
         # check LSQ construction vs a full matrix version
         x, y, t, k = self.x, self.y, self.t, self.k
 
         c0, AY = make_lsq_full_matrix(x, y, t, k)
-        b = make_lsq_spline(x, y, t, k)
+        b = make_lsq_spline(x, y, t, k, method=method)
 
         assert_allclose(b.c, c0)
         assert_equal(b.c.shape, (t.size - k - 1,))
@@ -1475,53 +1478,84 @@ class TestLSQ:
         c1, _, _, _ = np.linalg.lstsq(aa, y, rcond=-1)
         assert_allclose(b.c, c1)
 
-    def test_weights(self):
+    @parametrize_lsq_methods
+    def test_weights(self, method):
         # weights = 1 is same as None
         x, y, t, k = self.x, self.y, self.t, self.k
         w = np.ones_like(x)
 
-        b = make_lsq_spline(x, y, t, k)
-        b_w = make_lsq_spline(x, y, t, k, w=w)
+        b = make_lsq_spline(x, y, t, k, method=method)
+        b_w = make_lsq_spline(x, y, t, k, w=w, method=method)
 
         assert_allclose(b.t, b_w.t, atol=1e-14)
         assert_allclose(b.c, b_w.c, atol=1e-14)
         assert_equal(b.k, b_w.k)
 
-    def test_multiple_rhs(self):
+    def test_weights_same(self):
+        # both methods treat weights 
+        x, y, t, k = self.x, self.y, self.t, self.k
+        w = np.random.default_rng(1234).uniform(size=x.shape[0])
+
+        b_ne = make_lsq_spline(x, y, t, k, w=w, method="norm-eq")
+        b_qr = make_lsq_spline(x, y, t, k, w=w, method="qr")
+        b_no_w = make_lsq_spline(x, y, t, k, method="qr")
+
+        assert_allclose(b_ne.c, b_qr.c, atol=1e-14)
+        assert not np.allclose(b_no_w.c, b_qr.c, atol=1e-14)
+
+    @parametrize_lsq_methods
+    def test_multiple_rhs(self, method):
         x, t, k, n = self.x, self.t, self.k, self.n
         y = np.random.random(size=(n, 5, 6, 7))
 
-        b = make_lsq_spline(x, y, t, k)
+        b = make_lsq_spline(x, y, t, k, method=method)
         assert_equal(b.c.shape, (t.size-k-1, 5, 6, 7))
 
-    def test_complex(self):
+    @parametrize_lsq_methods
+    def test_complex(self, method):
         # cmplx-valued `y`
         x, t, k = self.x, self.t, self.k
         yc = self.y * (1. + 2.j)
 
-        b = make_lsq_spline(x, yc, t, k)
-        b_re = make_lsq_spline(x, yc.real, t, k)
-        b_im = make_lsq_spline(x, yc.imag, t, k)
+        b = make_lsq_spline(x, yc, t, k, method=method)
+        b_re = make_lsq_spline(x, yc.real, t, k, method=method)
+        b_im = make_lsq_spline(x, yc.imag, t, k, method=method)
 
         assert_allclose(b(x), b_re(x) + 1.j*b_im(x), atol=1e-15, rtol=1e-15)
 
-    def test_int_xy(self):
+    @parametrize_lsq_methods
+    def test_int_xy(self, method):
         x = np.arange(10).astype(int)
         y = np.arange(10).astype(int)
         t = _augknt(x, k=1)
         # Cython chokes on "buffer type mismatch"
-        make_lsq_spline(x, y, t, k=1)
+        make_lsq_spline(x, y, t, k=1, method=method)
 
-    def test_sliced_input(self):
+    @parametrize_lsq_methods
+    def test_f32_xy(self, method):
+        x = np.arange(10, dtype=np.float32)
+        y = np.arange(10, dtype=np.float32)
+        t = _augknt(x, k=1)
+        spl_f32 = make_lsq_spline(x, y, t, k=1, method=method)
+        spl_f64 = make_lsq_spline(
+            x.astype(float), y.astype(float), t.astype(float), k=1, method=method
+        )
+
+        x2 = (x[1:] + x[:-1]) / 2.0
+        assert_allclose(spl_f32(x2), spl_f64(x2), atol=1e-15)
+
+    @parametrize_lsq_methods
+    def test_sliced_input(self, method):
         # Cython code chokes on non C contiguous arrays
         xx = np.linspace(-1, 1, 100)
 
         x = xx[::3]
         y = xx[::3]
         t = _augknt(x, 1)
-        make_lsq_spline(x, y, t, k=1)
+        make_lsq_spline(x, y, t, k=1, method=method)
 
-    def test_checkfinite(self):
+    @parametrize_lsq_methods
+    def test_checkfinite(self, method):
         # check_finite defaults to True; nans and such trigger a ValueError
         x = np.arange(12).astype(float)
         y = x**2
@@ -1529,15 +1563,37 @@ class TestLSQ:
 
         for z in [np.nan, np.inf, -np.inf]:
             y[-1] = z
-            assert_raises(ValueError, make_lsq_spline, x, y, t)
+            assert_raises(ValueError, make_lsq_spline, x, y, t, method=method)
 
-    def test_read_only(self):
+    @parametrize_lsq_methods
+    def test_read_only(self, method):
         # Check that make_lsq_spline works with read only arrays
         x, y, t = self.x, self.y, self.t
         x.setflags(write=False)
         y.setflags(write=False)
         t.setflags(write=False)
-        make_lsq_spline(x=x, y=y, t=t)
+        make_lsq_spline(x=x, y=y, t=t, method=method)
+
+    @pytest.mark.parametrize('k', list(range(1, 7)))
+    def test_qr_vs_norm_eq(self, k):
+        # check that QR and normal eq solutions match
+        x, y = self.x, self.y
+        t = _augknt(np.linspace(x[0], x[-1], 7), k)
+        spl_norm_eq = make_lsq_spline(x, y, t, k=k, method='norm-eq')
+        spl_qr = make_lsq_spline(x, y, t, k=k, method='qr')
+
+        xx = (x[1:] + x[:-1]) / 2.0
+        assert_allclose(spl_norm_eq(xx), spl_qr(xx), atol=1e-15)
+
+    def test_duplicates(self):
+        # method="qr" can handle duplicated data points
+        x = np.repeat(self.x, 2)
+        y = np.repeat(self.y, 2)
+        spl_1 = make_lsq_spline(self.x, self.y, self.t, k=3, method='qr')
+        spl_2 = make_lsq_spline(x, y, self.t, k=3, method='qr')
+
+        xx = (x[1:] + x[:-1]) / 2.0
+        assert_allclose(spl_1(xx), spl_2(xx), atol=1e-15)
 
 
 def data_file(basename):
