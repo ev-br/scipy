@@ -336,7 +336,7 @@ class BSpline:
         return cls.construct_fast(t, c, k, extrapolate)
 
     @classmethod
-    def design_matrix(cls, x, t, k, extrapolate=False):
+    def design_matrix(cls, x, t, k, extrapolate=False, nu=0):
         """
         Returns a design matrix as a CSR format sparse array.
 
@@ -455,7 +455,7 @@ class BSpline:
 
         # indptr is not passed to Cython as it is already fully computed
         data, indices = _bspl._make_design_matrix(
-            x, t, k, extrapolate, indices
+            x, t, k, extrapolate, indices, nu
         )
         return csr_array(
             (data, indices, indptr),
@@ -1578,7 +1578,6 @@ def make_lsq_spline(x, y, t, k=3, w=None, axis=0, check_finite=True, *, method="
                            yy,
                            w,
                            ab, rhs)
-
         # have observation matrix & rhs, can solve the LSQ problem
         cho_decomp = cholesky_banded(ab, overwrite_ab=True, lower=lower,
                                      check_finite=check_finite)
@@ -1630,7 +1629,7 @@ class PackedMatrix:
         return out
 
 
-def _qr_reduce(a_p, y):
+def _qr_reduce(a_p, y, startrow=1):
     """Solve the LSQ problem ||y - A@c||^2 via QR factorization.
 
     QR factorization follows FITPACK: we reduce A row-by-row by Givens rotations.
@@ -1670,6 +1669,12 @@ def _qr_reduce(a_p, y):
     the `s-1` corresponding rows form an `(s-1, k+1)`-sized "block".
     Then a blocked QR implementation could look like
     https://people.sc.fsu.edu/~jburkardt/f77_src/band_qr/band_qr.f
+
+    The `startrow` optional argument accounts for the scenatio with a two-step
+    factorization. Namely, the preceding rows are assumend to be already
+    processed and are skipped.
+    This is to account for the scenario where we append new rows to an already
+    triangularized matrix.
     """
     # unpack the packed format
     a = a_p.a
@@ -1682,7 +1687,7 @@ def _qr_reduce(a_p, y):
     R = a.copy()
     y1 = y.copy()
 
-    for i in range(1, m):
+    for i in range(startrow, m):
         oi = offset[i]
         for j in range(oi, nc):
             # rotate only the lower diagonal

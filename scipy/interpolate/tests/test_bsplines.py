@@ -18,7 +18,11 @@ import scipy.sparse.linalg as ssl
 from scipy.interpolate._bsplines import (_not_a_knot, _augknt,
                                         _woodbury_algorithm, _periodic_knots,
                                          _make_interp_per_full_matr)
-from scipy.interpolate._fitpack_repro import generate_knots
+
+# XXX: decide on how to expose these
+from scipy.interpolate import generate_knots, make_splrep
+from scipy.interpolate._fitpack_repro import disc, disc_naive
+
 import scipy.interpolate._fitpack_impl as _impl
 from scipy._lib._util import AxisError
 
@@ -2658,10 +2662,106 @@ index 1afb1900f1..d817e51ad8 100644
         x = 10*np.sort(rndm.uniform(size=npts))
         y = np.sin(x*np.pi/10) + np.exp(-(x-6)**2)
 
-
         k = 3
         t = splrep(x, y, k=k, s=s)[0]
         tt = list(generate_knots(x, y, k=k, s=s))[-1]
 
         assert_allclose(tt, t, atol=1e-15)
+
+
+class TestMakeSplrep:
+    def _get_xykt(self):
+        x = np.linspace(0, 5, 11)
+        y  = np.sin(x*3.14 / 5)**2
+        k = 3
+        s = 1.7e-4
+        tt = np.array([0]*(k+1) + [2.5, 4.0] + [5]*(k+1))
+
+        return x, y, k, s, tt
+
+    def test_fitpack_F(self):
+        # test an implementation detail: banded/packed linalg vs full matrices
+        from scipy.interpolate._fitpack_repro import F, F_dense
+
+        x, y, k, s, t = self._get_xykt()
+        f = F(x, y, t, k, s)
+        f_d = F_dense(x, y, t, k, s)
+        for p in [1, 10, 100]:
+            assert_allclose(f(p), f_d(p), atol=1e-15)
+
+    def test_fitpack_F_with_weights(self):
+        # repeat test_fitpack_F, with weights
+        from scipy.interpolate._fitpack_repro import F, F_dense
+
+        x, y, k, s, t = self._get_xykt()
+        w = np.arange(x.shape[0])
+        fw = F(x, y, t, k, s, w=w)
+        fw_d = F_dense(x, y, t, k, s, w=w)
+
+        f_d = F_dense(x, y, t, k, s)   # no weights
+
+        for p in [1, 10, 100]:
+            assert_allclose(fw(p), fw_d(p), atol=1e-15)
+            assert not np.allclose(f_d(p), fw_d(p), atol=1e-15)
+
+    def test_disc_matrix(self):
+        # test an implementation detail: discontinuity matrix
+        # (jumps of k-th derivative at knots)
+        rng = np.random.default_rng(12345)
+        t = np.r_[0, 0, 0, 0, np.sort(rng.uniform(size=7))*5, 5, 5, 5, 5]
+
+        n, k = len(t), 3
+        D = disc(t, k).todense()
+        D_dense = disc_naive(t, k)
+        assert D.shape[0] == n - 2*k - 2   # number of internal knots
+        assert_allclose(D, D_dense, atol=1e-15)
+
+    def test_simple_vs_splrep(self):
+        x, y, k, s, tt = self._get_xykt()
+        tt = np.array([0]*(k+1) + [2.5, 4.0] + [5]*(k+1))
+
+        t,c,k = splrep(x, y, k=k, s=s)
+        assert all(t == tt)
+ 
+        spl = make_splrep(x, y, k=k, s=s)
+        assert_allclose(c[:spl.c.size], spl.c, atol=1e-15)
+
+    def test_with_knots(self):
+        x, y, k, s, _ = self._get_xykt()
+
+        t = list(generate_knots(x, y, k=k, s=s))[-1]
+
+        spl_auto = make_splrep(x, y, k=k, s=s)
+        spl_t = make_splrep(x, y, t=t, k=k, s=s)
+
+        assert_allclose(spl_auto.t, spl_t.t, atol=1e-15)
+        assert_allclose(spl_auto.c, spl_t.c, atol=1e-15)
+        assert_allclose(spl_auto.k, spl_t.k, atol=1e-15)
+
+    def test_no_internal_knots(self):
+        # should not fail if there are no internal knots
+        n = 10
+        x = np.arange(n)
+        y = x**3
+        k = 3
+        spl = make_splrep(x, y, k=k, s=1)
+        assert spl.t.shape[0] == 2*(k+1)
+
+    def test_default_s(self):
+        n = 10
+        x = np.arange(n)
+        y = x**3
+        spl = make_splrep(x, y, k=3)
+        spl_i = make_interp_spline(x, y, k=3)
+
+        assert_allclose(spl.c, spl_i.c, atol=1e-15)
+
+    @pytest.mark.xfail     # FIXME
+    def test_s_too_small(self):
+        n = 20
+        x = np.arange(n)
+        y = x**3
+
+        # XXX splrep warns that "s too small": ier=2
+        make_splrep(x, y, k=3, s=1e-50)
 

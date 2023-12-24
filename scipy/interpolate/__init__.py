@@ -182,7 +182,7 @@ from ._cubic import *
 from ._ndgriddata import *
 
 from ._bsplines import *
-from ._fitpack_repro import generate_knots
+from ._fitpack_repro import generate_knots, make_splrep
 
 from ._pade import *
 

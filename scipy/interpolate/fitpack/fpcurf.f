@@ -269,6 +269,9 @@ c  initial value for p.
       n8 = n-nmin
 c  iteration process to find the root of f(p) = s.
       do 360 iter=1,maxit
+
+        print*, 'iter = ', iter, 'p = ', p
+
 c  the rows of matrix b with weight 1/p are rotated into the
 c  triangularised observation matrix a which is stored in g.
         pinv = one/p
@@ -359,5 +362,7 @@ c  error codes and messages.
  420  ier = 1
       go to 440
  430  ier = -1
- 440  return
+ 440  continue
+      print*, "p = ", p, fpms, "iter = ", iter
+      return
       end
