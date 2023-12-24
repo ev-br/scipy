@@ -6,6 +6,7 @@ from scipy._lib._util import normalize_axis_index
 from scipy.linalg import (get_lapack_funcs, LinAlgError,
                           cholesky_banded, cho_solve_banded,
                           solve, solve_banded)
+from scipy.linalg.lapack import dlartg
 from scipy.optimize import minimize_scalar
 from . import _bspl
 from . import _fitpack_impl
@@ -1414,7 +1415,7 @@ def make_interp_spline(x, y, k=3, t=None, bc_type=None, axis=0,
     return BSpline.construct_fast(t, c, k, axis=axis)
 
 
-def make_lsq_spline(x, y, t, k=3, w=None, axis=0, check_finite=True):
+def make_lsq_spline(x, y, t, k=3, w=None, axis=0, check_finite=True, *, method="qr"):
     r"""Compute the (coefficients of) an LSQ (Least SQuared) based
     fitting B-spline.
 
@@ -1452,6 +1453,11 @@ def make_lsq_spline(x, y, t, k=3, w=None, axis=0, check_finite=True):
         Disabling may give a performance gain, but may result in problems
         (crashes, non-termination) if the inputs do contain infinities or NaNs.
         Default is True.
+    method : str, optional
+        Method for solving the linear LSQ problem. Allowed values are "norm-eq" 
+        (Explicitly construct and solve the normal system of equations), and
+        "qr" (Use the QR factorization of the design matrix).
+        Default is "qr".
 
     Returns
     -------
@@ -1534,14 +1540,14 @@ def make_lsq_spline(x, y, t, k=3, w=None, axis=0, check_finite=True):
 
     y = np.moveaxis(y, axis, 0)    # now internally interp axis is zero
 
-    if x.ndim != 1 or np.any(x[1:] - x[:-1] <= 0):
-        raise ValueError("Expect x to be a 1-D sorted array_like.")
+    if x.ndim != 1:
+        raise ValueError("Expect x to be a 1-D sequence.")
     if x.shape[0] < k+1:
         raise ValueError("Need more x points.")
     if k < 0:
         raise ValueError("Expect non-negative k.")
     if t.ndim != 1 or np.any(t[1:] - t[:-1] < 0):
-        raise ValueError("Expect t to be a 1-D sorted array_like.")
+        raise ValueError("Expect t to be a 1D strictly increasing sequence.")
     if x.size != y.shape[0]:
         raise ValueError(f'Shapes of x {x.shape} and y {y.shape} are incompatible')
     if k > 0 and np.any((x < t[k]) | (x > t[-k])):
@@ -1549,29 +1555,160 @@ def make_lsq_spline(x, y, t, k=3, w=None, axis=0, check_finite=True):
     if x.size != w.size:
         raise ValueError(f'Shapes of x {x.shape} and w {w.shape} are incompatible')
 
+    if method == "norm-eq" and np.any(x[1:] - x[:-1] <= 0):
+        raise ValueError("Expect x to be a 1D strictly increasing sequence.")
+    if method == "qr" and any(x[1:] - x[:-1] < 0):
+        raise ValueError("Expect x to be a 1D non-decreasing sequence.")
+
     # number of coefficients
     n = t.size - k - 1
 
-    # construct A.T @ A and rhs with A the collocation matrix, and
-    # rhs = A.T @ y for solving the LSQ problem  ``A.T @ A @ c = A.T @ y``
-    lower = True
+    # multiple r.h.s
     extradim = prod(y.shape[1:])
-    ab = np.zeros((k+1, n), dtype=np.float64, order='F')
-    rhs = np.zeros((n, extradim), dtype=y.dtype, order='F')
-    _bspl._norm_eq_lsq(x, t, k,
-                       y.reshape(-1, extradim),
-                       w,
-                       ab, rhs)
-    rhs = rhs.reshape((n,) + y.shape[1:])
+    yy = y.reshape(-1, extradim)
 
-    # have observation matrix & rhs, can solve the LSQ problem
-    cho_decomp = cholesky_banded(ab, overwrite_ab=True, lower=lower,
-                                 check_finite=check_finite)
-    c = cho_solve_banded((cho_decomp, lower), rhs, overwrite_b=True,
-                         check_finite=check_finite)
+    if method == "norm-eq":
+        # construct A.T @ A and rhs with A the collocation matrix, and
+        # rhs = A.T @ y for solving the LSQ problem  ``A.T @ A @ c = A.T @ y``
+        lower = True
+        ab = np.zeros((k+1, n), dtype=np.float64, order='F')
+        rhs = np.zeros((n, extradim), dtype=y.dtype, order='F')
+        _bspl._norm_eq_lsq(x, t, k,
+                           yy,
+                           w,
+                           ab, rhs)
+        rhs = rhs.reshape((n,) + y.shape[1:])
 
-    c = np.ascontiguousarray(c)
+        # have observation matrix & rhs, can solve the LSQ problem
+        cho_decomp = cholesky_banded(ab, overwrite_ab=True, lower=lower,
+                                     check_finite=check_finite)
+        c = cho_solve_banded((cho_decomp, lower), rhs, overwrite_b=True,
+                             check_finite=check_finite)
+
+        c = np.ascontiguousarray(c)
+    elif method == "qr":
+        # XXX: cythonize
+        a_csr = BSpline.design_matrix(x, t, k)
+        a_w = (a_csr * w[:, None]).tocsr()
+
+        R, qTy = _qr_reduce(a_w, yy * w[:, None], k)
+        nc = t.shape[0] - k - 1
+        c = fpback(R[:nc, :], qTy[:nc], k)
+        c = c.reshape((nc,) + y.shape[1:])
+    else:
+        raise ValueError(f"Unknown {method =}.")
+
     return BSpline.construct_fast(t, c, k, axis=axis)
+
+
+######################
+# LSQ spline helpers #
+######################
+
+
+def _qr_reduce(a_csr, y, k):
+    """Solve the LSQ problem ||y - A@c||^2 via QR factorization.
+
+    The matrix A has a special structure: each row has at most (k+1)
+    consecutive non-zeros.
+
+    QR factorization follows FITPACK: we reduce A row-by-row by Givens rotations.
+
+    To zero out the lower triangle, we use in the row `i` and column `j < i`,
+    the diagonal element in that column. That way, the sequence is
+    (here `[x]` are the pair of elements to Givens-rotate)
+
+     [x] x x x       x  x  x x      x  x  x x      x x  x  x      x x x x
+     [x] x x x  ->   0 [x] x x  ->  0 [x] x x  ->  0 x  x  x  ->  0 x x x
+      0  x x x       0 [x] x x      0  0  x x      0 0 [x] x      0 0 x x
+      0  x x x       0  x  x x      0 [x] x x      0 0 [x] x      0 0 0 x
+
+    In the "packed" format, we only store the (m, k+1) matrix of non-zeros.
+    Originally, a row `i` of the "packed" matrix contains elements of the dense
+    matrix `A` as `A[i, offset[i]: offset[i] + k + 1]`.
+
+    On exit, the return matrix, also of shape (m, k+1), contains
+    elements of the upper triangular matrix `R[i, i: i + k + 1]`.
+    When we process the element (i, j), we store the rotated row in R[i, :],
+    and *shift it to the left*, so that the the diagonal element is always at the
+    zero-th place. This way, the process above becomes
+
+
+     [x] x x x       x  x x x       x  x x x       x  x x x      x x x x
+     [x] x x x  ->  [x] x x -  ->  [x] x x -   ->  x  x x -  ->  x x x -
+      x  x x -      [x] x x -       x  x - -      [x] x - -      x x - -
+      x  x x -       x  x x -      [x] x x -      [x] x - -      x - - -
+
+    The most confusing part is that when rotating the row `i` with a row `j`
+    above it, the offsets differ: for the upper row  `j`, `R[j, 0]` is the diagonal
+    element, while for the row `i`, `R[i, 0]` is the element being annihilated.
+
+    NB. This row-by-row Givens reduction process follows FITPACK:
+    https://github.com/scipy/scipy/blob/maintenance/1.11.x/scipy/interpolate/fitpack/fpcurf.f#L112-L161
+    A possibly more efficient way could be to note that all data points which
+    lie between two knots all have the same offset: if `t[i] < x_1 .... x_s < t[i+1]`,
+    the `s-1` corresponding rows form an `(s-1, k+1)`-sized "block".
+    Then a blocked QR implementation could look like
+    https://people.sc.fsu.edu/~jburkardt/f77_src/band_qr/band_qr.f
+    """
+    m, nc = a_csr.shape
+
+    offset = a_csr.indices[::(k+1)]
+    R = a_csr.data.reshape(m, k+1)
+    y1 = y.copy()
+
+    for i in range(1, m):
+
+        oi = offset[i]
+        for j in range(k+1):
+            # rotate only the lower diagonal
+            if oi + j >= min(i, nc):
+                break
+
+            # In dense format: diag a1[j, j] vs a1[i, j]
+            c, s, r = dlartg(R[oi+j, 0], R[i, 0])
+
+            # rotate l.h.s.
+            R[oi+j, 0] = r
+            for l in range(1, k+1):
+                R[oi+j, l], R[i, l-1] = fprota(c, s, R[oi+j, l], R[i, l])
+            R[i, -1] = 0.0
+
+            # rotate r.h.s.
+            for l in range(y1.shape[1]):
+                y1[oi + j, l], y1[i, l] = fprota(c, s, y1[oi + j, l], y1[i, l])
+    return R, y1 
+
+
+def fprota(c, s, a, b):
+    """Givens rotate [a, b].
+
+    [aa] = [ c s] @ [a]
+    [bb]   [-s c]   [b]
+
+    """
+    aa =  c*a + s*b
+    bb = -s*a + c*b
+    return aa, bb
+
+
+def fpback(R, y, k):
+    """Backsubsitution solve upper triangular banded `R @ c = y.`
+
+    `R` is in the "packed" format:
+    R[i, :] is `a[i, i:i+k+2]`
+    """
+    n, k1 = R.shape
+    assert y.shape[0] == n
+
+    c = np.zeros_like(y)
+    c[n-1] = y[n-1] / R[n-1, 0]
+    for i in range(n-2, -1, -1):
+        nel = min(k+1, n-i)
+        # NB: broadcast R across trailing dimensions of `c`.
+        c[i] = ( y[i] - (R[i, 1:nel, None] * c[i+1:i+nel]).sum() ) / R[i, 0]
+
+    return c
 
 
 #############################
