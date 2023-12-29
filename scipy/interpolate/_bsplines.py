@@ -336,7 +336,7 @@ class BSpline:
         return cls.construct_fast(t, c, k, extrapolate)
 
     @classmethod
-    def design_matrix(cls, x, t, k, extrapolate=False):
+    def design_matrix(cls, x, t, k, extrapolate=False, nu=0):
         """
         Returns a design matrix as a CSR format sparse array.
 
@@ -455,7 +455,7 @@ class BSpline:
 
         # indptr is not passed to Cython as it is already fully computed
         data, indices = _bspl._make_design_matrix(
-            x, t, k, extrapolate, indices
+            x, t, k, extrapolate, indices, nu
         )
         return csr_array(
             (data, indices, indptr),

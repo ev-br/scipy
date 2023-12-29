@@ -4,7 +4,7 @@
 c  ..
 c  ..scalar arguments..
       real*8 xb,xe,s,tol,fp
-      integer iopt,m,k,nest,maxit,k1,k2,n,ier
+      integer iopt,m,k,nest,maxit,k1,k2,n,ier, iii
 c  ..array arguments..
       real*8 x(m),y(m),w(m),t(nest),c(nest),fpint(nest),
      * z(nest),a(nest,k1),b(nest,k2),g(nest,k2),q(m,k1)
@@ -250,6 +250,12 @@ cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 c  evaluate the discontinuity jump of the kth derivative of the
 c  b-splines at the knots t(l),l=k+2,...n-k-1 and store in b.
       call fpdisc(t,n,k2,b,nest)
+
+      print*, 'n = ', n
+      do iii=1, nest
+          print*, b(iii, :)
+      enddo
+
 c  initial value for p.
       p1 = 0.0d0
       f1 = fp0-s
