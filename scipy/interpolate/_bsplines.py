@@ -6,7 +6,6 @@ from scipy._lib._util import normalize_axis_index
 from scipy.linalg import (get_lapack_funcs, LinAlgError,
                           cholesky_banded, cho_solve_banded,
                           solve, solve_banded)
-from scipy.linalg.lapack import dlartg
 from scipy.optimize import minimize_scalar
 from . import _bspl
 from . import _fitpack_impl
@@ -1587,6 +1586,8 @@ def make_lsq_spline(x, y, t, k=3, w=None, axis=0, check_finite=True, *, method="
 
         c = np.ascontiguousarray(c)
     elif method == "qr":
+        from ._fitpack_impl import _qr_reduce, fpback
+
         # XXX: cythonize
         a_csr = BSpline.design_matrix(x, t, k)
         a_w = (a_csr * w[:, None]).tocsr()
@@ -1599,116 +1600,6 @@ def make_lsq_spline(x, y, t, k=3, w=None, axis=0, check_finite=True, *, method="
         raise ValueError(f"Unknown {method =}.")
 
     return BSpline.construct_fast(t, c, k, axis=axis)
-
-
-######################
-# LSQ spline helpers #
-######################
-
-
-def _qr_reduce(a_csr, y, k):
-    """Solve the LSQ problem ||y - A@c||^2 via QR factorization.
-
-    The matrix A has a special structure: each row has at most (k+1)
-    consecutive non-zeros.
-
-    QR factorization follows FITPACK: we reduce A row-by-row by Givens rotations.
-
-    To zero out the lower triangle, we use in the row `i` and column `j < i`,
-    the diagonal element in that column. That way, the sequence is
-    (here `[x]` are the pair of elements to Givens-rotate)
-
-     [x] x x x       x  x  x x      x  x  x x      x x  x  x      x x x x
-     [x] x x x  ->   0 [x] x x  ->  0 [x] x x  ->  0 x  x  x  ->  0 x x x
-      0  x x x       0 [x] x x      0  0  x x      0 0 [x] x      0 0 x x
-      0  x x x       0  x  x x      0 [x] x x      0 0 [x] x      0 0 0 x
-
-    In the "packed" format, we only store the (m, k+1) matrix of non-zeros.
-    Originally, a row `i` of the "packed" matrix contains elements of the dense
-    matrix `A` as `A[i, offset[i]: offset[i] + k + 1]`.
-
-    On exit, the return matrix, also of shape (m, k+1), contains
-    elements of the upper triangular matrix `R[i, i: i + k + 1]`.
-    When we process the element (i, j), we store the rotated row in R[i, :],
-    and *shift it to the left*, so that the the diagonal element is always at the
-    zero-th place. This way, the process above becomes
-
-
-     [x] x x x       x  x x x       x  x x x       x  x x x      x x x x
-     [x] x x x  ->  [x] x x -  ->  [x] x x -   ->  x  x x -  ->  x x x -
-      x  x x -      [x] x x -       x  x - -      [x] x - -      x x - -
-      x  x x -       x  x x -      [x] x x -      [x] x - -      x - - -
-
-    The most confusing part is that when rotating the row `i` with a row `j`
-    above it, the offsets differ: for the upper row  `j`, `R[j, 0]` is the diagonal
-    element, while for the row `i`, `R[i, 0]` is the element being annihilated.
-
-    NB. This row-by-row Givens reduction process follows FITPACK:
-    https://github.com/scipy/scipy/blob/maintenance/1.11.x/scipy/interpolate/fitpack/fpcurf.f#L112-L161
-    A possibly more efficient way could be to note that all data points which
-    lie between two knots all have the same offset: if `t[i] < x_1 .... x_s < t[i+1]`,
-    the `s-1` corresponding rows form an `(s-1, k+1)`-sized "block".
-    Then a blocked QR implementation could look like
-    https://people.sc.fsu.edu/~jburkardt/f77_src/band_qr/band_qr.f
-    """
-    m, nc = a_csr.shape
-
-    offset = a_csr.indices[::(k+1)]
-    R = a_csr.data.reshape(m, k+1)
-    y1 = y.copy()
-
-    for i in range(1, m):
-
-        oi = offset[i]
-        for j in range(k+1):
-            # rotate only the lower diagonal
-            if oi + j >= min(i, nc):
-                break
-
-            # In dense format: diag a1[j, j] vs a1[i, j]
-            c, s, r = dlartg(R[oi+j, 0], R[i, 0])
-
-            # rotate l.h.s.
-            R[oi+j, 0] = r
-            for l in range(1, k+1):
-                R[oi+j, l], R[i, l-1] = fprota(c, s, R[oi+j, l], R[i, l])
-            R[i, -1] = 0.0
-
-            # rotate r.h.s.
-            for l in range(y1.shape[1]):
-                y1[oi + j, l], y1[i, l] = fprota(c, s, y1[oi + j, l], y1[i, l])
-    return R, y1 
-
-
-def fprota(c, s, a, b):
-    """Givens rotate [a, b].
-
-    [aa] = [ c s] @ [a]
-    [bb]   [-s c]   [b]
-
-    """
-    aa =  c*a + s*b
-    bb = -s*a + c*b
-    return aa, bb
-
-
-def fpback(R, y, k):
-    """Backsubsitution solve upper triangular banded `R @ c = y.`
-
-    `R` is in the "packed" format:
-    R[i, :] is `a[i, i:i+k+2]`
-    """
-    n, k1 = R.shape
-    assert y.shape[0] == n
-
-    c = np.zeros_like(y)
-    c[n-1] = y[n-1] / R[n-1, 0]
-    for i in range(n-2, -1, -1):
-        nel = min(k+1, n-i)
-        # NB: broadcast R across trailing dimensions of `c`.
-        c[i] = ( y[i] - (R[i, 1:nel, None] * c[i+1:i+nel]).sum() ) / R[i, 0]
-
-    return c
 
 
 #############################
