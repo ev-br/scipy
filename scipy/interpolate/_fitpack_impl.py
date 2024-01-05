@@ -291,7 +291,7 @@ def splrep(x, y, w=None, xb=None, xe=None, k=3, task=0, s=None, t=None,
             except KeyError as e:
                 raise _iermess['unknown'][1](_iermess['unknown'][0]) from e
 
-   # breakpoint()
+    breakpoint()
 
     if s > 0  and not per:
         tt, _ = construct_knot_vector(x, y, s, k, w)
@@ -1134,6 +1134,19 @@ def disc(t, k):
     See Eqs. (9)-(10) of Ref. [1], or, equivalently, Eq. (3.43) of Ref. [2].
 
     This routine assumes internal knots are all simple (have multiplicity =1).
+
+    Parameters
+    ----------
+    t : ndarray, 1D, shape(n,)
+        Knots.
+    k : int
+        The spline degree
+
+    Returns
+    -------
+    disc : ndarray, shape(n-2*k-1, k+2)
+        The jumps of the k-th derivatives of b-splines at internal knots,
+        ``t[k+1], ...., t[n-k-1]``.
 
     Notes
     -----

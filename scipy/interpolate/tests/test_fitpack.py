@@ -70,6 +70,10 @@ class TestSmokeTests:
             return tol
 
         for k in range(1, 5):    # XXX: was range(1, 6) --- is problematic at k=5 w/symmetric y
+
+            if k == 3:
+                breakpoint()
+
             tck = splrep(x, v, s=s, per=per, k=k, xe=xe)
             tt = tck[0][k:-k] if at_nodes else x1
 

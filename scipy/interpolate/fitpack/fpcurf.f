@@ -286,6 +286,10 @@ c  initial value for p.
       do 255 i=1,nk1
          p = p+a(i,1)
  255  continue
+
+      print*, "p = ", p
+      print*, "a(1:nk1, 1) = ", a(1:nk1, 1)
+
       rn = nk1
       p = rn/p
       ich1 = 0
