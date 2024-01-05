@@ -193,8 +193,8 @@ c  determine the number of knots nplus we are going to add.
         nplus = min0(nplus*2,max0(npl1,nplus/2,1))
  150    fpold = fp
 
-       print*, 'nplus = ', nplus, "n, nest = ", n, nest, "npl1 = ",npl1
-     * ,fp
+c       print*, 'nplus = ', nplus, "n, nest = ", n, nest, "npl1 = ",npl1
+c     * ,fp
 
 c  compute the sum((w(i)*(y(i)-s(x(i))))**2) for each knot interval
 c  t(j+k) <= x(i) <= t(j+k+1) and store it in fpint(j),j=1,2,...nrint.
@@ -225,17 +225,17 @@ c  t(j+k) <= x(i) <= t(j+k+1) and store it in fpint(j),j=1,2,...nrint.
         do 190 l=1,nplus
 c  add a new knot.
 
-          print*, "before fpkot: "
-          print*, "t = ", t(1:n), "fp = ", fp
-          print*, "fpint = ", fpint
-          print*
+c          print*, "before fpkot: "
+c          print*, "t = ", t(1:n), "fp = ", fp
+c          print*, "fpint = ", fpint
+c          print*
 
           call fpknot(x,m,t,n,fpint,nrdata,nrint,nest,1)
 
-          print*, "after fpkot: "
-          print*, "t = ", t(1:n), "fp = ", fp
-          print*, "fpint = ", fpint
-          print*
+c          print*, "after fpkot: "
+c          print*, "t = ", t(1:n), "fp = ", fp
+c          print*, "fpint = ", fpint
+c          print*
 
 c  if n=nmax we locate the knots as for interpolation.
           if(n.eq.nmax) go to 10
@@ -272,10 +272,10 @@ c  evaluate the discontinuity jump of the kth derivative of the
 c  b-splines at the knots t(l),l=k+2,...n-k-1 and store in b.
       call fpdisc(t,n,k2,b,nest)
 
-      print*, 'n = ', n
-      do iii=1, nest
-          print*, b(iii, :)
-      enddo
+c      print*, 'n = ', n
+c      do iii=1, nest
+c          print*, b(iii, :)
+c      enddo
 
 c  initial value for p.
       p1 = 0.0d0
