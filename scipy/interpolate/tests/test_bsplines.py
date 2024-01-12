@@ -18,6 +18,7 @@ import scipy.sparse.linalg as ssl
 from scipy.interpolate._bsplines import (_not_a_knot, _augknt,
                                         _woodbury_algorithm, _periodic_knots,
                                          _make_interp_per_full_matr)
+from scipy.interpolate._fitpack_repro import generate_knots
 import scipy.interpolate._fitpack_impl as _impl
 from scipy._lib._util import AxisError
 
@@ -1015,7 +1016,7 @@ class TestInterp:
             make_interp_spline(x, y, k=k)
 
     def test_not_a_knot(self):
-        for k in [3, 5]:
+        for k in [2, 3, 4, 5, 6, 7]:
             b = make_interp_spline(self.xx, self.yy, k)
             assert_allclose(b(self.xx), self.yy, atol=1e-14, rtol=1e-14)
 
@@ -2543,4 +2544,124 @@ class TestFpchec:
         assert dfitpack.fpchec(x, t, k) == 50
         with pytest.raises(ValueError, match="Schoenberg-Whitney*"):
             _b.fpcheck(x, t, k)
+
+
+class TestGenerateKnots:
+    @pytest.mark.parametrize('k', [1, 2, 3, 4, 5])
+    def test_s0(self, k):
+        x = np.arange(8)
+        y = np.sin(x*np.pi/8)
+        t = list(generate_knots(x, y, k=k, s=0))[-1]
+
+        tt = splrep(x, y, k=k, s=0)[0]
+        assert_allclose(t, tt, atol=1e-15)
+
+    def test_s0_1(self):
+        # with these data, naive algorithm tries to insert >= nmax knots
+        n = 10
+        x = np.arange(n)
+        y = x**3
+        knots = list(generate_knots(x, y, k=3, s=0))   # does not error out
+        assert_allclose(knots[-1], _not_a_knot(x, 3), atol=1e-15)
+
+    def test_s0_n20(self):
+        n = 20
+        x = np.arange(n)
+        y = x**3
+        knots = list(generate_knots(x, y, k=3, s=0))
+        assert_allclose(knots[-1], _not_a_knot(x, 3), atol=1e-15)
+
+    def test_s0_nest(self):
+        # s=0 and non-default nest: not implemented, errors out
+        x = np.arange(10)
+        y = x**3
+        with assert_raises(ValueError):
+            list(generate_knots(x, y, k=3, s=0, nest=10))
+
+    def test_s_switch(self):
+        # test the process switching to interpolating knots when len(t) == m + k + 1
+        """
+        To generate the `wanted` list below apply the following diff and rerun
+        the test. The stdout will contain successive iterations of the `t`
+        array.
+
+$ git diff scipy/interpolate/fitpack/fpcurf.f
+diff --git a/scipy/interpolate/fitpack/fpcurf.f b/scipy/interpolate/fitpack/fpcurf.f
+index 1afb1900f1..d817e51ad8 100644
+--- a/scipy/interpolate/fitpack/fpcurf.f
++++ b/scipy/interpolate/fitpack/fpcurf.f
+@@ -216,6 +216,9 @@ c  t(j+k) <= x(i) <= t(j+k+1) and store it in fpint(j),j=1,2,...nrint.
+         do 190 l=1,nplus
+ c  add a new knot.
+           call fpknot(x,m,t,n,fpint,nrdata,nrint,nest,1)
++          print*, l, nest, ': ', t
++          print*, "n, nmax = ", n, nmax
++
+ c  if n=nmax we locate the knots as for interpolation.
+           if(n.eq.nmax) go to 10
+ c  test whether we cannot further increase the number of knots.
+        """
+        x = np.arange(8)
+        y = np.sin(x*np.pi/8)
+        k = 3
+
+        knots = list(generate_knots(x, y, k=k, s=1e-7))
+        wanted = [[0., 0., 0., 0., 7., 7., 7., 7.],
+                  [0., 0., 0., 0., 4., 7., 7., 7., 7.],
+                  [0., 0., 0., 0., 2., 4., 7., 7., 7., 7.], 
+                  [0., 0., 0., 0., 2., 4., 6., 7., 7., 7., 7.],
+                  [0., 0., 0., 0., 2., 3., 4., 5., 7, 7., 7., 7.]
+        ]
+
+        assert len(knots) == len(wanted)
+        for t, tt in zip(knots, wanted):
+            assert_allclose(t, tt, atol=1e-15)
+
+        # also check that the last knot vector matches FITPACK
+        t, _, _ = splrep(x, y, k=k, s=1e-7)
+        assert_allclose(knots[-1], t, atol=1e-15)
+
+    def test_nest(self):
+        # test that nest < nmax stops the process early (and we get 10 knots not 12)
+        x = np.arange(8)
+        y = np.sin(x*np.pi/8)
+        s = 1e-7
+
+        knots = list(generate_knots(x, y, k=3, s=s, nest=10))
+        assert_allclose(knots[-1],
+                        [0., 0., 0., 0., 2., 4., 7., 7., 7., 7.], atol=1e-15)
+
+        with assert_raises(ValueError):
+            # nest < 2*(k+1)
+            list(generate_knots(x, y, k=3, nest=4))
+
+    def test_weights(self):
+        x = np.arange(8)
+        y = np.sin(x*np.pi/8)
+
+        with assert_raises(ValueError):
+            list(generate_knots(x, y, w=np.arange(11)))   # len(w) != len(x)
+
+        with assert_raises(ValueError):
+            list(generate_knots(x, y, w=-np.ones(8)))    # w < 0
+
+    @pytest.mark.parametrize("npts", [30, 50, 100])
+    @pytest.mark.parametrize("s", [0.1, 1e-2, 0])
+    def test_vs_splrep(self, s, npts):
+        # XXX this test is brittle: differences start apearing for k=3 and s=1e-6,
+        # also for k != 3. Might be worth investigating at some point.
+        # I think we do not really guarantee exact agreement with splrep. Instead,
+        # we guarantee it is the same *in most cases*; otherwise slight differences
+        # are allowed. There is no theorem, it is al heuristics by P. Dierckx.
+        # The best we can do it to best-effort reproduce it.
+        rndm = np.random.RandomState(12345)
+        x = 10*np.sort(rndm.uniform(size=npts))
+        y = np.sin(x*np.pi/10) + np.exp(-(x-6)**2)
+
+
+        k = 3
+        t = splrep(x, y, k=k, s=s)[0]
+        tt = list(generate_knots(x, y, k=k, s=s))[-1]
+
+        assert_allclose(tt, t, atol=1e-15)
 

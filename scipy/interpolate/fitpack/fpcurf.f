@@ -216,6 +216,9 @@ c  t(j+k) <= x(i) <= t(j+k+1) and store it in fpint(j),j=1,2,...nrint.
         do 190 l=1,nplus
 c  add a new knot.
           call fpknot(x,m,t,n,fpint,nrdata,nrint,nest,1)
+          print*, l, nest, ': ', t
+          print*, "n, nmax = ", n, nmax
+
 c  if n=nmax we locate the knots as for interpolation.
           if(n.eq.nmax) go to 10
 c  test whether we cannot further increase the number of knots.
