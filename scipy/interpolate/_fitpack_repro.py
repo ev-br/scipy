@@ -51,13 +51,16 @@ def _add_knot(x, y, t, k, w):
 
     and https://github.com/scipy/scipy/blob/v1.11.4/scipy/interpolate/fitpack/fpknot.f
     """
-    fparts, x_intervals = _split(x, y, t, k, w)
+    fparts, ix = _split(x, y, t, k, w)
+
+    ### redo
+    assert all(ix == np.searchsorted(x, t[k:-k]))
 
     # find the interval with max fparts and non-zero number of x values inside
     idx_max = -101
     fpart_max = -1e100
     for i in range(len(fparts)):
-        if x_intervals[i] != x_intervals[i+1] and fparts[i] > fpart_max:
+        if ix[i+1] - ix[i] > 1 and fparts[i] > fpart_max:
             idx_max = i
             fpart_max = fparts[i]
 
@@ -65,7 +68,7 @@ def _add_knot(x, y, t, k, w):
         raise ValueError("Internal error, please report it to SciPy developers.")
 
     # round up, like Dierckx does? This is really arbitrary though.
-    idx_newknot = (x_intervals[idx_max] + x_intervals[idx_max+1] + 1) // 2
+    idx_newknot = (ix[idx_max] + ix[idx_max+1] + 1) // 2
     new_knot = x[idx_newknot]
 
     idx_t = np.searchsorted(t, new_knot)
@@ -112,7 +115,26 @@ def _split(x, y, t, k, w):
 
     x_intervals.append(len(x)-1)
     fparts.append(fpart)
+
     return fparts, x_intervals
+
+    '''
+    The whole _split routine is basically this:
+
+    ix = np.searchsorted(x, t[k:-k])
+    fparts = [residuals[ix[i]:ix[i+1]].sum() for i in range(len(ix)-1)]   # sum half-open intervals
+    carries = residuals[x[ix[1:-1]]]
+
+    for i in range(len(carries)):     # split residuals at internal knots
+        carry = carries[i] / 2
+        fparts[i] += carry
+        fparts[i+1] -= carry
+
+    fparts[-1] += residuals[-1]       # add the contribution of the last knot
+
+    assert sum(fparts) == sum(residuals)
+    '''
+
 
 
 def _validate_inputs(x, y, w, k, s, bbox):
@@ -253,6 +275,10 @@ def generate_knots(x, y, k=3, *, s=0, w=None, nest=None, bbox=(None, None)):
     # c  main loop for the different sets of knots. m is a safe upper bound
     # c  for the number of trials.
     for _ in range(m):
+
+     #   if _ > 3:
+     #       breakpoint()
+
         yield t
 
         # construct the LSQ spline with this set of knots

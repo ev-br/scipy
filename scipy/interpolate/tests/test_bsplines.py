@@ -1,6 +1,7 @@
 import os
 import operator
 import itertools
+import warnings
 
 import numpy as np
 from numpy.testing import assert_equal, assert_allclose, assert_
@@ -2668,6 +2669,19 @@ index 1afb1900f1..d817e51ad8 100644
 
         assert_allclose(tt, t, atol=1e-15)
 
+    def test_s_too_small(self):
+        n = 14
+        x = np.arange(n)
+        y = x**3
+
+        # XXX splrep warns that "s too small": ier=2
+        knots = list(generate_knots(x, y, k=3, s=1e-50))
+
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            tck = splrep(x, y, k=3, s=1e-50)
+        assert_equal(knots[-1], tck[0])
+
 
 class TestMakeSplrep:
     def _get_xykt(self):
@@ -2758,10 +2772,15 @@ class TestMakeSplrep:
 
     @pytest.mark.xfail     # FIXME
     def test_s_too_small(self):
-        n = 20
+        n = 14
         x = np.arange(n)
         y = x**3
 
         # XXX splrep warns that "s too small": ier=2
-        make_splrep(x, y, k=3, s=1e-50)
+        spl = make_splrep(x, y, k=3, s=1e-50)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            tck = splrep(x, y, k=3, s=1e-50)
+        #assert_equal(knots[-1], tck[0])
 
