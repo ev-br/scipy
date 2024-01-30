@@ -2770,17 +2770,15 @@ class TestMakeSplrep:
 
         assert_allclose(spl.c, spl_i.c, atol=1e-15)
 
-    @pytest.mark.xfail     # FIXME
     def test_s_too_small(self):
-        n = 14
+        n, k = 14, 3
         x = np.arange(n)
         y = x**3
 
-        # XXX splrep warns that "s too small": ier=2
-        spl = make_splrep(x, y, k=3, s=1e-50)
+        with pytest.warns(RuntimeWarning):
+            spl = make_splrep(x, y, k=k, s=1e-50)
+            t, c, k = splrep(x, y, k=k, s=1e-50)
 
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            tck = splrep(x, y, k=3, s=1e-50)
-        #assert_equal(knots[-1], tck[0])
+        assert_allclose(spl.c, c[:n], atol=1e-13)
+        assert_allclose(spl.t, t, atol=1e-15)
 
