@@ -189,7 +189,7 @@ def generate_knots(x, y, k=3, *, s=0, w=None, nest=None, bbox=(None, None)):
     >>> x = np.linspace(-3, 3, 50)
     >>> y = np.exp(-x**2) + 0.1 * rng.standard_normal(size=50)
 
-    >>> knots = list(generate_knots(x, y))
+    >>> knots = list(generate_knots(x, y, s=1e-10))
     >>> for t in knots[::3]:
     ...     spl = make_lsq_spline(x, y, t)
     ...     xs = xs = np.linspace(-3, 3, 201)
