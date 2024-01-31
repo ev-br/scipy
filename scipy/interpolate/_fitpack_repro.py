@@ -705,7 +705,7 @@ def root_rati(f, p0, bracket, acc):
 
     for it in range(MAXIT):
         fp = f(p)
-        print(f"{it = },   {p = }")
+        #print(f"{it = },   {p = }")
 
         # c  test whether the approximation sp(x) is an acceptable solution.
         if abs(fp) < acc:
