@@ -1629,116 +1629,20 @@ class PackedMatrix:
         return out
 
 
-def _qr_reduce(a_p, y, startrow=1):
-    """Solve the LSQ problem ||y - A@c||^2 via QR factorization.
-
-    QR factorization follows FITPACK: we reduce A row-by-row by Givens rotations.
-
-    To zero out the lower triangle, we use in the row `i` and column `j < i`,
-    the diagonal element in that column. That way, the sequence is
-    (here `[x]` are the pair of elements to Givens-rotate)
-
-     [x] x x x       x  x  x x      x  x  x x      x x  x  x      x x x x
-     [x] x x x  ->   0 [x] x x  ->  0 [x] x x  ->  0 x  x  x  ->  0 x x x
-      0  x x x       0 [x] x x      0  0  x x      0 0 [x] x      0 0 x x
-      0  x x x       0  x  x x      0 [x] x x      0 0 [x] x      0 0 0 x
-
-    The matrix A has a special structure: each row has at most (k+1) non-zeros, so
-    is encoded as a PackedMatrix instance.
-
-    On exit, the return matrix, also of shape (m, k+1), contains
-    elements of the upper triangular matrix `R[i, i: i + k + 1]`.
-    When we process the element (i, j), we store the rotated row in R[i, :],
-    and *shift it to the left*, so that the the diagonal element is always in the
-    zero-th place. This way, the process above becomes
-
-
-     [x] x x x       x  x x x       x  x x x       x  x x x      x x x x
-     [x] x x x  ->  [x] x x -  ->  [x] x x -   ->  x  x x -  ->  x x x -
-      x  x x -      [x] x x -       x  x - -      [x] x - -      x x - -
-      x  x x -       x  x x -      [x] x x -      [x] x - -      x - - -
-
-    The most confusing part is that when rotating the row `i` with a row `j`
-    above it, the offsets differ: for the upper row  `j`, `R[j, 0]` is the diagonal
-    element, while for the row `i`, `R[i, 0]` is the element being annihilated.
-
-    NB. This row-by-row Givens reduction process follows FITPACK:
-    https://github.com/scipy/scipy/blob/maintenance/1.11.x/scipy/interpolate/fitpack/fpcurf.f#L112-L161
-    A possibly more efficient way could be to note that all data points which
-    lie between two knots all have the same offset: if `t[i] < x_1 .... x_s < t[i+1]`,
-    the `s-1` corresponding rows form an `(s-1, k+1)`-sized "block".
-    Then a blocked QR implementation could look like
-    https://people.sc.fsu.edu/~jburkardt/f77_src/band_qr/band_qr.f
-
-    The `startrow` optional argument accounts for the scenatio with a two-step
-    factorization. Namely, the preceding rows are assumend to be already
-    processed and are skipped.
-    This is to account for the scenario where we append new rows to an already
-    triangularized matrix.
-    """
-    # unpack the packed format
-    a = a_p.a
-    offset = a_p.offset
-    nc = a_p.nc
-
-    m, nz = a.shape
-
-    assert y.shape[0] == m
-    R = a.copy()
-    y1 = y.copy()
-
-    for i in range(startrow, m):
-        oi = offset[i]
-        for j in range(oi, nc):
-            # rotate only the lower diagonal
-            if j >= min(i, nc):
-                break
-
-            # In dense format: diag a1[j, j] vs a1[i, j]
-            c, s, r = dlartg(R[j, 0], R[i, 0])
-
-            # rotate l.h.s.
-            R[j, 0] = r
-            for l in range(1, nz):
-                R[j, l], R[i, l-1] = fprota(c, s, R[j, l], R[i, l])
-            R[i, -1] = 0.0
-
-            # rotate r.h.s.
-            for l in range(y1.shape[1]):
-                y1[j, l], y1[i, l] = fprota(c, s, y1[j, l], y1[i, l])
-
-    # convert to packed
-    offs = list(range(nc))
-    R_p = PackedMatrix(R[:nc, :], np.array(offs), nc)
-
-    return R_p, y1
-
-
-def fprota(c, s, a, b):
-    """Givens rotate [a, b].
-
-    [aa] = [ c s] @ [a]
-    [bb]   [-s c]   [b]
-
-    """
-    aa =  c*a + s*b
-    bb = -s*a + c*b
-    return aa, bb
-
-
 def fpback(R_p, y):
     """Backsubsitution solve upper triangular banded `R @ c = y.`
 
     `R` is in the "packed" format: `R[i, :]` is `a[i, i:i+k+1]`
     """
     R = R_p.a
-    n, nz = R.shape
-    assert y.shape[0] == n
+    _, nz = R.shape
+    nc = R_p.nc
+    assert y.shape[0] == R.shape[0]
 
-    c = np.zeros_like(y)
-    c[n-1, ...] = y[n-1] / R[n-1, 0]
-    for i in range(n-2, -1, -1):
-        nel = min(nz, n-i)
+    c = np.zeros_like(y[:nc])
+    c[nc-1, ...] = y[nc-1] / R[nc-1, 0]
+    for i in range(nc-2, -1, -1):
+        nel = min(nz, nc-i)
         # NB: broadcast R across trailing dimensions of `c`.
         c[i, ...] = ( y[i] - (R[i, 1:nel, None] * c[i+1:i+nel, ...]).sum() ) / R[i, 0]
     return c
@@ -1761,15 +1665,17 @@ def _lsq_solve_qr(x, y, t, k, w):
     assert nc == t.shape[0] - k - 1
 
     offset = a_w.indices[::(k+1)]
+    offset = np.ascontiguousarray(offset, dtype=np.intp)
+
     A = a_w.data.reshape(m, k+1)
-    A = PackedMatrix(A, offset, nc)
-    R, qTy = _qr_reduce(A, y_w)
+    R = PackedMatrix(A, offset, nc)
+    _bspl._qr_reduce(R, y_w)         # modifies arguments in-place
 
-    c = fpback(R, qTy[:nc])
+    c = fpback(R, y_w)
 
-    assert qTy.ndim == 2
+    assert y_w.ndim == 2
 
-    return R, qTy, c
+    return R, y_w, c
 
 
 #############################

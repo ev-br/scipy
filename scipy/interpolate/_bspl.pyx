@@ -13,8 +13,15 @@ from libc.math cimport NAN
 
 cnp.import_array()
 
-cdef extern from "src/__fitpack.h":
+cdef extern from "src/__fitpack.h" namespace "fitpack":
     void _deBoor_D(const double *t, double x, int k, int ell, int m, double *result) nogil
+    void __qr_reduce(double *aptr, const ssize_t m, const ssize_t nz,    # a
+                     ssize_t *offset,
+                     const ssize_t nc,
+                     double *yptr, const ssize_t ydim1,                  # y
+                     const ssize_t startrow
+    ) nogil except+
+
 
 ctypedef double complex double_complex
 
@@ -838,3 +845,24 @@ def _colloc_nd(double[:, ::1] xvals, tuple t not None, npy_int32[::1] k):
             csr_data[j*volume + iflat] = factor
 
     return np.asarray(csr_data), np.asarray(csr_indices), csr_indptr
+
+
+# ---------------------------
+# wrappers for fitpack repro
+# ---------------------------
+def _qr_reduce(A, y, startrow=1):
+    # A is a PackedMatrix instance, unpack
+    # _trampoline is to check contiguity etc
+    return _qr_reduce_trampoline(A.a, A.offset, A.nc, y, startrow)
+
+
+cdef void _qr_reduce_trampoline(double[:, ::1] a, ssize_t[::1] offset, ssize_t nc,
+                                double[:, ::1] y,
+                                ssize_t startrow=1) nogil:
+    __qr_reduce(&a[0, 0], a.shape[0], a.shape[1],
+                &offset[0],
+                nc,
+                &y[0, 0], y.shape[1],
+                startrow)
+
+

@@ -1602,6 +1602,133 @@ class TestLSQ:
         assert_allclose(spl_1(xx), spl_2(xx), atol=1e-15)
 
 
+def _qr_reduce_py(a_p, y, startrow=1):
+    """This is a python counterpart of the `_qr_reduce` routine,
+    defined in interpolate/src/__fitpack.h
+    """
+    from scipy.linalg.lapack import dlartg
+
+    # unpack the packed format
+    a = a_p.a
+    offset = a_p.offset
+    nc = a_p.nc
+
+    m, nz = a.shape
+
+    assert y.shape[0] == m
+    R = a.copy()
+    y1 = y.copy()
+
+    for i in range(startrow, m):
+        oi = offset[i]
+        for j in range(oi, nc):
+            # rotate only the lower diagonal
+            if j >= min(i, nc):
+                break
+
+            # In dense format: diag a1[j, j] vs a1[i, j]
+            c, s, r = dlartg(R[j, 0], R[i, 0])
+
+            # rotate l.h.s.
+            R[j, 0] = r
+            for l in range(1, nz):
+                R[j, l], R[i, l-1] = fprota(c, s, R[j, l], R[i, l])
+            R[i, -1] = 0.0
+
+            # rotate r.h.s.
+            for l in range(y1.shape[1]):
+                y1[j, l], y1[i, l] = fprota(c, s, y1[j, l], y1[i, l])
+
+    # convert to packed
+    offs = list(range(R.shape[0]))
+    R_p = _b.PackedMatrix(R, np.array(offs), nc)
+
+    return R_p, y1
+
+
+def fprota(c, s, a, b):
+    """Givens rotate [a, b].
+
+    [aa] = [ c s] @ [a]
+    [bb]   [-s c]   [b]
+
+    """
+    aa =  c*a + s*b
+    bb = -s*a + c*b
+    return aa, bb
+
+
+class TestGivensQR:
+    # Test row-by-row QR factorization, used for the LSQ spline construction.
+    # This is implementation detail; still test it separately.
+    def _get_xyt(self, n):
+        k = 3
+        x = np.arange(n)
+        y = x**3 + 1/(1+x)
+        t = _not_a_knot(x, k)
+        return x, y, t, k
+
+    def test_vs_full(self):
+        n = 10
+        x, y, t, k = self._get_xyt(n)
+
+        # design matrix
+        a_csr = BSpline.design_matrix(x, t, k)
+
+        # dense QR
+        q, r = sl.qr(a_csr.todense())
+        qTy = q.T @ y
+
+        # prepare the PackedMatrix to factorize
+        # convert to "packed" format
+        m, nc = a_csr.shape
+        assert nc == t.shape[0] - k - 1
+
+        offset = a_csr.indices[::(k+1)]
+        offset = np.ascontiguousarray(offset, dtype=np.intp)
+        A = a_csr.data.reshape(m, k+1)
+
+        R = _b.PackedMatrix(A, offset, nc)
+        y_ = y[:, None]     # _qr_reduce requires `y` a 2D array
+        _bspl._qr_reduce(R, y_)         # modifies arguments in-place        
+
+        # signs may differ
+        assert_allclose(np.minimum(R.todense() + r,
+                                   R.todense() - r), 0, atol=1e-15)
+        assert_allclose(np.minimum(abs(qTy - y_[:, 0]),
+                                   abs(qTy + y_[:, 0])), 0, atol=2e-13)
+
+        # sign changes are consistent between Q and R:
+        c_full = sl.solve(r, qTy)
+        c_banded = _b.fpback(R, y_)
+        assert_allclose(c_full, c_banded[:, 0], atol=5e-13)
+
+    def test_py_vs_compiled(self):
+        # test _qr_reduce vs a python implementation
+        n = 10
+        x, y, t, k = self._get_xyt(n)
+
+        # design matrix
+        a_csr = BSpline.design_matrix(x, t, k)
+        m, nc = a_csr.shape
+        assert nc == t.shape[0] - k - 1
+
+        offset = a_csr.indices[::(k+1)]
+        offset = np.ascontiguousarray(offset, dtype=np.intp)
+        A = a_csr.data.reshape(m, k+1)
+
+        R = _b.PackedMatrix(A, offset, nc)
+        y_ = y[:, None]
+
+        RR, yy = _qr_reduce_py(R, y_)
+        _bspl._qr_reduce(R, y_)   # in-place
+
+        assert_allclose(RR.a, R.a, atol=1e-15)
+        assert_equal(RR.offset, R.offset)
+        assert RR.nc == R.nc
+        assert_allclose(yy, y_, atol=1e-15)
+
+
 def data_file(basename):
     return os.path.join(os.path.abspath(os.path.dirname(__file__)),
                         'data', basename)

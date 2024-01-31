@@ -9,8 +9,9 @@ import numpy as np
 
 from scipy.interpolate._bsplines import (
     _not_a_knot, make_lsq_spline, make_interp_spline, BSpline,
-    fpcheck, PackedMatrix, _qr_reduce, fpback, _lsq_solve_qr
+    fpcheck, PackedMatrix, fpback, _lsq_solve_qr
 )
+from scipy.interpolate._bspl import _qr_reduce
 
 #    cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 #    c  part 1: determination of the number of knots and their position     c
@@ -499,9 +500,6 @@ class F_dense:
         yy = y * self.w
         self.yy = np.r_[yy, np.zeros(self.b.shape[0])]    # XXX: weights ignored
 
-
-  #      breakpoint()
-
         self.s = s
 
     def __call__(self, p):
@@ -520,39 +518,6 @@ class F_dense:
         fp = np.sum(self.w**2 * (spl(self.x) - self.y)**2)
 
         self.spl = spl   # store it
-
-        print(">>>> dense,", p, fp)
-
-        ### replicate, packed ###
-        R, Y, _ = _lsq_solve_a(self.x, self.y, self.t, self.k, self.w)
-
-        # combine R & disc matrix
-        # m = self.x.shape[0]
-        nz = R.a.shape[1]
-        assert nz == self.k+1
-
-        AA = np.zeros((nc + self.b.shape[0], self.k+2), dtype=float)
-        AA[:nc, :R.a.shape[1]] = R.a
-        AA[nc:, :] = self.b.a / p
-        offs = np.r_[R.offset, self.b.offset]
-        AB = PackedMatrix(AA, offs, nc)
-
-        YY = np.r_[Y[:nc], np.zeros((self.b.shape[0], Y.shape[1]))]
-
-        # solve for the coefficients
-        RR, QY = _qr_reduce(AB, YY)
-        cc = fpback(RR, QY[:nc])
-        cc = cc.reshape((nc,) + self.yy.shape[1:])
-
-        from numpy.testing import assert_allclose
-
-
-        assert_allclose(cc, c, atol=1e-15)        
-
-        s_spl = BSpline(self.t, cc, self.k)
-
-        from numpy.testing import assert_allclose
-        assert_allclose(s_spl.c, spl.c, atol=1e-14)
 
         return fp - self.s
 
@@ -610,7 +575,8 @@ class F:
         # https://github.com/scipy/scipy/blob/maintenance/1.11.x/scipy/interpolate/fitpack/fpcurf.f#L269
         # c  the rows of matrix b with weight 1/p are rotated into the
         # c  triangularised observation matrix a which is stored in g.
-        nc, nz = R.a.shape
+        _, nz = R.a.shape
+        nc = R.nc
         assert nz == k + 1
 
         # r.h.s. of the augmented system
@@ -619,9 +585,9 @@ class F:
 
         # l.h.s. of the augmented system
         AA = np.zeros((nc + b.shape[0], self.k+2), dtype=float)
-        AA[:nc, :nz] = R.a
+        AA[:nc, :nz] = R.a[:nc, :]
         # AA[nc:, :] = b.a / p  # done in __call__(self, p)
-        offs = np.r_[R.offset, b.offset]
+        offs = np.r_[R.offset[:nc], b.offset]
         self.AB = PackedMatrix(AA, offs, nc)
 
         self.nc = nc
@@ -632,11 +598,17 @@ class F:
 
         # https://github.com/scipy/scipy/blob/maintenance/1.11.x/scipy/interpolate/fitpack/fpcurf.f#L279
         # c  the row of matrix b is rotated into triangle by givens transformation
-        self.AB.a[nc:, :] = self.b.a / p
-        RR, QY = _qr_reduce(self.AB, self.YY, startrow=nc)
+
+        # copy the precomputed matrices over for in-place work
+        R = PackedMatrix(self.AB.a.copy(), self.AB.offset.copy(), nc)
+        R.a[nc:, :] = self.b.a / p
+        QY = self.YY.copy()
+
+        # heavy lifting happens here, in-place
+        _qr_reduce(R, QY, startrow=nc)
 
         # solve for the coefficients
-        c = fpback(RR, QY[:nc])
+        c = fpback(R, QY)
         c = c.reshape((nc,) + self.y.shape[1:])
 
         spl = BSpline(self.t, c, self.k)
@@ -705,7 +677,6 @@ def root_rati(f, p0, bracket, acc):
 
     for it in range(MAXIT):
         fp = f(p)
-        #print(f"{it = },   {p = }")
 
         # c  test whether the approximation sp(x) is an acceptable solution.
         if abs(fp) < acc:
