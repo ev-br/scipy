@@ -122,7 +122,8 @@ def _split(x, y, t, k, w):
     The whole _split routine is basically this:
 
     ix = np.searchsorted(x, t[k:-k])
-    fparts = [residuals[ix[i]:ix[i+1]].sum() for i in range(len(ix)-1)]   # sum half-open intervals
+    # sum half-open intervals
+    fparts = [residuals[ix[i]:ix[i+1]].sum() for i in range(len(ix)-1)]
     carries = residuals[x[ix[1:-1]]]
 
     for i in range(len(carries)):     # split residuals at internal knots
@@ -137,7 +138,7 @@ def _split(x, y, t, k, w):
 
 
 
-def _validate_inputs(x, y, w, k, s, bbox):
+def _validate_inputs(x, y, w, k, s, xb, xe):
     """Common input validations for generate_knots and make_splrep.
     """
     x = np.asarray(x, dtype=float)
@@ -164,15 +165,15 @@ def _validate_inputs(x, y, w, k, s, bbox):
     if s < 0:
         raise ValueError(f"`s` must be non-negative. Got {s = }")
 
-    if bbox != (None, None):
-        xb, xe = bbox[0], bbox[1]
-    else:
-        xb, xe = min(x), max(x)
+    if xb is None:
+        xb = min(x)
+    if xe is None:
+        xe = max(x)
 
     return x, y, w, k, s, xb, xe
 
 
-def generate_knots(x, y, k=3, *, s=0, w=None, nest=None, bbox=(None, None)):
+def generate_knots(x, y, k=3, *, s=0, w=None, nest=None, xb=None, xe=None):
     """Replicate FITPACK's constructing the knot vector.
 
     Parameters
@@ -187,9 +188,12 @@ def generate_knots(x, y, k=3, *, s=0, w=None, nest=None, bbox=(None, None)):
         Weights.
     nest : int, optional
         Stop when at least this many knots are placed.
-    bbox : 2-tuple, optional
+    xb : float, optional
         The boundary of the approximation interval. If None (default),
-        ``bbox = [x[0], x[-1]]``.
+        is set to ``x[0]``.
+    xe : float, optional
+        The boundary of the approximation interval. If None (default),
+        is set to ``x[-1]``.
 
     Yields
     ------
@@ -250,7 +254,7 @@ def generate_knots(x, y, k=3, *, s=0, w=None, nest=None, bbox=(None, None)):
         yield t
         return
 
-    x, y, w, k, s, xb, xe = _validate_inputs(x, y, w, k, s, bbox)
+    x, y, w, k, s, xb, xe = _validate_inputs(x, y, w, k, s, xb, xe)
 
     acc = s * TOL
     m = x.size    # the number of data points
@@ -327,10 +331,10 @@ def generate_knots(x, y, k=3, *, s=0, w=None, nest=None, bbox=(None, None)):
     return
 
 
-def construct_knot_vector(x, y, s, k=3, w=None, nest=None, bbox=(None, None)):
+def construct_knot_vector(x, y, *, s, k=3, w=None, nest=None, xb=None, xe=None):
     # return the last value generated
     # XXX: needed? vs list(generate_knots(...))[-1]
-    for t in generate_knots(x, y, k=k, s=s, w=w, nest=nest, bbox=bbox):
+    for t in generate_knots(x, y, k=k, s=s, w=w, nest=nest, xb=xb, xe=xe):
         pass
     return t
 
@@ -523,7 +527,7 @@ class F_dense:
         R, Y, _ = _lsq_solve_a(self.x, self.y, self.t, self.k, self.w)
 
         # combine R & disc matrix
-        m = self.x.shape[0]
+        # m = self.x.shape[0]
         nz = R.a.shape[1]
         assert nz == self.k+1
 
@@ -747,12 +751,12 @@ def root_rati(f, p0, bracket, acc):
         ier, converged = 3, False
 
     if ier != 0:
-        warnings.warn(RuntimeWarning(_iermesg[ier]))
+        warnings.warn(RuntimeWarning(_iermesg[ier]), stacklevel=2)
 
     return Bunch(converged=converged, root=p, iterations=it, ier=ier)
 
 
-def make_splrep(x, y, t=None, w=None, k=3, s=0, bbox=(None, None), nest=None):
+def make_splrep(x, y, *, t=None, w=None, k=3, s=0, xb=None, xe=None, nest=None):
     """splrep replacement
     """
     if s == 0:
@@ -760,7 +764,7 @@ def make_splrep(x, y, t=None, w=None, k=3, s=0, bbox=(None, None), nest=None):
             raise ValueError("s==0 is for interpolation only")
         return make_interp_spline(x, y, k=k)
 
-    x, y, w, k, s, xb, xe = _validate_inputs(x, y, w, k, s, bbox)
+    x, y, w, k, s, xb, xe = _validate_inputs(x, y, w, k, s, xb, xe)
 
     acc = s * TOL
     m = x.size    # the number of data points
@@ -774,7 +778,7 @@ def make_splrep(x, y, t=None, w=None, k=3, s=0, bbox=(None, None), nest=None):
             raise ValueError(f"`nest` too small: {nest = } < 2*(k+1) = {2*(k+1)}.")    
 
     if t is None:
-        t = list(generate_knots(x, y, w=w, k=k, s=s, bbox=bbox, nest=nest))[-1]
+        t = list(generate_knots(x, y, w=w, k=k, s=s, xb=xb, xe=xe, nest=nest))[-1]
     else:
         fpcheck(x, t, k)
 
@@ -807,7 +811,7 @@ def make_splrep(x, y, t=None, w=None, k=3, s=0, bbox=(None, None), nest=None):
     # solve
     bracket = (0, fp0), (np.inf, fpinf)
     f = F(x, y, t, k=k, s=s, w=w, R=R, Y=Y)
-    res = root_rati(f, p, bracket, acc)
+    _ = root_rati(f, p, bracket, acc)
 
     # solve ALTERNATIVE
  #   f = F(x, y, t, k=k, s=s, w=w, R=R, Y=Y)
