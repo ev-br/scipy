@@ -81,6 +81,7 @@ Tensor product polynomials:
    make_lsq_spline
    make_smoothing_spline
    generate_knots
+   make_splrep
 
 Functional interface to FITPACK routines:
 
