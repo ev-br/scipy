@@ -781,6 +781,7 @@ def make_splrep(x, y, t=None, w=None, k=3, s=0, bbox=(None, None), nest=None):
     if t.shape[0] == 2 * (k + 1):
         # nothing to optimize
         _, _, c = _lsq_solve_a(x, y, t, k, w)
+        c = c.squeeze()  # was (nc, 1)
         return BSpline.construct_fast(t, c, k)
 
     ### solve ###

@@ -2782,3 +2782,18 @@ class TestMakeSplrep:
         assert_allclose(spl.c, c[:n], atol=1e-13)
         assert_allclose(spl.t, t, atol=1e-15)
 
+    def test_shape(self):
+        # make sure coefficients have the right shape (not extra dims)
+        n, k = 10, 3
+        x = np.arange(n)
+        y = x**3
+
+        spl = make_splrep(x, y, k=k)
+        spl_1 = make_splrep(x, y, k=k, s=1e-5)
+
+        assert spl.c.ndim == 1
+        assert spl_1.c.ndim == 1
+
+        # force the general code path, not shortcuts
+        spl_2 = make_splrep(x, y + 1/(1+y), k=k, s=1e-5)
+        assert spl_2.c.ndim == 1

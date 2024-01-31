@@ -27,7 +27,7 @@ class TestUnivariateSpline:
 
         spl = make_splrep(x, y, k=1, s=len(x))
         assert_allclose(spl.t[1:-1], lut.get_knots(), atol=1e-15)
-        assert_allclose(spl.c.squeeze(), lut.get_coeffs(), atol=1e-15)
+        assert_allclose(spl.c, lut.get_coeffs(), atol=1e-15)
 
     def test_preserve_shape(self):
         x = [1, 2, 3]
