@@ -216,9 +216,6 @@ c  t(j+k) <= x(i) <= t(j+k+1) and store it in fpint(j),j=1,2,...nrint.
         do 190 l=1,nplus
 c  add a new knot.
           call fpknot(x,m,t,n,fpint,nrdata,nrint,nest,1)
-          print*, l, nest, ': ', t(1:n)
-          print*, "n, nmax = ", n, nmax
-
 c  if n=nmax we locate the knots as for interpolation.
           if(n.eq.nmax) go to 10
 c  test whether we cannot further increase the number of knots.
@@ -269,9 +266,6 @@ c  initial value for p.
       n8 = n-nmin
 c  iteration process to find the root of f(p) = s.
       do 360 iter=1,maxit
-
-        print*, 'iter = ', iter, 'p = ', p
-
 c  the rows of matrix b with weight 1/p are rotated into the
 c  triangularised observation matrix a which is stored in g.
         pinv = one/p
@@ -362,7 +356,5 @@ c  error codes and messages.
  420  ier = 1
       go to 440
  430  ier = -1
- 440  continue
-      print*, "p = ", p, fpms, "iter = ", iter
-      return
+ 440  return
       end
