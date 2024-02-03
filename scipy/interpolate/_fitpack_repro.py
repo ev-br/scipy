@@ -35,7 +35,7 @@ def _get_residuals(x, y, t, k, w):
     return residuals
 
 
-def _add_knot(x, y, t, k, w):
+def _add_knot(x, t, k, residuals):
     """Add a new knot.
 
     (Approximately) replicate FITPACK's logic:
@@ -52,7 +52,7 @@ def _add_knot(x, y, t, k, w):
 
     and https://github.com/scipy/scipy/blob/v1.11.4/scipy/interpolate/fitpack/fpknot.f
     """
-    fparts, ix = _split(x, y, t, k, w)
+    fparts, ix = _split(x, t, k, residuals)
 
     ### redo
     assert all(ix == np.searchsorted(x, t[k:-k]))
@@ -78,7 +78,7 @@ def _add_knot(x, y, t, k, w):
     return t_new
 
 
-def _split(x, y, t, k, w):
+def _split(x, t, k, residuals):
     """Split the `x` array into knot intervals and compute the residuals.
 
     The intervals are `t(j+k) <= x(i) <= t(j+k+1)`. Return the arrays of
@@ -92,7 +92,7 @@ def _split(x, y, t, k, w):
 # c  search for knot interval t(number+k) <= x <= t(number+k+1) where
 # c  fpint(number) is maximal on the condition that nrdata(number)
 # c  not equals zero.
-    residuals = _get_residuals(x, y, t, k, w)
+   # residuals = _get_residuals(x, y, t, k, w)
 
     interval = k+1
     x_intervals = [0]
@@ -280,10 +280,6 @@ def generate_knots(x, y, k=3, *, s=0, w=None, nest=None, xb=None, xe=None):
     # c  main loop for the different sets of knots. m is a safe upper bound
     # c  for the number of trials.
     for _ in range(m):
-
-     #   if _ > 3:
-     #       breakpoint()
-
         yield t
 
         # construct the LSQ spline with this set of knots
@@ -310,7 +306,7 @@ def generate_knots(x, y, k=3, *, s=0, w=None, nest=None, xb=None, xe=None):
 
         # actually add knots
         for j in range(nplus):
-            t = _add_knot(x, y, t, k, w)
+            t = _add_knot(x, t, k, residuals)
 
             # check if we have enough knots already
 
@@ -327,6 +323,10 @@ def generate_knots(x, y, k=3, *, s=0, w=None, nest=None, xb=None, xe=None):
             if (n >= nest):
                 yield t
                 return
+
+            # recompute if needed
+            if j < nplus - 1:
+                residuals = _get_residuals(x, y, t, k, w=w)
 
     # this should never be reached
     return
