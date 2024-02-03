@@ -137,9 +137,9 @@ struct Array2D
 
 
 // Flip boundschecking on/off here
-typedef Array2D<double, true> RealArray2D;
-typedef Array1D<double, true> RealArray1D;
-typedef Array1D<const double, true> ConstRealArray1D;
+typedef Array2D<double, false> RealArray2D;
+typedef Array1D<double, false> RealArray1D;
+typedef Array1D<const double, false> ConstRealArray1D;
 
 
 /*
@@ -183,8 +183,23 @@ __find_interval(const double* tptr, ssize_t len_t,
 }
 
 
+/*
+ * Fill the (m, k+1) matrix of non-zero b-splines. A row gives b-splines
+ * which are non-zero at the corresponding value of `x`.
+ * Also for each row store the `offset`: with full matrices, the non-zero elements
+ * in row `i` start at `offset[i]`. IOW,
+ * A_full[i, offset[i]: offset[i] + k + 1] = A_packed[i, :].
+ *
+ * What we construct here is `A_packed` and `offset` arrays.
+ *
+ * We also take into account possible weights for each `x` value: they
+ * multiply the rows of the data matrix.
+ *
+ * To reconstruct the full dense matrix, `A_full`, we would need to know the
+ * number of its columns, `nc`. So we return it, too.
+ */
 inline
-void __construct_nonz_bspl(const double *xptr, ssize_t m,
+void __data_matrix(const double *xptr, ssize_t m,
                            const double *tptr, ssize_t len_t,
                            int k,
                            const double *wptr,   // NB: len(w) == len(x), not checked
@@ -197,7 +212,7 @@ void __construct_nonz_bspl(const double *xptr, ssize_t m,
     auto t = ConstRealArray1D(tptr, len_t);
     auto w = ConstRealArray1D(wptr, m);
     auto A = RealArray2D(Aptr, m, k+1);
-    auto offset = Array1D<ssize_t, true>(offset_ptr, m);
+    auto offset = Array1D<ssize_t, false>(offset_ptr, m);
 
     ssize_t ind = k;
     for (int i=0; i < m; ++i) { 
@@ -207,8 +222,7 @@ void __construct_nonz_bspl(const double *xptr, ssize_t m,
         ind = __find_interval(t.data, len_t, k, xval, ind, 0);
         if (ind < 0){
             // should not happen here, validation is expected on the python side
-            auto mesg = "find_interval: out of bounds with x = " + std::to_string(xval);
-            throw std::runtime_error(mesg);
+            throw std::runtime_error("find_interval: out of bounds with x = " + std::to_string(xval));
         }
         offset(i) = ind - k;
 
@@ -221,21 +235,6 @@ void __construct_nonz_bspl(const double *xptr, ssize_t m,
     }
 
     *nc = len_t - k - 1;
-
-/*
-        # Find correct interval. Note that interval >= 0 always as
-        # extrapolate=False and out of bound values are already dealt with in
-        # design_matrix
-        ind = find_interval(t, k, xval, ind, extrapolate)
-        _deBoor_D(&t[0], xval, k, ind, 0, &work[0])
-
-        # data[(k + 1) * i : (k + 1) * (i + 1)] = work[:k + 1]
-        # indices[(k + 1) * i : (k + 1) * (i + 1)] = np.arange(ind - k, ind + 1)
-        for j in range(k + 1):
-            m = (k + 1) * i + j
-            data[m] = work[j]
-            indices[m] = ind - k + j
-*/
 }
 
 

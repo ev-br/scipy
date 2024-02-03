@@ -1656,40 +1656,16 @@ def _lsq_solve_qr(x, y, t, k, w):
     """
     assert y.ndim == 2
 
-    A_, offset_, nc_ = _bspl._construct_nonz_bspl(x, t, k, w)
-    R_ = PackedMatrix(A_, offset_, nc_)
-
+    A, offset, nc = _bspl._data_matrix(x, t, k, w)
     y_w = y * w[:, None]
-
-    """
-    # this
-    a_csr = BSpline.design_matrix(x, t, k)
-    a_w = (a_csr * w[:, None]).tocsr()
-    y_w = y * w[:, None]
-
-    # convert to "packed" format
-    m, nc = a_w.shape
-    assert nc == t.shape[0] - k - 1
-
-    offset = a_w.indices[::(k+1)]
-    offset = np.ascontiguousarray(offset, dtype=np.intp)
-
-    A = a_w.data.reshape(m, k+1)
-
-    from numpy.testing import assert_allclose, assert_equal
-    assert_allclose(A_, A, atol=1e-15)
-    assert_equal(offset_, offset)
-    assert_equal(nc_, nc)
     R = PackedMatrix(A, offset, nc)
-    """
+    _bspl._qr_reduce(R, y_w)         # modifies arguments in-place
 
-    _bspl._qr_reduce(R_, y_w)         # modifies arguments in-place
-
-    c = fpback(R_, y_w)
+    c = fpback(R, y_w)
 
     assert y_w.ndim == 2
 
-    return R_, y_w, c
+    return R, y_w, c
 
 
 #############################

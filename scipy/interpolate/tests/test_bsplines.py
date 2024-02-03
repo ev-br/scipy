@@ -1666,7 +1666,7 @@ class TestGivensQR:
     # This is implementation detail; still test it separately.
     def _get_xyt(self, n):
         k = 3
-        x = np.arange(n)
+        x = np.arange(n, dtype=float)
         y = x**3 + 1/(1+x)
         t = _not_a_knot(x, k)
         return x, y, t, k
@@ -1731,6 +1731,24 @@ class TestGivensQR:
         assert RR.nc == R.nc
         assert_allclose(yy, y_, atol=1e-15)
 
+    # Test C-level construction of the design matrix
+
+    def test_data_matrix(self):
+        n = 10
+        x, y, t, k = self._get_xyt(n)
+        w = np.arange(1, n+1, dtype=float)
+        A, offset, nc = _bspl._data_matrix(x, t, k, w)
+
+
+        m = x.shape[0]
+        a_csr = BSpline.design_matrix(x, t, k)
+        a_w = (a_csr * w[:, None]).tocsr()
+        A_ = a_w.data.reshape((m, k+1))
+        offset_ = a_w.indices[::(k+1)]
+
+        assert_allclose(A, A_, atol=1e-15)
+        assert_equal(offset, offset_)
+        assert nc == t.shape[0] - k - 1
 
 def data_file(basename):
     return os.path.join(os.path.abspath(os.path.dirname(__file__)),
