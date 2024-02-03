@@ -121,6 +121,114 @@ struct Array
 };
 
 
+// Flip boundschecking on/off here
+typedef Array2D<double, true> RealArray2D;
+typedef Array1D<double, true> RealArray1D;
+typedef Array1D<const double, true> ConstRealArray1D;
+
+
+/*
+ *  Find an interval such that t[interval] <= xval < t[interval+1].
+ */
+inline
+ssize_t
+__find_interval(const double* tptr, ssize_t len_t,
+                int k,
+                double xval,
+                ssize_t prev_l,
+                int extrapolate)
+{
+    ConstRealArray1D t = ConstRealArray1D(tptr, len_t);
+
+    ssize_t n = t.nelem - k - 1;
+    double tb = t(k);
+    double te = t(n);
+
+    if (xval != xval) {
+        // nan
+        return -1;
+    }
+
+    if (((xval < tb) || (xval > te)) && !extrapolate) {
+        return -1;
+    }
+    ssize_t l = (k < prev_l) && (prev_l < n) ? prev_l : k;
+
+    // xval is in support, search for interval s.t. t[interval] <= xval < t[l+1]
+    while ((xval < t(l)) && (l != k)) {
+        l -= 1;
+    }
+
+    l += 1;
+    while ((xval >= t(l)) && (l != n)) {
+        l += 1;
+    }
+
+    return l-1;
+}
+
+
+inline
+void __construct_nonz_bspl(const double *xptr, ssize_t m,
+                           const double *tptr, ssize_t len_t,
+                           int k,
+                           const double *wptr,   // NB: len(w) == len(x), not checked
+                           double *Aptr,         // outputs
+                           ssize_t *offset_ptr,
+                           ssize_t *nc,
+                           double *wrk)         // work array
+{
+    auto x = ConstRealArray1D(xptr, m);
+    auto t = ConstRealArray1D(tptr, len_t);
+    auto w = ConstRealArray1D(wptr, m);
+    auto A = RealArray2D(Aptr, m, k+1);
+    auto offset = Array1D<ssize_t, true>(offset_ptr, m);
+
+    ssize_t ind = k;
+    for (int i=0; i < m; ++i) { 
+        double xval = x(i);
+
+        // find the interval  
+        ind = __find_interval(t.data, len_t, k, xval, ind, 0);
+        if (ind < 0){
+            // should not happen here, validation is expected on the python side
+            auto mesg = "find_interval: out of bounds with x = " + std::to_string(xval);
+            throw std::runtime_error(mesg);
+        }
+        offset(i) = ind - k;
+
+        // compute non-zero b-splines
+        _deBoor_D(t.data, xval, k, ind, 0, wrk);
+
+        for (ssize_t j=0; j < k+1; ++j) {
+            A(i, j) = wrk[j] * w(i);
+        }
+    }
+
+    *nc = len_t - k - 1;
+
+/*
+        # Find correct interval. Note that interval >= 0 always as
+        # extrapolate=False and out of bound values are already dealt with in
+        # design_matrix
+        ind = find_interval(t, k, xval, ind, extrapolate)
+        _deBoor_D(&t[0], xval, k, ind, 0, &work[0])
+
+        # data[(k + 1) * i : (k + 1) * (i + 1)] = work[:k + 1]
+        # indices[(k + 1) * i : (k + 1) * (i + 1)] = np.arange(ind - k, ind + 1)
+        for j in range(k + 1):
+            m = (k + 1) * i + j
+            data[m] = work[j]
+            indices[m] = ind - k + j
+*/
+}
+
+
+
+/*
+ * Linear algebra: banded QR via Givens transforms.
+ */
+
 template<typename T>
 inline
 std::tuple<T, T> fprota(T c, T s, T a, T b)

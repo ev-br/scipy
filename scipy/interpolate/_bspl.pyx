@@ -22,6 +22,15 @@ cdef extern from "src/__fitpack.h" namespace "fitpack":
                      const ssize_t startrow
     ) nogil except+
 
+    void __construct_nonz_bspl(const double *xptr, ssize_t m,
+                               const double *tptr, ssize_t len_t,
+                               int k,
+                               const double *wptr,   # NB: len(w) == len(x), not checked
+                               double *Aptr,    # outputs
+                               ssize_t *offset_ptr,
+                               Py_ssize_t *nc,
+                               double *wrk) except+ nogil
+
 
 ctypedef double complex double_complex
 
@@ -865,4 +874,25 @@ cdef void _qr_reduce_trampoline(double[:, ::1] a, ssize_t[::1] offset, ssize_t n
                 &y[0, 0], y.shape[1],
                 startrow)
 
+def _construct_nonz_bspl(const double[::1] x,
+                         const double[::1] t,
+                         int k,
+                         const double[::1] w):
+    cdef:
+         ssize_t m = x.shape[0]
+         double[:, ::1] A = np.empty((m, k+1), dtype=float)
+         ssize_t[::1] offset = np.zeros(m, dtype=np.intp)
+         double[::1] wrk = np.empty(2*k+2, dtype=float)
+         ssize_t nc
+
+    __construct_nonz_bspl(&x[0], m,
+                          &t[0], t.shape[0],
+                          k,
+                          &w[0],       # NB: len(w) == len(x), not checked
+                          &A[0, 0],    # outputs
+                          &offset[0],
+                          &nc,
+                          &wrk[0],     # work array
+    )
+    return np.asarray(A), np.asarray(offset), int(nc)
 
