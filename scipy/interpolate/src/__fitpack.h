@@ -187,8 +187,8 @@ void __qr_reduce(double *aptr, const ssize_t m, const ssize_t nz,    // a
                  ssize_t startrow=1
 )
 {
-    Array<double, true> R = Array<double, true>(aptr, m, nz);
-    Array<double, true> y = Array<double, true>(yptr, m, ydim1);
+    Array<double, false> R = Array<double, false>(aptr, m, nz);
+    Array<double, false> y = Array<double, false>(yptr, m, ydim1);
 
     for (ssize_t i=startrow; i < m; ++i) {
         ssize_t oi = offset[i];

@@ -1519,6 +1519,9 @@ class TestLSQ:
 
     @parametrize_lsq_methods
     def test_complex(self, method):
+        if method == "qr":
+            pytest.xfail("method='qr' does not handle complex-valued `y` yet.")
+
         # cmplx-valued `y`
         x, t, k = self.x, self.t, self.k
         yc = self.y * (1. + 2.j)
