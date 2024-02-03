@@ -2856,7 +2856,7 @@ class TestMakeSplrep:
         from scipy.interpolate._fitpack_repro import F, F_dense
 
         x, y, k, s, t = self._get_xykt()
-        w = np.arange(x.shape[0])
+        w = np.arange(x.shape[0], dtype=float)
         fw = F(x, y, t, k, s, w=w)
         fw_d = F_dense(x, y, t, k, s, w=w)
 
