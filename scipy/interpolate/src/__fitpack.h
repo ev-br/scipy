@@ -105,9 +105,24 @@ void _bcheck<false>(ssize_t index, ssize_t size, ssize_t dim) { /* noop*/ }
 ////////////////////////////
 
 
+template<typename T, bool boundscheck=true>
+struct Array1D
+{
+    T* data;
+    ssize_t nelem;
+    T& operator()(const ssize_t i) {
+        _bcheck<boundscheck>(i, nelem, 0);
+        return *(data + i);
+    }
+    Array1D(T *ptr, ssize_t num_elem) : data(ptr), nelem(num_elem) {};
+  //  Array1D(const T *ptr, ssize_t num_elem) : data((const T*)ptr), nelem(num_elem) {};
+};
+
+
+
 // XXX ndim != 2, if needed
 template<typename T, bool boundscheck=true>
-struct Array
+struct Array2D
 {
     T* data;
     ssize_t nrows;
@@ -117,7 +132,7 @@ struct Array
         _bcheck<boundscheck>(j, ncols, 1);
         return *(data + ncols*i + j);
     }
-    Array(T *ptr, ssize_t num_rows, ssize_t num_columns) : data(ptr), nrows(num_rows), ncols(num_columns) {};
+    Array2D(T *ptr, ssize_t num_rows, ssize_t num_columns) : data(ptr), nrows(num_rows), ncols(num_columns) {};
 };
 
 
@@ -228,7 +243,6 @@ void __construct_nonz_bspl(const double *xptr, ssize_t m,
 /*
  * Linear algebra: banded QR via Givens transforms.
  */
-
 template<typename T>
 inline
 std::tuple<T, T> fprota(T c, T s, T a, T b)
@@ -295,8 +309,9 @@ void __qr_reduce(double *aptr, const ssize_t m, const ssize_t nz,    // a
                  ssize_t startrow=1
 )
 {
-    Array<double, false> R = Array<double, false>(aptr, m, nz);
-    Array<double, false> y = Array<double, false>(yptr, m, ydim1);
+    //Array<double, false> R = Array<double, false>(aptr, m, nz);
+    RealArray2D R = RealArray2D(aptr, m, nz);
+    RealArray2D y = RealArray2D(yptr, m, ydim1);
 
     for (ssize_t i=startrow; i < m; ++i) {
         ssize_t oi = offset[i];

@@ -21,6 +21,11 @@ cdef extern from "src/__fitpack.h" namespace "fitpack":
                      double *yptr, const ssize_t ydim1,                  # y
                      const ssize_t startrow
     ) nogil except+
+    ssize_t __find_interval(const double *tptr, ssize_t len_t,
+                            int k,
+                            double xval,
+                            ssize_t prev_l,
+                            int extrapolate) noexcept nogil
 
     void __construct_nonz_bspl(const double *xptr, ssize_t m,
                                const double *tptr, ssize_t len_t,
@@ -79,30 +84,7 @@ cdef inline int find_interval(const double[::1] t,
         Suitable interval or -1 if xval was nan.
 
     """
-    cdef:
-        int l
-        int n = t.shape[0] - k - 1
-        double tb = t[k]
-        double te = t[n]
-
-    if xval != xval:
-        # nan
-        return -1
-
-    if ((xval < tb) or (xval > te)) and not extrapolate:
-        return -1
-
-    l = prev_l if k < prev_l < n else k
-
-    # xval is in support, search for interval s.t. t[interval] <= xval < t[l+1]
-    while(xval < t[l] and l != k):
-        l -= 1
-
-    l += 1
-    while(xval >= t[l] and l != n):
-        l += 1
-
-    return l-1
+    return __find_interval(&t[0], t.shape[0], k, xval, prev_l, extrapolate)
 
 
 @cython.wraparound(False)
