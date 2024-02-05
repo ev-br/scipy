@@ -137,9 +137,10 @@ struct Array2D
 
 
 // Flip boundschecking on/off here
-typedef Array2D<double, false> RealArray2D;
-typedef Array1D<double, false> RealArray1D;
-typedef Array1D<const double, false> ConstRealArray1D;
+typedef Array2D<double, true> RealArray2D;
+typedef Array1D<double, true> RealArray1D;
+typedef Array1D<const double, true> ConstRealArray1D;
+typedef Array2D<const double, true> ConstRealArray2D;
 
 
 /*
@@ -308,7 +309,6 @@ void __qr_reduce(double *aptr, const ssize_t m, const ssize_t nz,    // a
                  ssize_t startrow=1
 )
 {
-    //Array<double, false> R = Array<double, false>(aptr, m, nz);
     RealArray2D R = RealArray2D(aptr, m, nz);
     RealArray2D y = RealArray2D(yptr, m, ydim1);
 
@@ -342,8 +342,37 @@ void __qr_reduce(double *aptr, const ssize_t m, const ssize_t nz,    // a
         }
 
     } // for(i = ...
+}
 
 
+void __fpback(const double *Rptr, ssize_t m, ssize_t nz,    // R(m, nz), packed
+              ssize_t nc,
+              const double *yptr, ssize_t ydim2,            // y(m, ydim2)
+              double *cptr)
+{
+    auto R = ConstRealArray2D(Rptr, m, nz);
+    auto y = ConstRealArray2D(yptr, m, ydim2);
+    auto c = RealArray2D(cptr, nc, ydim2);
+
+    // c[nc-1, ...] = y[nc-1] / R[nc-1, 0]
+    for (ssize_t l=0; l < ydim2; ++l) {
+        c(nc - 1, l) = y(nc - 1, l) / R(nc-1, 0); 
+    }
+
+    //for i in range(nc-2, -1, -1):
+    //    nel = min(nz, nc-i)
+    //    c[i, ...] = ( y[i] - (R[i, 1:nel, None] * c[i+1:i+nel, ...]).sum(axis=0) ) / R[i, 0]
+    for (ssize_t i=nc-2; i >= 0; --i) {
+        ssize_t nel = std::min(nz, nc - i);
+        for (ssize_t l=0; l < ydim2; ++l){
+            double ssum = y(i, l);
+            for (ssize_t j=1; j < nel; ++j) {
+                ssum -= R(i, j) * c(i + j, l);
+            }
+            ssum /= R(i, 0);
+            c(i, l) = ssum;
+        }
+    }
 }
 
 

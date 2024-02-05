@@ -1518,6 +1518,27 @@ class TestLSQ:
         assert_equal(b.c.shape, (t.size-k-1, 5, 6, 7))
 
     @parametrize_lsq_methods
+    def test_multiple_rhs_2(self, method):
+        x, t, k, n = self.x, self.t, self.k, self.n
+        nrhs = 3
+        y = np.random.random(size=(n, nrhs))
+        b = make_lsq_spline(x, y, t, k, method=method)
+
+        bb = [make_lsq_spline(x, y[:, i], t, k, method=method)
+              for i in range(nrhs)]
+        coefs = np.vstack([bb[i].c for i in range(nrhs)]).T
+
+        assert_allclose(coefs, b.c, atol=1e-15)
+
+    def test_multiple_rhs_3(self):
+        x, t, k, n = self.x, self.t, self.k, self.n
+        nrhs = 3
+        y = np.random.random(size=(n, nrhs))
+        b_qr = make_lsq_spline(x, y, t, k, method="qr")
+        b_neq = make_lsq_spline(x, y, t, k, method="norm-eq")
+        assert_allclose(b_qr.c, b_neq.c, atol=1e-15)
+
+    @parametrize_lsq_methods
     def test_complex(self, method):
         if method == "qr":
             pytest.xfail("method='qr' does not handle complex-valued `y` yet.")

@@ -36,6 +36,11 @@ cdef extern from "src/__fitpack.h" namespace "fitpack":
                        Py_ssize_t *nc,
                        double *wrk) except+ nogil
 
+    void __fpback(const double *Rptr, ssize_t m, ssize_t nz,
+                  ssize_t nc,
+                  const double *yptr, ssize_t ydim2,
+                  double *cptr)
+
 
 ctypedef double complex double_complex
 
@@ -878,3 +883,28 @@ def _data_matrix(const double[::1] x,
     )
     return np.asarray(A), np.asarray(offset), int(nc)
 
+
+def _fpback(R, y):
+    # R is a PackedMatrix instance, unpack
+    return _fpback_trampoline(R.a, R.nc, y)
+
+
+cdef object _fpback_trampoline(const double[:, ::1] R, ssize_t nc,
+                               const double[:, ::1] y):
+    cdef:
+        ssize_t m = R.shape[0]
+        ssize_t nz = R.shape[1]
+
+    if y.shape[0] != m:
+        raise ValueError(f"{y.shape = } != {m =}.")
+    if nc > m:
+        raise ValueError(f"{nc = } > {m = }.")
+
+    cdef double[:, ::1] c = np.empty_like(y[:nc, :])
+
+    __fpback(&R[0, 0], m, nz,
+             nc,
+             &y[0, 0], y.shape[1],
+             &c[0, 0])
+
+    return np.asarray(c)

@@ -1644,7 +1644,7 @@ def fpback(R_p, y):
     for i in range(nc-2, -1, -1):
         nel = min(nz, nc-i)
         # NB: broadcast R across trailing dimensions of `c`.
-        c[i, ...] = ( y[i] - (R[i, 1:nel, None] * c[i+1:i+nel, ...]).sum() ) / R[i, 0]
+        c[i, ...] = ( y[i] - (R[i, 1:nel, None] * c[i+1:i+nel, ...]).sum(axis=0) ) / R[i, 0]
     return c
 
 
@@ -1662,6 +1662,10 @@ def _lsq_solve_qr(x, y, t, k, w):
     _bspl._qr_reduce(R, y_w)         # modifies arguments in-place
 
     c = fpback(R, y_w)
+
+    cc = _bspl._fpback(R, y_w)
+    from numpy.testing import assert_allclose
+    assert_allclose(c, cc, atol=3e-13)
 
     assert y_w.ndim == 2
 
