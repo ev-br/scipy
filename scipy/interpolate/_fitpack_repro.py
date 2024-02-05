@@ -8,7 +8,7 @@ import math
 import numpy as np
 
 from scipy.interpolate._bsplines import (
-    _not_a_knot, make_lsq_spline, make_interp_spline, BSpline,
+    _not_a_knot, make_interp_spline, BSpline,
     fpcheck, PackedMatrix, fpback, _lsq_solve_qr
 )
 from scipy.interpolate._bspl import _qr_reduce
@@ -27,10 +27,16 @@ MAXIT = 20
 def _get_residuals(x, y, t, k, w):
  #   from scipy.interpolate._bsplines import make_lsq_spline
     # FITPACK has (w*(spl(x)-y))**2; make_lsq_spline has w*(spl(x)-y)**2
-
     w2 = w**2
-    # XXX: reuse the QR solver from gh-19753
-    spl = make_lsq_spline(x, y, w=w2, t=t, k=k)
+
+    # inline the relevant part of >>> spl = make_lsq_spline(x, y, w=w2, t=t, k=k)
+    assert y.ndim == 1
+    yy = y[:, None]
+    _, _, c = _lsq_solve_qr(x, yy, t, k, w)
+    c = c.reshape(c.shape[0])
+    c = np.ascontiguousarray(c)
+    spl = BSpline.construct_fast(t, c, k)
+
     residuals = w2 * (spl(x) - y)**2
     return residuals
 
