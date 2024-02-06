@@ -1682,6 +1682,25 @@ def fprota(c, s, a, b):
     return aa, bb
 
 
+def fpback(R_p, y):
+    """Backsubsitution solve upper triangular banded `R @ c = y.`
+
+    `R` is in the "packed" format: `R[i, :]` is `a[i, i:i+k+1]`
+    """
+    R = R_p.a
+    _, nz = R.shape
+    nc = R_p.nc
+    assert y.shape[0] == R.shape[0]
+
+    c = np.zeros_like(y[:nc])
+    c[nc-1, ...] = y[nc-1] / R[nc-1, 0]
+    for i in range(nc-2, -1, -1):
+        nel = min(nz, nc-i)
+        # NB: broadcast R across trailing dimensions of `c`.
+        c[i, ...] = ( y[i] - (R[i, 1:nel, None] * c[i+1:i+nel, ...]).sum(axis=0) ) / R[i, 0]
+    return c
+
+
 class TestGivensQR:
     # Test row-by-row QR factorization, used for the LSQ spline construction.
     # This is implementation detail; still test it separately.
@@ -1760,7 +1779,6 @@ class TestGivensQR:
         w = np.arange(1, n+1, dtype=float)
         A, offset, nc = _bspl._data_matrix(x, t, k, w)
 
-
         m = x.shape[0]
         a_csr = BSpline.design_matrix(x, t, k)
         a_w = (a_csr * w[:, None]).tocsr()
@@ -1770,6 +1788,7 @@ class TestGivensQR:
         assert_allclose(A, A_, atol=1e-15)
         assert_equal(offset, offset_)
         assert nc == t.shape[0] - k - 1
+
 
 def data_file(basename):
     return os.path.join(os.path.abspath(os.path.dirname(__file__)),

@@ -14,6 +14,9 @@ from scipy.sparse import csr_array
 from scipy.special import poch
 from itertools import combinations
 
+fpback = _bspl._fpback    # FIXME: remove
+
+
 __all__ = ["BSpline", "make_interp_spline", "make_lsq_spline",
            "make_smoothing_spline"]
 
@@ -1629,24 +1632,6 @@ class PackedMatrix:
         return out
 
 
-def fpback(R_p, y):
-    """Backsubsitution solve upper triangular banded `R @ c = y.`
-
-    `R` is in the "packed" format: `R[i, :]` is `a[i, i:i+k+1]`
-    """
-    R = R_p.a
-    _, nz = R.shape
-    nc = R_p.nc
-    assert y.shape[0] == R.shape[0]
-
-    c = np.zeros_like(y[:nc])
-    c[nc-1, ...] = y[nc-1] / R[nc-1, 0]
-    for i in range(nc-2, -1, -1):
-        nel = min(nz, nc-i)
-        # NB: broadcast R across trailing dimensions of `c`.
-        c[i, ...] = ( y[i] - (R[i, 1:nel, None] * c[i+1:i+nel, ...]).sum(axis=0) ) / R[i, 0]
-    return c
-
 
 def _lsq_solve_qr(x, y, t, k, w):
     """Solve for the LSQ spline coeffs given x, y and knots.
@@ -1660,12 +1645,7 @@ def _lsq_solve_qr(x, y, t, k, w):
     y_w = y * w[:, None]
     R = PackedMatrix(A, offset, nc)
     _bspl._qr_reduce(R, y_w)         # modifies arguments in-place
-
-    c = fpback(R, y_w)
-
-    cc = _bspl._fpback(R, y_w)
-    from numpy.testing import assert_allclose
-    assert_allclose(c, cc, atol=3e-13)
+    c = _bspl._fpback(R, y_w)
 
     assert y_w.ndim == 2
 
