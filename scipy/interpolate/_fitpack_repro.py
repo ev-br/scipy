@@ -99,27 +99,27 @@ def _validate_inputs(x, y, w, k, s, xb, xe):
     return x, y, w, k, s, xb, xe
 
 
-def generate_knots(x, y, k=3, *, s=0, w=None, nest=None, xb=None, xe=None):
+def generate_knots(x, y, *, w=None, xb=None, xe=None, k=3, s=0, nest=None):
     """Replicate FITPACK's constructing the knot vector.
 
     Parameters
     ----------
     x, y : array_like
         The data points defining the curve ``y = f(x)``.
-    k : int, optional
-        The spline degree. Default is cubic, ``k = 3``.
-    s : float, optional
-        The smoothing factor.
     w : array_like, optional
         Weights.
-    nest : int, optional
-        Stop when at least this many knots are placed.
     xb : float, optional
         The boundary of the approximation interval. If None (default),
         is set to ``x[0]``.
     xe : float, optional
         The boundary of the approximation interval. If None (default),
         is set to ``x[-1]``.
+    k : int, optional
+        The spline degree. Default is cubic, ``k = 3``.
+    s : float, optional
+        The smoothing factor. Default is ``s = 0``.
+    nest : int, optional
+        Stop when at least this many knots are placed.
 
     Yields
     ------
@@ -653,8 +653,103 @@ def root_rati(f, p0, bracket, acc):
     return Bunch(converged=converged, root=p, iterations=it, ier=ier)
 
 
-def make_splrep(x, y, *, t=None, w=None, k=3, s=0, xb=None, xe=None, nest=None):
-    """splrep replacement
+def make_splrep(x, y, *, w=None, xb=None, xe=None, k=3, s=0, t=None, nest=None):
+    r"""Find the B-spline representation of a 1D function.
+
+    Given the set of data points ``(x[i], y[i])``, determine a smooth spline
+    approximation of degree ``k`` on the interval ``xb <= x <= xe``.
+
+    Parameters
+    ----------
+    x, y : array_like, shape (m,)
+        The data points defining a curve ``y = f(x)``.
+    w : array_like, shape (m,), optional
+        Strictly positive 1D array of weights, of the same length as `x` and `y`.
+        The weights are used in computing the weighted least-squares spline
+        fit. If the errors in the y values have standard-deviation given by the
+        vector ``d``, then `w` should be ``1/d``.
+        Default is ``np.ones(m)``.
+    xb, xe : float, optional
+        The interval to fit.  If None, these default to ``x[0]`` and ``x[-1]``,
+        respectively.
+    k : int, optional
+        The degree of the spline fit. It is recommended to use cubic splines,
+        ``k=3``, which is the default. Even values of `k` should be avoided,
+        especially with small `s` values.
+    s : float, optional
+        The smoothing condition. The amount of smoothness is determined by
+        satisfying the conditions::
+
+            sum((w * (g(x)  - y))**2 ) <= s
+
+        where ``g(x)`` is the smoothed fit to ``(x, y)``. The user can use `s`
+        to control the tradeoff between closeness to data and smoothness of fit.
+        Larger `s` means more smoothing while smaller values of `s` indicate less
+        smoothing.
+        Recommended values of `s` depend on the weights, `w`. If the weights
+        represent the inverse of the standard deviation of `y`, then a good `s`
+        value should be found in the range ``(m-sqrt(2*m), m+sqrt(2*m))`` where
+        ``m`` is the number of datapoints in `x`, `y`, and `w`.
+        Default is ``s = 0.0``, i.e. interpolation.
+    t : array_like, optional
+        The spline knots. If None (default), the knots will be constructed
+        automatically. 
+    nest : int, optional
+        The target length of the knot vector. Should be between ``2*(k+1)``
+        (the minimum number of knots for a degree-``k`` spline), and
+        ``m + k + 1`` (the number of knots of the interpolating spline).
+        The actual number of knots returned by this routine may be slightly
+        larger than `nest`.
+        Default is None (no limit).
+
+    Returns
+    -------
+    spl : a BSpline instance
+
+    See Also
+    --------
+    generate_knots : is used under the hood for generating the knots
+    make_interp_spline : construct an interpolating spline (``s = 0``)
+    make_lsq_spline : construct the least-squares spline given the knot vector
+    splrep : a FITPACK analog of this routine
+    
+    Notes
+    -----
+
+    This routine constructs the smoothing spline function, :math:`g(x)`, to
+    minimize the sum of jumps, :math:`D_j`, of the ``k``-th derivative at the
+    internal knots,
+
+        .. math::
+
+                \sum_i | D_i |^2 \to \mathrm{min}
+
+    provided that
+
+        .. math::
+
+               sum_{j=1}^m (w_j \times (g(x_j) - y_j)^2 \leqslant s
+
+    In other words, we balance maximizing the smoothness (measured as the jumps
+    of the derivative, the first criterion), and the deviation of :math:`g(x_j)`
+    from the data :math:`y_j` (the second criterion).
+
+    Note that the summation in the second criterion is over all data points,
+    and in the first criterion it is over the internal spline knots (i.e.
+    those with ``xb < t[j] < xe``). The spline knots are in general a subset
+    of data, see `generate_knots` for details.
+
+    Also note the difference of this routine to `make_lsq_spline`: the latter
+    routine does not consider smoothness and simply solves a least-squares
+    problem
+
+        .. math::
+
+            \sum w_j \times (g(x_j) - y_j)^2 \to \mathrm{min}
+
+    for a spline function :math:`g(x)` with a _fixed_ knot vector ``t``.
+
+
     """
     if s == 0:
         if t is not None or w is not None or nest is not None:
@@ -673,6 +768,8 @@ def make_splrep(x, y, *, t=None, w=None, k=3, s=0, xb=None, xe=None, nest=None):
     else:
         if nest < 2*(k+1):
             raise ValueError(f"`nest` too small: {nest = } < 2*(k+1) = {2*(k+1)}.")    
+        if t is not None:
+            raise ValueError("Either supply `t` or `nest`.")
 
     if t is None:
         t = list(generate_knots(x, y, w=w, k=k, s=s, xb=xb, xe=xe, nest=nest))[-1]
