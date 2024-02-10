@@ -1,10 +1,9 @@
 import os
 import operator
 import itertools
-import warnings
 
 import numpy as np
-from numpy.testing import assert_equal, assert_allclose, assert_
+from numpy.testing import assert_equal, assert_allclose, assert_, suppress_warnings
 from pytest import raises as assert_raises
 import pytest
 
@@ -2957,13 +2956,51 @@ index 1afb1900f1..d817e51ad8 100644
         # XXX splrep warns that "s too small": ier=2
         knots = list(generate_knots(x, y, k=3, s=1e-50))
 
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
+        with suppress_warnings() as sup:
+            r = sup.record(RuntimeWarning)
             tck = splrep(x, y, k=3, s=1e-50)
+            assert len(r) == 1
         assert_equal(knots[-1], tck[0])
 
 
 class TestMakeSplrep:
+    def test_input_errors(self):
+        x = np.linspace(0, 10, 11)
+        y = np.linspace(0, 10, 12)
+        with assert_raises(ValueError):
+            # len(x) != len(y)
+            make_splrep(x, y)
+
+        w = np.ones(12)
+        with assert_raises(ValueError):
+            # len(weights) != len(x)
+            make_splrep(x, x**3, w=w)
+
+        w = -np.ones(12)
+        with assert_raises(ValueError):
+            # w < 0
+            make_splrep(x, x**3, w=w)
+
+        with assert_raises(ValueError):
+            # x not ordered
+            make_splrep(x[::-1], x**3)
+
+        with assert_raises(TypeError):
+            # k != int(k)
+            make_splrep(x, x**3, k=2.5)
+
+        with assert_raises(ValueError):
+            # s < 0
+            make_splrep(x, x**3, s=-1)
+
+        with assert_raises(ValueError):
+            # nest < 2*k + 2
+            make_splrep(x, x**3, k=3, nest=2)
+
+        with assert_raises(ValueError):
+            # nest not None and s==0
+            make_splrep(x, x**3, s=0, nest=11)
+
     def _get_xykt(self):
         x = np.linspace(0, 5, 11)
         y  = np.sin(x*3.14 / 5)**2
@@ -3080,3 +3117,17 @@ class TestMakeSplrep:
         spl_2 = make_splrep(x, y + 1/(1+y), k=k, s=1e-5)
         assert spl_2.c.ndim == 1
 
+    def test_s_too_small(self):
+        # both splrep and make_splrep warn that "s too small": ier=2
+        n = 14
+        x = np.arange(n)
+        y = x**3
+
+        with suppress_warnings() as sup:
+            r = sup.record(RuntimeWarning)
+            tck = splrep(x, y, k=3, s=1e-50)
+            spl = make_splrep(x, y, k=3, s=1e-50)
+            assert len(r) == 2
+            assert_equal(spl.t, tck[0])
+            assert_allclose(np.r_[spl.c, [0]*(spl.k+1)],
+                            tck[1], atol=5e-13)
