@@ -13,8 +13,6 @@ from scipy.sparse import csr_array
 from scipy.special import poch
 from itertools import combinations
 
-fpback = _bspl._fpback    # FIXME: remove
-
 
 __all__ = ["BSpline", "make_interp_spline", "make_lsq_spline",
            "make_smoothing_spline"]
@@ -1636,6 +1634,7 @@ def _lsq_solve_qr(x, y, t, k, w):
     """Solve for the LSQ spline coeffs given x, y and knots.
 
     `y` is always 2D: for 1D data, the shape is ``(m, 1)``.
+    `w` is always 1D: one weight value per `x` value.
 
     """
     assert y.ndim == 2

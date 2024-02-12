@@ -402,7 +402,7 @@ void fpback( /* inputs*/
 
 
 /*
- * A helper for _add_knot, below.
+ * A helper for _fpknot, below.
  *
  * Split the `x` array into knot "runs" and sum the residuals per "run".
  *
@@ -482,7 +482,7 @@ _split(ConstRealArray1D x, ConstRealArray1D t, int k, ConstRealArray1D residuals
  *   and https://github.com/scipy/scipy/blob/v1.11.4/scipy/interpolate/fitpack/fpknot.f
  */
 inline double
-_add_knot(const double *x_ptr, ssize_t m,
+fpknot(const double *x_ptr, ssize_t m,
           const double *t_ptr, ssize_t len_t,
           int k,
           const double *residuals_ptr)

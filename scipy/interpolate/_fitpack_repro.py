@@ -7,10 +7,9 @@ import numpy as np
 
 from scipy.interpolate._bsplines import (
     _not_a_knot, make_interp_spline, BSpline,
-    fpcheck, PackedMatrix, fpback, _lsq_solve_qr
+    fpcheck, PackedMatrix, _lsq_solve_qr
 )
-from scipy.interpolate._bspl import _qr_reduce
-from scipy.interpolate import _bspl
+from scipy.interpolate._bspl import _qr_reduce, _fpback, _fpknot
 
 #    cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 #    c  part 1: determination of the number of knots and their position     c
@@ -57,7 +56,7 @@ def add_knot(x, t, k, residuals):
 
     and https://github.com/scipy/scipy/blob/v1.11.4/scipy/interpolate/fitpack/fpknot.f
     """
-    new_knot = _bspl.add_knot(x, t, k, residuals)
+    new_knot = _fpknot(x, t, k, residuals)
 
     idx_t = np.searchsorted(t, new_knot)
     t_new = np.r_[t[:idx_t], new_knot, t[idx_t:]]
@@ -73,12 +72,18 @@ def _validate_inputs(x, y, w, k, s, xb, xe):
         raise NotImplementedError(f"{y.ndim = } not implemented yet.")
 
     if w is None:
-        w = np.ones_like(y, dtype=float)
+        w = np.ones_like(x, dtype=float)
     else:
         w = np.asarray(w, dtype=float)
+        if w.ndim != 1:
+            raise NotImplementedError(f"{w.ndim = } not implemented yet.")
         if (w < 0).any():
             raise ValueError("Weights must be non-negative")
-    if w.ndim != 1 or w.shape[0] != x.shape[0]:
+
+    if not parametric and y.ndim != 1:
+            raise NotImplementedError(f"{y.ndim = } not implemented yet.")
+
+    if w.shape[0] != x.shape[0]:
         raise ValueError(f"Weights is incompatible: {w.shape =} != {x.shape}.")
 
     if x.shape[0] != y.shape[0]:
@@ -534,7 +539,7 @@ class F:
         _qr_reduce(R, QY, startrow=nc)
 
         # solve for the coefficients
-        c = fpback(R, QY)
+        c = _fpback(R, QY)
         c = c.reshape((nc,) + self.y.shape[1:])
 
         spl = BSpline(self.t, c, self.k)
