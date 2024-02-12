@@ -8,7 +8,7 @@ from pytest import raises as assert_raises
 import pytest
 
 from scipy.interpolate import (
-        BSpline, BPoly, PPoly, make_interp_spline, make_lsq_spline, _bspl,
+        BSpline, BPoly, PPoly, make_interp_spline, make_lsq_spline,
         splev, splrep, splprep, splder, splantider, sproot, splint, insert,
         CubicSpline, NdBSpline, make_smoothing_spline, RegularGridInterpolator,
 )
@@ -20,7 +20,7 @@ from scipy.interpolate._bsplines import (_not_a_knot, _augknt,
                                          _make_interp_per_full_matr)
 
 # XXX: decide on how to expose these
-from scipy.interpolate import generate_knots, make_splrep
+from scipy.interpolate import generate_knots, make_splrep, make_splprep
 
 import scipy.interpolate._fitpack_impl as _impl
 from scipy._lib._util import AxisError
@@ -2972,23 +2972,32 @@ class TestMakeSplrep:
             # len(x) != len(y)
             make_splrep(x, y)
 
+        with assert_raises(ValueError):
+            # 0D inputs
+            make_splrep(1, 2, s=0.1)
+
+        with assert_raises(ValueError):
+            # y.ndim > 2
+            y = np.ones((x.size, 2, 2, 2))
+            make_splrep(x, y, s=0.1)
+
         w = np.ones(12)
         with assert_raises(ValueError):
             # len(weights) != len(x)
-            make_splrep(x, x**3, w=w)
+            make_splrep(x, x**3, w=w, s=0.1)
 
         w = -np.ones(12)
         with assert_raises(ValueError):
             # w < 0
-            make_splrep(x, x**3, w=w)
+            make_splrep(x, x**3, w=w, s=0.1)
 
         with assert_raises(ValueError):
             # x not ordered
-            make_splrep(x[::-1], x**3)
+            make_splrep(x[::-1], x**3, s=0.1)
 
         with assert_raises(TypeError):
             # k != int(k)
-            make_splrep(x, x**3, k=2.5)
+            make_splrep(x, x**3, k=2.5, s=0.1)
 
         with assert_raises(ValueError):
             # s < 0
@@ -2996,7 +3005,7 @@ class TestMakeSplrep:
 
         with assert_raises(ValueError):
             # nest < 2*k + 2
-            make_splrep(x, x**3, k=3, nest=2)
+            make_splrep(x, x**3, k=3, nest=2, s=0.1)
 
         with assert_raises(ValueError):
             # nest not None and s==0
@@ -3016,7 +3025,7 @@ class TestMakeSplrep:
         from scipy.interpolate._fitpack_repro import F, F_dense
 
         x, y, k, s, t = self._get_xykt()
-        f = F(x, y, t, k, s)
+        f = F(x, y[:, None], t, k, s)    # F expects y to be 2D
         f_d = F_dense(x, y, t, k, s)
         for p in [1, 10, 100]:
             assert_allclose(f(p), f_d(p), atol=1e-15)
@@ -3027,7 +3036,7 @@ class TestMakeSplrep:
 
         x, y, k, s, t = self._get_xykt()
         w = np.arange(x.shape[0], dtype=float)
-        fw = F(x, y, t, k, s, w=w)
+        fw = F(x, y[:, None], t, k, s, w=w)       # F expects y to be 2D
         fw_d = F_dense(x, y, t, k, s, w=w)
 
         f_d = F_dense(x, y, t, k, s)   # no weights
@@ -3091,16 +3100,19 @@ class TestMakeSplrep:
         assert_allclose(spl.c, spl_i.c, atol=1e-15)
 
     def test_s_too_small(self):
-        n, k = 14, 3
+        # both splrep and make_splrep warn that "s too small": ier=2
+        n = 14
         x = np.arange(n)
         y = x**3
 
-        with pytest.warns(RuntimeWarning):
-            spl = make_splrep(x, y, k=k, s=1e-50)
-            t, c, k = splrep(x, y, k=k, s=1e-50)
-
-        assert_allclose(spl.c, c[:n], atol=1e-13)
-        assert_allclose(spl.t, t, atol=1e-15)
+        with suppress_warnings() as sup:
+            r = sup.record(RuntimeWarning)
+            tck = splrep(x, y, k=3, s=1e-50)
+            spl = make_splrep(x, y, k=3, s=1e-50)
+            assert len(r) == 2
+            assert_equal(spl.t, tck[0])
+            assert_allclose(np.r_[spl.c, [0]*(spl.k+1)],
+                            tck[1], atol=5e-13)
 
     def test_shape(self):
         # make sure coefficients have the right shape (not extra dims)
@@ -3118,17 +3130,131 @@ class TestMakeSplrep:
         spl_2 = make_splrep(x, y + 1/(1+y), k=k, s=1e-5)
         assert spl_2.c.ndim == 1
 
-    def test_s_too_small(self):
-        # both splrep and make_splrep warn that "s too small": ier=2
-        n = 14
+    def test_s0_vs_not(self):
+        # check that the shapes are consistent
+        n, k = 10, 3
         x = np.arange(n)
         y = x**3
 
-        with suppress_warnings() as sup:
-            r = sup.record(RuntimeWarning)
-            tck = splrep(x, y, k=3, s=1e-50)
-            spl = make_splrep(x, y, k=3, s=1e-50)
-            assert len(r) == 2
-            assert_equal(spl.t, tck[0])
-            assert_allclose(np.r_[spl.c, [0]*(spl.k+1)],
-                            tck[1], atol=5e-13)
+        spl_0 = make_splrep(x, y, k=3, s=0)
+        spl_1 = make_splrep(x, y, k=3, s=1)
+
+        assert spl_0.c.ndim == 1
+        assert spl_1.c.ndim == 1
+
+        assert spl_0.t.shape[0] == n + k + 1
+        assert spl_1.t.shape[0] == 2 * (k + 1)
+
+
+class TestMakeSplprep:
+    def _get_xyk(self, m=10, k=3):
+        x = np.arange(m) * np.pi / m
+        y = [np.sin(x), np.cos(x)]
+        return x, y, k
+
+    @pytest.mark.parametrize('s', [0, 0.1, 1e-3, 1e-5])
+    def test_simple_vs_splprep(self, s):
+        # 1. Check/document the interface vs splPrep
+        # 2. Check/document the tolerance differences for smaller s (XXX why)
+        # four values of `s` to probe all code paths and shortcuts
+        m, k = 10, 3
+        x = np.arange(m) * np.pi / m
+        y = [np.sin(x), np.cos(x)]
+
+        # the more internal knots, the looser the tolerance (keys are `s` here)
+        atol = {0: 1e-15, 0.1: 1e-15, 1e-3: 2e-12, 1e-5: 1e-5}
+        num_knots = {0: 14, 0.1: 8, 1e-3: 8 + 1, 1e-5: 8 + 2}
+
+        # construct the splines
+        (t, c, k), u_ = splprep(y, s=s)
+        spl, u = make_splprep(y, s=s)
+
+        breakpoint()
+
+        # parameters
+        assert_allclose(u, u_, atol=1e-15)
+
+        # knots
+        assert_allclose(spl.t, t, atol=1e-15)
+        assert len(t) == num_knots[s]
+
+        # coefficients: note the transpose
+        cc = np.asarray(c).T
+        assert_allclose(spl.c, cc, atol=atol[s])
+
+        # values: note axis=1
+        assert_allclose(spl(u),
+                        BSpline(t, c, k, axis=1)(u), atol=atol[s])
+
+    @pytest.mark.parametrize('s', [0, 0.1, 1e-3, 1e-5])
+    def test_array_not_list(self, s):
+        # the argument of splPrep is either a list of arrays or a 2D array (sigh)
+        _, y, _ = self._get_xyk()
+        assert isinstance(y, list)
+        assert np.shape(y)[0] == 2
+
+        # XXX: same as test_simple_vs_splprep
+        atol = {0: 1e-15, 0.1: 1e-15, 1e-3: 2e-12, 1e-5: 1e-5}
+
+        # assert the behavior of FITPACK's splrep
+        tck, u = splprep(y, s=s)
+        tck_a, u_a = splprep(np.asarray(y), s=s)
+        assert_allclose(u, u_a, atol=s)
+        assert_allclose(tck[0], tck_a[0], atol=1e-15)
+        assert_allclose(tck[1], tck_a[1], atol=1e-15)
+        assert tck[2] == tck_a[2]
+        assert np.shape(splev(u, tck)) == np.shape(y)
+
+        spl, u = make_splprep(y, s=s)
+        assert_allclose(u, u_a, atol=1e-15)
+        assert_allclose(spl.t, tck_a[0], atol=1e-15)
+        assert_allclose(spl.c.T, tck_a[1], atol=atol[s])
+        assert spl.k == tck_a[2]
+        assert spl(u).shape == np.shape(y)
+
+        spl, u = make_splprep(np.asarray(y), s=s)
+        assert_allclose(u, u_a, atol=1e-15)
+        assert_allclose(spl.t, tck_a[0], atol=1e-15)
+        assert_allclose(spl.c.T, tck_a[1], atol=atol[s])
+        assert spl.k == tck_a[2]
+        assert spl(u).shape == np.shape(y)
+
+        with assert_raises(ValueError):
+            make_splprep(np.asarray(y).T, s=s)
+
+    def test_default_s_is_zero(self):
+        x, y, k = self._get_xyk(m=10)
+
+        spl, u = make_splprep(y)
+        assert_allclose(spl(u), y, atol=1e-15)
+
+    def test_s_zero_vs_near_zero(self):
+        # s=0 and s \approx 0 are consistent
+        x, y, k = self._get_xyk(m=10)
+
+        spl_i, u_i = make_splprep(y, s=0)
+        spl_n, u_n = make_splprep(y, s=1e-15)
+
+        assert_allclose(u_i, u_n, atol=1e-15)
+        assert_allclose(spl_i(u_i), y, atol=1e-15)
+        assert_allclose(spl_n(u_n), y, atol=1e-7)
+        assert spl_i.axis == spl_n.axis
+        assert spl_i.c.shape == spl_n.c.shape
+
+    def test_1D(self):
+        x = np.arange(8, dtype=float)
+        with assert_raises(ValueError):
+            splprep(x)
+
+        with assert_raises(ValueError):
+            make_splprep(x, s=0)
+
+        with assert_raises(ValueError):
+            make_splprep(x, s=0.1)
+
+        tck, u_ = splprep([x], s=1e-5)
+        spl, u = make_splprep([x], s=1e-5)
+
+        assert spl(u).shape == (1, 8)
+        assert_allclose(spl(u), [x], atol=1e-15)
+
