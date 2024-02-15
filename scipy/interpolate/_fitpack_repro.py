@@ -553,6 +553,8 @@ class F:
 
         self.spl = spl   # store it
 
+        print("py: ", fp, fp - self.s)
+
         return fp - self.s
 
 
@@ -603,25 +605,25 @@ def root_rati(f, p0, bracket, acc):
 
     https://github.com/scipy/scipy/blob/maintenance/1.11.x/scipy/interpolate/fitpack/fpcurf.f#L229
     """
-    (p1, f1), (p3, f3)  = bracket
-    p = p0
-
     # Magic values from
     # https://github.com/scipy/scipy/blob/maintenance/1.11.x/scipy/interpolate/fitpack/fpcurf.f#L27
     con1 = 0.1
     con9 = 0.9
     con4 = 0.04
 
-    for it in range(MAXIT):
-        fp = f(p)
+    (p1, f1), (p3, f3)  = bracket
+    p = p0
 
-        # c  test whether the approximation sp(x) is an acceptable solution.
-        if abs(fp) < acc:
-            ier, converged = 0, True
-            break
-        # c  carry out one more step of the iteration process.
+    for it in range(MAXIT):
+#        fp = f(p)
         p2, f2 = p, f(p)
 
+        # c  test whether the approximation sp(x) is an acceptable solution.
+        if abs(f2) < acc:
+            ier, converged = 0, True
+            break
+
+        # c  carry out one more step of the iteration process.
         if f2 - f3 < acc:
             # c  our initial choice of p is too large.
             p3 = p2
