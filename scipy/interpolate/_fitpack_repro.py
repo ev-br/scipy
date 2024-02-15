@@ -286,15 +286,6 @@ def _generate_knots_impl(x, y, *, w=None, xb=None, xe=None, k=3, s=0, nest=None)
     return
 
 
-def construct_knot_vector(x, y, *, s, k=3, w=None, nest=None, xb=None, xe=None):
-    # return the last value generated
-    # XXX: needed? vs list(generate_knots(...))[-1]
-    for t in generate_knots(x, y, k=k, s=s, w=w, nest=nest, xb=xb, xe=xe):
-        pass
-    return t
-
-
-
 #   cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 #   c  part 2: determination of the smoothing spline sp(x).                c
 #   c  ***************************************************                 c

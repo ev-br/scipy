@@ -3169,8 +3169,6 @@ class TestMakeSplprep:
         (t, c, k), u_ = splprep(y, s=s)
         spl, u = make_splprep(y, s=s)
 
-        breakpoint()
-
         # parameters
         assert_allclose(u, u_, atol=1e-15)
 
