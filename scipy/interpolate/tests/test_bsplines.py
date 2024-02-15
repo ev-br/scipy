@@ -3154,15 +3154,13 @@ class TestMakeSplprep:
 
     @pytest.mark.parametrize('s', [0, 0.1, 1e-3, 1e-5])
     def test_simple_vs_splprep(self, s):
-        # 1. Check/document the interface vs splPrep
-        # 2. Check/document the tolerance differences for smaller s (XXX why)
-        # four values of `s` to probe all code paths and shortcuts
+        # Check/document the interface vs splPrep
+        # The four values of `s` are to probe all code paths and shortcuts
         m, k = 10, 3
         x = np.arange(m) * np.pi / m
         y = [np.sin(x), np.cos(x)]
 
-        # the more internal knots, the looser the tolerance (keys are `s` here)
-        atol = {0: 1e-15, 0.1: 1e-15, 1e-3: 2e-12, 1e-5: 1e-5}
+        # the number of knots depends on `s` (this is by construction)
         num_knots = {0: 14, 0.1: 8, 1e-3: 8 + 1, 1e-5: 8 + 2}
 
         # construct the splines
@@ -3178,11 +3176,11 @@ class TestMakeSplprep:
 
         # coefficients: note the transpose
         cc = np.asarray(c).T
-        assert_allclose(spl.c, cc, atol=atol[s])
+        assert_allclose(spl.c, cc, atol=1e-15)
 
         # values: note axis=1
         assert_allclose(spl(u),
-                        BSpline(t, c, k, axis=1)(u), atol=atol[s])
+                        BSpline(t, c, k, axis=1)(u), atol=1e-15)
 
     @pytest.mark.parametrize('s', [0, 0.1, 1e-3, 1e-5])
     def test_array_not_list(self, s):
@@ -3190,9 +3188,6 @@ class TestMakeSplprep:
         _, y, _ = self._get_xyk()
         assert isinstance(y, list)
         assert np.shape(y)[0] == 2
-
-        # XXX: same as test_simple_vs_splprep
-        atol = {0: 1e-15, 0.1: 1e-15, 1e-3: 2e-12, 1e-5: 1e-5}
 
         # assert the behavior of FITPACK's splrep
         tck, u = splprep(y, s=s)
@@ -3206,14 +3201,14 @@ class TestMakeSplprep:
         spl, u = make_splprep(y, s=s)
         assert_allclose(u, u_a, atol=1e-15)
         assert_allclose(spl.t, tck_a[0], atol=1e-15)
-        assert_allclose(spl.c.T, tck_a[1], atol=atol[s])
+        assert_allclose(spl.c.T, tck_a[1], atol=1e-15)
         assert spl.k == tck_a[2]
         assert spl(u).shape == np.shape(y)
 
         spl, u = make_splprep(np.asarray(y), s=s)
         assert_allclose(u, u_a, atol=1e-15)
         assert_allclose(spl.t, tck_a[0], atol=1e-15)
-        assert_allclose(spl.c.T, tck_a[1], atol=atol[s])
+        assert_allclose(spl.c.T, tck_a[1], atol=1e-15)
         assert spl.k == tck_a[2]
         assert spl(u).shape == np.shape(y)
 
