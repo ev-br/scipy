@@ -32,7 +32,7 @@ jobs:
     # the usual skipping should not be enforced
     if: >
       needs.get_commit_message.outputs.message == 1
-      && (github.repository == 'scipy/scipy' || github.repository == '')
+      && (github.repository == 'ev-br/scipy' || github.repository == '')
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -134,7 +134,7 @@ jobs:
     needs: get_commit_message
     if: >
       needs.get_commit_message.outputs.message == 1
-      && (github.repository == 'scipy/scipy' || github.repository == '')
+      && (github.repository == 'ev-br/scipy' || github.repository == '')
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v4.1.1
@@ -193,7 +193,7 @@ jobs:
     needs: get_commit_message
     if: >
       needs.get_commit_message.outputs.message == 1
-      && (github.repository == 'scipy/scipy' || github.repository == '')
+      && (github.repository == 'ev-br/scipy' || github.repository == '')
     runs-on: ubuntu-22.04  # provides python3.10-dbg
     steps:
       - uses: actions/checkout@v4.1.1
@@ -223,7 +223,7 @@ jobs:
     needs: get_commit_message
     if: >
       needs.get_commit_message.outputs.message == 1
-      && (github.repository == 'scipy/scipy' || github.repository == '')
+      && (github.repository == 'ev-br/scipy' || github.repository == '')
     runs-on: ubuntu-20.04  # 22.04 doesn't support gcc-8
     steps:
       - uses: actions/checkout@v4.1.1
@@ -275,7 +275,7 @@ jobs:
     needs: get_commit_message
     if: >
       needs.get_commit_message.outputs.message == 1
-      && (github.repository == 'scipy/scipy' || github.repository == '')
+      && (github.repository == 'ev-br/scipy' || github.repository == '')
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -361,7 +361,7 @@ jobs:
     needs: get_commit_message
     if: >
       needs.get_commit_message.outputs.message == 1
-      && (github.repository == 'scipy/scipy' || github.repository == '')
+      && (github.repository == 'ev-br/scipy' || github.repository == '')
     runs-on: ubuntu-latest
     # I tried running directly in a container:, using the image: and options:
     # entries. Unfortunately at this time options: does not seem to listen to
