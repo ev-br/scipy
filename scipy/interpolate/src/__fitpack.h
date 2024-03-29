@@ -3,6 +3,7 @@
 #include <tuple>
 #include <vector>
 #include "../_build_utils/src/fortran_defs.h"
+#include "../_build_utils/src/mdspan.h"
 
 #define DLARTG F_FUNC(dlartg, DLARTG)
 
@@ -14,59 +15,12 @@ namespace fitpack {
  * 1D and 2D array wrappers, with and without boundschecking
  */
 
+template<typename T>
+using array_1D_t = std::mdspan<T, std::dextents<ssize_t, 1>> ;
 
-// Bounds checking
-template<bool boundscheck> inline void _bcheck(ssize_t index, ssize_t size, ssize_t dim);
+template<typename T>
+using array_2D_t = std::mdspan<T, std::dextents<ssize_t, 2>> ;
 
-
-template<>
-inline void _bcheck<true>(ssize_t index, ssize_t size, ssize_t dim) {
-    if (!((0 <= index) && (index < size))){
-        auto mesg = "Out of bounds with index = " + std::to_string(index) + " of size = ";
-        mesg = mesg + std::to_string(size) + " in dimension = " + std::to_string(dim);
-        throw(std::runtime_error(mesg) );
-    }
-}
-
-template<>
-inline void _bcheck<false>(ssize_t index, ssize_t size, ssize_t dim) { /* noop*/ }
-
-
-// Arrays: C contiguous only
-template<typename T, bool boundscheck=true>
-struct Array1D
-{
-    T* data;
-    ssize_t nelem;
-    T& operator()(const ssize_t i) {
-        _bcheck<boundscheck>(i, nelem, 0);
-        return *(data + i);
-    }
-    Array1D(T *ptr, ssize_t num_elem) : data(ptr), nelem(num_elem) {};
-};
-
-
-
-template<typename T, bool boundscheck=true>
-struct Array2D
-{
-    T* data;
-    ssize_t nrows;
-    ssize_t ncols;
-    T& operator()(const ssize_t i, const ssize_t j) {
-        _bcheck<boundscheck>(i, nrows, 0);
-        _bcheck<boundscheck>(j, ncols, 1);
-        return *(data + ncols*i + j);
-    }
-    Array2D(T *ptr, ssize_t num_rows, ssize_t num_columns) : data(ptr), nrows(num_rows), ncols(num_columns) {};
-};
-
-
-// Flip boundschecking on/off here
-typedef Array2D<double, false> RealArray2D;
-typedef Array1D<double, false> RealArray1D;
-typedef Array1D<const double, false> ConstRealArray1D;
-typedef Array2D<const double, false> ConstRealArray2D;
 
 
 /*
@@ -162,7 +116,10 @@ fpback( /* inputs*/
 typedef std::tuple<std::vector<double>, std::vector<ssize_t>> pair_t;
 
 pair_t
-_split(ConstRealArray1D x, ConstRealArray1D t, int k, ConstRealArray1D residuals);
+_split(array_1D_t<const double> x,
+       array_1D_t<const double> t,
+       int k,
+       array_1D_t<const double> residuals);
 
 
 /*

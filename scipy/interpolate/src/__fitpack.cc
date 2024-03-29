@@ -78,11 +78,15 @@ _find_interval(const double* tptr, ssize_t len_t,
                ssize_t prev_l,
                int extrapolate)
 {
-    ConstRealArray1D t = ConstRealArray1D(tptr, len_t);
+    array_1D_t<const double> t(tptr, len_t);  // NB: need the template arg (template alias deduction, C++20?)
 
-    ssize_t n = t.nelem - k - 1;
-    double tb = t(k);
-    double te = t(n);
+    ssize_t n = t.extent(0) - k - 1;
+
+    // NB: t.extent(8) does not fail? Gives the last extent (=dimension)
+    //std::cout<< "t.size() = " << t.size() << "  t.extent(0) = "<< t.extent(0) << " t.extent(8) = " << t.extent(8) << "\n"; 
+
+    double tb = t[k];
+    double te = t[n];
 
     if (xval != xval) {
         // nan
@@ -95,12 +99,12 @@ _find_interval(const double* tptr, ssize_t len_t,
     ssize_t l = (k < prev_l) && (prev_l < n) ? prev_l : k;
 
     // xval is in support, search for interval s.t. t[interval] <= xval < t[l+1]
-    while ((xval < t(l)) && (l != k)) {
+    while ((xval < t[l]) && (l != k)) {
         l -= 1;
     }
 
     l += 1;
-    while ((xval >= t(l)) && (l != n)) {
+    while ((xval >= t[l]) && (l != n)) {
         l += 1;
     }
 
@@ -137,29 +141,29 @@ data_matrix( /* inputs */
             /* work array*/
             double *wrk)                        // work, shape (2k+2)
 {
-    auto x = ConstRealArray1D(xptr, m);
-    auto t = ConstRealArray1D(tptr, len_t);
-    auto w = ConstRealArray1D(wptr, m);
-    auto A = RealArray2D(Aptr, m, k+1);
-    auto offset = Array1D<ssize_t, false>(offset_ptr, m);
+    array_1D_t<const double> x(xptr, m);
+    array_1D_t<const double> t(tptr, len_t);
+    array_1D_t<const double> w(wptr, m);
+    array_1D_t<ssize_t> offset(offset_ptr, m);
+    array_2D_t<double> A(Aptr, m, k+1);
 
     ssize_t ind = k;
     for (int i=0; i < m; ++i) {
-        double xval = x(i);
+        double xval = x[i];
 
         // find the interval
-        ind = _find_interval(t.data, len_t, k, xval, ind, 0);
+        ind = _find_interval(t.data_handle(), len_t, k, xval, ind, 0);
         if (ind < 0){
             // should not happen here, validation is expected on the python side
             throw std::runtime_error("find_interval: out of bounds with x = " + std::to_string(xval));
         }
-        offset(i) = ind - k;
+        offset[i] = ind - k;
 
         // compute non-zero b-splines
-        _deBoor_D(t.data, xval, k, ind, 0, wrk);
+        _deBoor_D(t.data_handle(), xval, k, ind, 0, wrk);
 
         for (ssize_t j=0; j < k+1; ++j) {
-            A(i, j) = wrk[j] * w(i);
+            A(i, j) = wrk[j] * w[i];
         }
     }
 
@@ -222,8 +226,8 @@ qr_reduce(double *aptr, const ssize_t m, const ssize_t nz, // a(m, nz), packed
           const ssize_t startrow
 )
 {
-    auto R = RealArray2D(aptr, m, nz);
-    auto y = RealArray2D(yptr, m, ydim1);
+    array_2D_t<double> R(aptr, m, nz);
+    array_2D_t<double> y(yptr, m, ydim1);
 
     for (ssize_t i=startrow; i < m; ++i) {
         ssize_t oi = offset[i];
@@ -240,13 +244,13 @@ qr_reduce(double *aptr, const ssize_t m, const ssize_t nz, // a(m, nz), packed
 
             // rotate l.h.s.
             R(j, 0) = r;
-            for (ssize_t l=1; l < R.ncols; ++l) {
+            for (ssize_t l=1; l < R.extent(1); ++l) {
                 std::tie(R(j, l), R(i, l-1)) = fprota(c, s, R(j, l), R(i, l));
             }
-            R(i, R.ncols-1) = 0.0;
+            R(i, R.extent(1) - 1) = 0.0;
 
             // rotate r.h.s.
-            for (ssize_t l=0; l < y.ncols; ++l) {
+            for (ssize_t l=0; l < y.extent(1); ++l) {
                 std::tie(y(j, l), y(i, l)) = fprota(c, s, y(j, l), y(i, l));
             }
         }
@@ -284,9 +288,9 @@ fpback( /* inputs*/
         /* output */
        double *cptr)                                 // c(nc, ydim2)
 {
-    auto R = ConstRealArray2D(Rptr, m, nz);
-    auto y = ConstRealArray2D(yptr, m, ydim2);
-    auto c = RealArray2D(cptr, nc, ydim2);
+    array_2D_t<const double> R(Rptr, m, nz);
+    array_2D_t<const double> y(yptr, m, ydim2);
+    array_2D_t<double> c(cptr, nc, ydim2);
 
     // c[nc-1, ...] = y[nc-1] / R[nc-1, 0]
     for (ssize_t l=0; l < ydim2; ++l) {
@@ -328,7 +332,10 @@ fpback( /* inputs*/
  *
  */
 pair_t
-_split(ConstRealArray1D x, ConstRealArray1D t, int k, ConstRealArray1D residuals)
+_split(array_1D_t<const double> x,
+       array_1D_t<const double> t,
+       int k,
+       array_1D_t<const double> residuals)
 {
     /*
      * c  search for knot interval t(number+k) <= x <= t(number+k+1) where
@@ -336,7 +343,7 @@ _split(ConstRealArray1D x, ConstRealArray1D t, int k, ConstRealArray1D residuals
      * c  not equals zero.
      */
     ssize_t interval = k+1;
-    ssize_t nc = t.nelem - k - 1;
+    ssize_t nc = t.extent(0) - k - 1;
 
     std::vector<ssize_t> ix;
     ix.push_back(0.0);
@@ -344,7 +351,7 @@ _split(ConstRealArray1D x, ConstRealArray1D t, int k, ConstRealArray1D residuals
     std::vector<double> fparts;
     double fpart = 0.0;
 
-    for(ssize_t i=0; i < x.nelem; i++) {
+    for(ssize_t i=0; i < x.extent(0); i++) {
         double xv = x(i);
         double rv = residuals(i);
         fpart += rv;
@@ -364,7 +371,7 @@ _split(ConstRealArray1D x, ConstRealArray1D t, int k, ConstRealArray1D residuals
     } // for i
 
     // the last interval
-    ix.push_back(x.nelem - 1);
+    ix.push_back(x.extent(0) - 1);
     fparts.push_back(fpart);
 
     return std::make_tuple(fparts, ix);
@@ -394,9 +401,9 @@ fpknot(const double *x_ptr, ssize_t m,
        int k,
        const double *residuals_ptr)
 {
-    auto x = ConstRealArray1D(x_ptr, m);
-    auto t = ConstRealArray1D(t_ptr, len_t);
-    auto residuals = ConstRealArray1D(residuals_ptr, m);
+    array_1D_t<const double> x(x_ptr, m);
+    array_1D_t<const double> t(t_ptr, len_t);
+    array_1D_t<const double> residuals(residuals_ptr, m);
 
     std::vector<double> fparts;
     std::vector<ssize_t> ix;
