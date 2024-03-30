@@ -2,6 +2,7 @@
 #include <iostream>
 #include <tuple>
 #include <vector>
+#include <array>
 #include "../_build_utils/src/fortran_defs.h"
 #include "../_build_utils/src/mdspan.h"
 
@@ -16,11 +17,25 @@ namespace fitpack {
  */
 
 template<typename T>
-using array_1D_t = std::mdspan<T, std::dextents<ssize_t, 1>> ;
+using array_1D_t = std::mdspan<T, std::dextents<ssize_t, 1>, std::layout_stride> ;
 
 template<typename T>
-using array_2D_t = std::mdspan<T, std::dextents<ssize_t, 2>> ;
+using array_2D_t = std::mdspan<T, std::dextents<ssize_t, 2>, std::layout_stride> ;
 
+
+template<typename T> inline array_1D_t<T>
+wrap_1D(T *ptr, ssize_t sz) {
+    std::array<ssize_t, 1> exts = {sz};
+    std::array<ssize_t, 1> strides = {1};
+    return array_1D_t<T>(ptr, {exts, strides});
+}
+
+template<typename T> inline array_2D_t<T>
+wrap_2D(T *ptr, ssize_t sz1, ssize_t sz2) {
+    std::array<ssize_t, 2> exts = {sz1, sz2};
+    std::array<ssize_t, 2> strides = {sz2, 1};
+    return array_2D_t<T>(ptr, {exts, strides});
+}
 
 
 /*

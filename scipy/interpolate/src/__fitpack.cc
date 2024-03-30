@@ -78,8 +78,7 @@ _find_interval(const double* tptr, ssize_t len_t,
                ssize_t prev_l,
                int extrapolate)
 {
-//    array_1D_t<const double> t(tptr, len_t);  // NB: need the template arg (template alias deduction, C++20?)
-    std::mdspan<double, std::dextents<ssize_t, 1>> t(tptr, len_t);
+    auto t = wrap_1D(tptr, len_t);
 
     ssize_t n = t.extent(0) - k - 1;
 
@@ -138,15 +137,15 @@ data_matrix( /* inputs */
             /* outputs */
             double *Aptr,                       // A, shape(m, k+1)
             ssize_t *offset_ptr,                // offset, shape (m,)
-            ssize_t *nc,                        // the number of coefficient
+            ssize_t *nc,                        // the number of coefficients
             /* work array*/
             double *wrk)                        // work, shape (2k+2)
 {
-    array_1D_t<const double> x(xptr, m);
-    array_1D_t<const double> t(tptr, len_t);
-    array_1D_t<const double> w(wptr, m);
-    array_1D_t<ssize_t> offset(offset_ptr, m);
-    array_2D_t<double> A(Aptr, m, k+1);
+    auto x = wrap_1D(xptr, m);
+    auto t = wrap_1D(tptr, len_t);
+    auto w = wrap_1D(wptr, m);
+    auto offset = wrap_1D(offset_ptr, m);
+    auto A = wrap_2D(Aptr, m, k+1);
 
     ssize_t ind = k;
     for (int i=0; i < m; ++i) {
@@ -227,8 +226,8 @@ qr_reduce(double *aptr, const ssize_t m, const ssize_t nz, // a(m, nz), packed
           const ssize_t startrow
 )
 {
-    array_2D_t<double> R(aptr, m, nz);
-    array_2D_t<double> y(yptr, m, ydim1);
+    auto R = wrap_2D(aptr, m, nz);
+    auto y = wrap_2D(yptr, m, ydim1);
 
     for (ssize_t i=startrow; i < m; ++i) {
         ssize_t oi = offset[i];
@@ -289,9 +288,9 @@ fpback( /* inputs*/
         /* output */
        double *cptr)                                 // c(nc, ydim2)
 {
-    array_2D_t<const double> R(Rptr, m, nz);
-    array_2D_t<const double> y(yptr, m, ydim2);
-    array_2D_t<double> c(cptr, nc, ydim2);
+    auto R = wrap_2D(Rptr, m, nz);
+    auto y = wrap_2D(yptr, m, ydim2);
+    auto c = wrap_2D(cptr, nc, ydim2);
 
     // c[nc-1, ...] = y[nc-1] / R[nc-1, 0]
     for (ssize_t l=0; l < ydim2; ++l) {
@@ -402,9 +401,9 @@ fpknot(const double *x_ptr, ssize_t m,
        int k,
        const double *residuals_ptr)
 {
-    array_1D_t<const double> x(x_ptr, m);
-    array_1D_t<const double> t(t_ptr, len_t);
-    array_1D_t<const double> residuals(residuals_ptr, m);
+    auto x = wrap_1D(x_ptr, m);
+    auto t = wrap_1D(t_ptr, len_t);
+    auto residuals = wrap_1D(residuals_ptr, len_t);
 
     std::vector<double> fparts;
     std::vector<ssize_t> ix;
