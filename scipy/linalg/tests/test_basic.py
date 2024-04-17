@@ -1306,12 +1306,20 @@ class TestLstsq:
                                           err_msg="driver: %s" % lapack_driver)
 
     @pytest.mark.skipif(IS_MUSL, reason="may segfault on Alpine, see gh-17630")
-    def test_random_complex_exact(self):
+    @pytest.mark.parametrize('num', range(48))
+    def test_random_complex_exact(self, num):
         rng = np.random.RandomState(1234)
+        j = -1
         for dtype in COMPLEX_DTYPES:
             for n in (20, 200):
                 for lapack_driver in TestLstsq.lapack_drivers:
                     for overwrite in (True, False):
+                        j += 1
+                        if j != num:
+                            continue
+
+                        print(j, dtype, n, lapack_driver, overwrite)
+
                         a = np.asarray(rng.random([n, n]) + 1j*rng.random([n, n]),
                                        dtype=dtype)
                         for i in range(n):
