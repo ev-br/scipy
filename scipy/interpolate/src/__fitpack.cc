@@ -78,7 +78,8 @@ _find_interval(const double* tptr, ssize_t len_t,
                ssize_t prev_l,
                int extrapolate)
 {
-    array_1D_t<const double> t(tptr, len_t);  // NB: need the template arg (template alias deduction, C++20?)
+//    array_1D_t<const double> t(tptr, len_t);  // NB: need the template arg (template alias deduction, C++20?)
+    std::mdspan<double, std::dextents<ssize_t, 1>> t(tptr, len_t);
 
     ssize_t n = t.extent(0) - k - 1;
 
