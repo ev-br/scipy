@@ -403,7 +403,7 @@ fpknot(const double *x_ptr, ssize_t m,
 {
     auto x = wrap_1D(x_ptr, m);
     auto t = wrap_1D(t_ptr, len_t);
-    auto residuals = wrap_1D(residuals_ptr, len_t);
+    auto residuals = wrap_1D(residuals_ptr, m);
 
     std::vector<double> fparts;
     std::vector<ssize_t> ix;
