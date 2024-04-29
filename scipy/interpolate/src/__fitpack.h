@@ -4,7 +4,7 @@
 #include <vector>
 #include <array>
 #include "../_build_utils/src/fortran_defs.h"
-#include "../_build_utils/src/mdspan.h"
+#include "../_build_utils/src/mdspan_addl.h"
 
 #define DLARTG F_FUNC(dlartg, DLARTG)
 
@@ -16,11 +16,19 @@ namespace fitpack {
  * 1D and 2D array wrappers, with and without boundschecking
  */
 
-template<typename T>
-using array_1D_t = std::mdspan<T, std::dextents<ssize_t, 1>, std::layout_stride> ;
+const bool BOUNDS_CHECK = true;   // XXX: flip to false in the end.
+
+using LayoutType = std::conditional<BOUNDS_CHECK,
+        scipy::detail::bounds_checking_layout_stride,
+        std::layout_stride
+      >::type;
+
 
 template<typename T>
-using array_2D_t = std::mdspan<T, std::dextents<ssize_t, 2>, std::layout_stride> ;
+using array_1D_t = std::mdspan<T, std::dextents<ssize_t, 1>, LayoutType>;
+
+template<typename T>
+using array_2D_t = std::mdspan<T, std::dextents<ssize_t, 2>, LayoutType>;
 
 
 template<typename T> inline array_1D_t<T>

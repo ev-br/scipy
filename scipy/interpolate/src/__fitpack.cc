@@ -229,6 +229,9 @@ qr_reduce(double *aptr, const ssize_t m, const ssize_t nz, // a(m, nz), packed
     auto R = wrap_2D(aptr, m, nz);
     auto y = wrap_2D(yptr, m, ydim1);
 
+
+    std::cout << "boom! " << R(m, nz);   // XXX: remove
+
     for (ssize_t i=startrow; i < m; ++i) {
         ssize_t oi = offset[i];
         for (ssize_t j=oi; j < nc; ++j) {
