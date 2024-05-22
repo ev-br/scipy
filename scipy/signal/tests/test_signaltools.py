@@ -12,7 +12,6 @@ from numpy.testing import (
     assert_almost_equal, assert_array_equal, assert_array_almost_equal,
     assert_allclose, assert_, assert_array_less,
     suppress_warnings)
-from numpy import array, arange
 import numpy as np
 
 from scipy.fft import fft
@@ -40,25 +39,25 @@ class _TestConvolve:
         a = [3, 4, 5, 6, 5, 4]
         b = [1, 2, 3]
         c = convolve(a, b)
-        assert_array_equal(c, array([3, 10, 22, 28, 32, 32, 23, 12]))
+        assert_array_equal(c, np.array([3, 10, 22, 28, 32, 32, 23, 12]))
 
     def test_same(self):
         a = [3, 4, 5]
         b = [1, 2, 3, 4]
         c = convolve(a, b, mode="same")
-        assert_array_equal(c, array([10, 22, 34]))
+        assert_array_equal(c, np.array([10, 22, 34]))
 
     def test_same_eq(self):
         a = [3, 4, 5]
         b = [1, 2, 3]
         c = convolve(a, b, mode="same")
-        assert_array_equal(c, array([10, 22, 22]))
+        assert_array_equal(c, np.array([10, 22, 22]))
 
     def test_complex(self):
-        x = array([1 + 1j, 2 + 1j, 3 + 1j])
-        y = array([1 + 1j, 2 + 1j])
+        x = np.array([1 + 1j, 2 + 1j, 3 + 1j])
+        y = np.array([1 + 1j, 2 + 1j])
         z = convolve(x, y)
-        assert_array_equal(z, array([2j, 2 + 6j, 5 + 8j, 5 + 5j]))
+        assert_array_equal(z, np.array([2j, 2 + 6j, 5 + 8j, 5 + 5j]))
 
     def test_zero_rank(self):
         a = 1289
@@ -77,8 +76,8 @@ class _TestConvolve:
             assert_allclose(x, y)
 
     def test_single_element(self):
-        a = array([4967])
-        b = array([3920])
+        a = np.array([4967])
+        b = np.array([3920])
         c = convolve(a, b)
         assert_equal(c, a * b)
 
@@ -86,17 +85,17 @@ class _TestConvolve:
         a = [[1, 2, 3], [3, 4, 5]]
         b = [[2, 3, 4], [4, 5, 6]]
         c = convolve(a, b)
-        d = array([[2, 7, 16, 17, 12],
+        d = np.array([[2, 7, 16, 17, 12],
                    [10, 30, 62, 58, 38],
                    [12, 31, 58, 49, 30]])
         assert_array_equal(c, d)
 
     def test_input_swapping(self):
-        small = arange(8).reshape(2, 2, 2)
-        big = 1j * arange(27).reshape(3, 3, 3)
-        big += arange(27)[::-1].reshape(3, 3, 3)
+        small = np.arange(8).reshape(2, 2, 2)
+        big = 1j * np.arange(27).reshape(3, 3, 3)
+        big += np.arange(27)[::-1].reshape(3, 3, 3)
 
-        out_array = array(
+        out_array = np.array(
             [[[0 + 0j, 26 + 0j, 25 + 1j, 24 + 2j],
               [52 + 0j, 151 + 5j, 145 + 11j, 93 + 11j],
               [46 + 6j, 133 + 23j, 127 + 29j, 81 + 23j],
@@ -166,7 +165,7 @@ class TestConvolve(_TestConvolve):
         a = [1, 2, 3, 3, 1, 2]
         b = [1, 4, 3, 4, 5, 6, 7, 4, 3, 2, 1, 1, 3]
         c = convolve(a, b, 'same')
-        d = array([57, 61, 63, 57, 45, 36])
+        d = np.array([57, 61, 63, 57, 45, 36])
         assert_array_equal(c, d)
 
     def test_invalid_shapes(self):
@@ -255,7 +254,7 @@ class _TestConvolve2d:
     def test_2d_arrays(self):
         a = [[1, 2, 3], [3, 4, 5]]
         b = [[2, 3, 4], [4, 5, 6]]
-        d = array([[2, 7, 16, 17, 12],
+        d = np.array([[2, 7, 16, 17, 12],
                    [10, 30, 62, 58, 38],
                    [12, 31, 58, 49, 30]])
         e = convolve2d(a, b)
@@ -264,7 +263,7 @@ class _TestConvolve2d:
     def test_valid_mode(self):
         e = [[2, 3, 4, 5, 6, 7, 8], [4, 5, 6, 7, 8, 9, 10]]
         f = [[1, 2, 3], [3, 4, 5]]
-        h = array([[62, 80, 98, 116, 134]])
+        h = np.array([[62, 80, 98, 116, 134]])
 
         g = convolve2d(e, f, 'valid')
         assert_array_equal(g, h)
@@ -276,7 +275,7 @@ class _TestConvolve2d:
     def test_valid_mode_complx(self):
         e = [[2, 3, 4, 5, 6, 7, 8], [4, 5, 6, 7, 8, 9, 10]]
         f = np.array([[1, 2, 3], [3, 4, 5]], dtype=complex) + 1j
-        h = array([[62.+24.j, 80.+30.j, 98.+36.j, 116.+42.j, 134.+48.j]])
+        h = np.array([[62.+24.j, 80.+30.j, 98.+36.j, 116.+42.j, 134.+48.j]])
 
         g = convolve2d(e, f, 'valid')
         assert_array_almost_equal(g, h)
@@ -290,7 +289,7 @@ class _TestConvolve2d:
         b = [[2, 3, 4], [4, 5, 6]]
         fillval = 1
         c = convolve2d(a, b, 'full', 'fill', fillval)
-        d = array([[24, 26, 31, 34, 32],
+        d = np.array([[24, 26, 31, 34, 32],
                    [28, 40, 62, 64, 52],
                    [32, 46, 67, 62, 48]])
         assert_array_equal(c, d)
@@ -315,7 +314,7 @@ class _TestConvolve2d:
         a = [[1, 2, 3], [3, 4, 5]]
         b = [[2, 3, 4], [4, 5, 6]]
         c = convolve2d(a, b, 'full', 'wrap')
-        d = array([[80, 80, 74, 80, 80],
+        d = np.array([[80, 80, 74, 80, 80],
                    [68, 68, 62, 68, 68],
                    [80, 80, 74, 80, 80]])
         assert_array_equal(c, d)
@@ -324,7 +323,7 @@ class _TestConvolve2d:
         a = [[1, 2, 3], [3, 4, 5]]
         b = [[2, 3, 4], [4, 5, 6]]
         c = convolve2d(a, b, 'full', 'symm')
-        d = array([[34, 30, 44, 62, 66],
+        d = np.array([[34, 30, 44, 62, 66],
                    [52, 48, 62, 80, 84],
                    [82, 78, 92, 110, 114]])
         assert_array_equal(c, d)
@@ -386,7 +385,7 @@ class TestConvolve2d(_TestConvolve2d):
         e = [[1, 2, 3], [3, 4, 5]]
         f = [[2, 3, 4, 5, 6, 7, 8], [4, 5, 6, 7, 8, 9, 10]]
         g = convolve2d(e, f, 'same')
-        h = array([[22, 28, 34],
+        h = np.array([[22, 28, 34],
                    [80, 98, 116]])
         assert_array_equal(g, h)
 
@@ -450,8 +449,8 @@ class TestFFTConvolve:
 
     @pytest.mark.parametrize('axes', ['', None, 0, [0], -1, [-1]])
     def test_real(self, axes):
-        a = array([1, 2, 3])
-        expected = array([1, 4, 10, 12, 9.])
+        a = np.array([1, 2, 3])
+        expected = np.array([1, 4, 10, 12, 9.])
 
         if axes == '':
             out = fftconvolve(a, a)
@@ -462,8 +461,8 @@ class TestFFTConvolve:
 
     @pytest.mark.parametrize('axes', [1, [1], -1, [-1]])
     def test_real_axes(self, axes):
-        a = array([1, 2, 3])
-        expected = array([1, 4, 10, 12, 9.])
+        a = np.array([1, 2, 3])
+        expected = np.array([1, 4, 10, 12, 9.])
 
         a = np.tile(a, [2, 1])
         expected = np.tile(expected, [2, 1])
@@ -473,8 +472,8 @@ class TestFFTConvolve:
 
     @pytest.mark.parametrize('axes', ['', None, 0, [0], -1, [-1]])
     def test_complex(self, axes):
-        a = array([1 + 1j, 2 + 2j, 3 + 3j])
-        expected = array([0 + 2j, 0 + 8j, 0 + 20j, 0 + 24j, 0 + 18j])
+        a = np.array([1 + 1j, 2 + 2j, 3 + 3j])
+        expected = np.array([0 + 2j, 0 + 8j, 0 + 20j, 0 + 24j, 0 + 18j])
 
         if axes == '':
             out = fftconvolve(a, a)
@@ -484,8 +483,8 @@ class TestFFTConvolve:
 
     @pytest.mark.parametrize('axes', [1, [1], -1, [-1]])
     def test_complex_axes(self, axes):
-        a = array([1 + 1j, 2 + 2j, 3 + 3j])
-        expected = array([0 + 2j, 0 + 8j, 0 + 20j, 0 + 24j, 0 + 18j])
+        a = np.array([1 + 1j, 2 + 2j, 3 + 3j])
+        expected = np.array([0 + 2j, 0 + 8j, 0 + 20j, 0 + 24j, 0 + 18j])
 
         a = np.tile(a, [2, 1])
         expected = np.tile(expected, [2, 1])
@@ -504,9 +503,9 @@ class TestFFTConvolve:
                                       [-2, -1],
                                       [-1, -2]])
     def test_2d_real_same(self, axes):
-        a = array([[1, 2, 3],
+        a = np.array([[1, 2, 3],
                    [4, 5, 6]])
-        expected = array([[1, 4, 10, 12, 9],
+        expected = np.array([[1, 4, 10, 12, 9],
                           [8, 26, 56, 54, 36],
                           [16, 40, 73, 60, 36]])
 
@@ -525,9 +524,9 @@ class TestFFTConvolve:
                                       [-2, -1],
                                       [-1, -2]])
     def test_2d_real_same_axes(self, axes):
-        a = array([[1, 2, 3],
+        a = np.array([[1, 2, 3],
                    [4, 5, 6]])
-        expected = array([[1, 4, 10, 12, 9],
+        expected = np.array([[1, 4, 10, 12, 9],
                           [8, 26, 56, 54, 36],
                           [16, 40, 73, 60, 36]])
 
@@ -548,9 +547,9 @@ class TestFFTConvolve:
                                       [-2, -1],
                                       [-1, -2]])
     def test_2d_complex_same(self, axes):
-        a = array([[1 + 2j, 3 + 4j, 5 + 6j],
+        a = np.array([[1 + 2j, 3 + 4j, 5 + 6j],
                    [2 + 1j, 4 + 3j, 6 + 5j]])
-        expected = array([
+        expected = np.array([
             [-3 + 4j, -10 + 20j, -21 + 56j, -18 + 76j, -11 + 60j],
             [10j, 44j, 118j, 156j, 122j],
             [3 + 4j, 10 + 20j, 21 + 56j, 18 + 76j, 11 + 60j]
@@ -572,9 +571,9 @@ class TestFFTConvolve:
                                       [-2, -1],
                                       [-1, -2]])
     def test_2d_complex_same_axes(self, axes):
-        a = array([[1 + 2j, 3 + 4j, 5 + 6j],
+        a = np.array([[1 + 2j, 3 + 4j, 5 + 6j],
                    [2 + 1j, 4 + 3j, 6 + 5j]])
-        expected = array([
+        expected = np.array([
             [-3 + 4j, -10 + 20j, -21 + 56j, -18 + 76j, -11 + 60j],
             [10j, 44j, 118j, 156j, 122j],
             [3 + 4j, 10 + 20j, 21 + 56j, 18 + 76j, 11 + 60j]
@@ -588,10 +587,10 @@ class TestFFTConvolve:
 
     @pytest.mark.parametrize('axes', ['', None, 0, [0], -1, [-1]])
     def test_real_same_mode(self, axes):
-        a = array([1, 2, 3])
-        b = array([3, 3, 5, 6, 8, 7, 9, 0, 1])
-        expected_1 = array([35., 41., 47.])
-        expected_2 = array([9., 20., 25., 35., 41., 47., 39., 28., 2.])
+        a = np.array([1, 2, 3])
+        b = np.array([3, 3, 5, 6, 8, 7, 9, 0, 1])
+        expected_1 = np.array([35., 41., 47.])
+        expected_2 = np.array([9., 20., 25., 35., 41., 47., 39., 28., 2.])
 
         if axes == '':
             out = fftconvolve(a, b, 'same')
@@ -607,10 +606,10 @@ class TestFFTConvolve:
 
     @pytest.mark.parametrize('axes', [1, -1, [1], [-1]])
     def test_real_same_mode_axes(self, axes):
-        a = array([1, 2, 3])
-        b = array([3, 3, 5, 6, 8, 7, 9, 0, 1])
-        expected_1 = array([35., 41., 47.])
-        expected_2 = array([9., 20., 25., 35., 41., 47., 39., 28., 2.])
+        a = np.array([1, 2, 3])
+        b = np.array([3, 3, 5, 6, 8, 7, 9, 0, 1])
+        expected_1 = np.array([35., 41., 47.])
+        expected_2 = np.array([9., 20., 25., 35., 41., 47., 39., 28., 2.])
 
         a = np.tile(a, [2, 1])
         b = np.tile(b, [2, 1])
@@ -626,9 +625,9 @@ class TestFFTConvolve:
     @pytest.mark.parametrize('axes', ['', None, 0, [0], -1, [-1]])
     def test_valid_mode_real(self, axes):
         # See gh-5897
-        a = array([3, 2, 1])
-        b = array([3, 3, 5, 6, 8, 7, 9, 0, 1])
-        expected = array([24., 31., 41., 43., 49., 25., 12.])
+        a = np.array([3, 2, 1])
+        b = np.array([3, 3, 5, 6, 8, 7, 9, 0, 1])
+        expected = np.array([24., 31., 41., 43., 49., 25., 12.])
 
         if axes == '':
             out = fftconvolve(a, b, 'valid')
@@ -645,9 +644,9 @@ class TestFFTConvolve:
     @pytest.mark.parametrize('axes', [1, [1]])
     def test_valid_mode_real_axes(self, axes):
         # See gh-5897
-        a = array([3, 2, 1])
-        b = array([3, 3, 5, 6, 8, 7, 9, 0, 1])
-        expected = array([24., 31., 41., 43., 49., 25., 12.])
+        a = np.array([3, 2, 1])
+        b = np.array([3, 3, 5, 6, 8, 7, 9, 0, 1])
+        expected = np.array([24., 31., 41., 43., 49., 25., 12.])
 
         a = np.tile(a, [2, 1])
         b = np.tile(b, [2, 1])
@@ -658,9 +657,9 @@ class TestFFTConvolve:
 
     @pytest.mark.parametrize('axes', ['', None, 0, [0], -1, [-1]])
     def test_valid_mode_complex(self, axes):
-        a = array([3 - 1j, 2 + 7j, 1 + 0j])
-        b = array([3 + 2j, 3 - 3j, 5 + 0j, 6 - 1j, 8 + 0j])
-        expected = array([45. + 12.j, 30. + 23.j, 48 + 32.j])
+        a = np.array([3 - 1j, 2 + 7j, 1 + 0j])
+        b = np.array([3 + 2j, 3 - 3j, 5 + 0j, 6 - 1j, 8 + 0j])
+        expected = np.array([45. + 12.j, 30. + 23.j, 48 + 32.j])
 
         if axes == '':
             out = fftconvolve(a, b, 'valid')
@@ -676,9 +675,9 @@ class TestFFTConvolve:
 
     @pytest.mark.parametrize('axes', [1, [1], -1, [-1]])
     def test_valid_mode_complex_axes(self, axes):
-        a = array([3 - 1j, 2 + 7j, 1 + 0j])
-        b = array([3 + 2j, 3 - 3j, 5 + 0j, 6 - 1j, 8 + 0j])
-        expected = array([45. + 12.j, 30. + 23.j, 48 + 32.j])
+        a = np.array([3 - 1j, 2 + 7j, 1 + 0j])
+        b = np.array([3 + 2j, 3 - 3j, 5 + 0j, 6 - 1j, 8 + 0j])
+        expected = np.array([45. + 12.j, 30. + 23.j, 48 + 32.j])
 
         a = np.tile(a, [2, 1])
         b = np.tile(b, [2, 1])
@@ -692,9 +691,9 @@ class TestFFTConvolve:
 
     def test_valid_mode_ignore_nonaxes(self):
         # See gh-5897
-        a = array([3, 2, 1])
-        b = array([3, 3, 5, 6, 8, 7, 9, 0, 1])
-        expected = array([24., 31., 41., 43., 49., 25., 12.])
+        a = np.array([3, 2, 1])
+        b = np.array([3, 3, 5, 6, 8, 7, 9, 0, 1])
+        expected = np.array([24., 31., 41., 43., 49., 25., 12.])
 
         a = np.tile(a, [2, 1])
         b = np.tile(b, [1, 1])
@@ -710,14 +709,14 @@ class TestFFTConvolve:
         assert_(fftconvolve([], [7]).size == 0)
 
     def test_zero_rank(self):
-        a = array(4967)
-        b = array(3920)
+        a = np.array(4967)
+        b = np.array(3920)
         out = fftconvolve(a, b)
         assert_equal(out, a * b)
 
     def test_single_element(self):
-        a = array([4967])
-        b = array([3920])
+        a = np.array([4967])
+        b = np.array([3920])
         out = fftconvolve(a, b)
         assert_equal(out, a * b)
 
@@ -960,14 +959,14 @@ class TestOAConvolve:
         assert_(oaconvolve([], [7]).size == 0)
 
     def test_zero_rank(self):
-        a = array(4967)
-        b = array(3920)
+        a = np.array(4967)
+        b = np.array(3920)
         out = oaconvolve(a, b)
         assert_equal(out, a * b)
 
     def test_single_element(self):
-        a = array([4967])
-        b = array([3920])
+        a = np.array([4967])
+        b = np.array([3920])
         out = oaconvolve(a, b)
         assert_equal(out, a * b)
 
@@ -1213,11 +1212,11 @@ class TestMedFilt:
 class TestWiener:
 
     def test_basic(self):
-        g = array([[5, 6, 4, 3],
+        g = np.array([[5, 6, 4, 3],
                    [3, 5, 6, 2],
                    [2, 3, 5, 6],
                    [1, 6, 9, 7]], 'd')
-        h = array([[2.16374269, 3.2222222222, 2.8888888889, 1.6666666667],
+        h = np.array([[2.16374269, 3.2222222222, 2.8888888889, 1.6666666667],
                    [2.666666667, 4.33333333333, 4.44444444444, 2.8888888888],
                    [2.222222222, 4.4444444444, 5.4444444444, 4.801066874837],
                    [1.33333333333, 3.92735042735, 6.0712560386, 5.0404040404]])
@@ -1438,12 +1437,12 @@ class TestResample:
 class TestCSpline1DEval:
 
     def test_basic(self):
-        y = array([1, 2, 3, 4, 3, 2, 1, 2, 3.0])
-        x = arange(len(y))
+        y = np.array([1, 2, 3, 4, 3, 2, 1, 2, 3.0])
+        x = np.arange(len(y))
         dx = x[1] - x[0]
         cj = signal.cspline1d(y)
 
-        x2 = arange(len(y) * 10.0) / 10.0
+        x2 = np.arange(len(y) * 10.0) / 10.0
         y2 = signal.cspline1d_eval(cj, x2, dx=dx, x0=x[0])
 
         # make sure interpolated values are on knot points
@@ -2001,7 +2000,7 @@ class TestCorrelateReal:
         b = np.linspace(0, 23, 24).reshape((2, 3, 4), order='F').astype(
             dt)
 
-        y_r = array([[[0., 184., 504., 912., 1360., 888., 472., 160.],
+        y_r = np.array([[[0., 184., 504., 912., 1360., 888., 472., 160.],
                       [46., 432., 1062., 1840., 2672., 1698., 864., 266.],
                       [134., 736., 1662., 2768., 3920., 2418., 1168., 314.],
                       [260., 952., 1932., 3056., 4208., 2580., 1240., 332.],
@@ -2297,7 +2296,7 @@ class TestFiltFilt:
     def test_basic(self):
         zpk = tf2zpk([1, 2, 3], [1, 2, 3])
         out = self.filtfilt(zpk, np.arange(12))
-        assert_allclose(out, arange(12), atol=5.28e-11)
+        assert_allclose(out, np.arange(12), atol=5.28e-11)
 
     def test_sine(self):
         rate = 2000
@@ -3573,12 +3572,12 @@ class TestDeconvolve:
 class TestDetrend:
 
     def test_basic(self):
-        detrended = detrend(array([1, 2, 3]))
-        detrended_exact = array([0, 0, 0])
+        detrended = detrend(np.array([1, 2, 3]))
+        detrended_exact = np.array([0, 0, 0])
         assert_array_almost_equal(detrended, detrended_exact)
 
     def test_copy(self):
-        x = array([1, 1.2, 1.5, 1.6, 2.4])
+        x = np.array([1, 1.2, 1.5, 1.6, 2.4])
         copy_array = detrend(x, overwrite_data=False)
         inplace = detrend(x, overwrite_data=True)
         assert_array_almost_equal(copy_array, inplace)
