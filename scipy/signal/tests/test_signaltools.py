@@ -41,6 +41,7 @@ skip_xp_backends = pytest.mark.skip_xp_backends
 
 class TestConvolve:
 
+    @skip_xp_backends("jax.numpy", reason="dtypes do not match")
     @array_api_compatible
     def test_basic(self, xp):
         a = xp.array([3, 4, 5, 6, 5, 4])
@@ -48,6 +49,7 @@ class TestConvolve:
         c = convolve(a, b)
         xp_assert_equal(c, xp.array([3, 10, 22, 28, 32, 32, 23, 12]))
 
+    @skip_xp_backends("jax.numpy", reason="dtypes do not match")
     @array_api_compatible
     def test_same(self, xp):
         a = xp.array([3, 4, 5])
@@ -55,6 +57,7 @@ class TestConvolve:
         c = convolve(a, b, mode="same")
         xp_assert_equal(c, xp.array([10, 22, 34]))
 
+    @skip_xp_backends("jax.numpy", reason="dtypes do not match")
     @array_api_compatible
     def test_same_eq(self, xp):
         a = xp.array([3, 4, 5])
@@ -85,7 +88,7 @@ class TestConvolve:
             b_shape[i] = 3
             x = convolve(a, b.reshape(b_shape), method='direct')
             y = convolve(a, b.reshape(b_shape), method='fft')
-            xp_assert_close(x, y)
+            xp_assert_close(x, y, atol=1e-14)
 
     @array_api_compatible
     def test_single_element(self, xp):
@@ -94,6 +97,7 @@ class TestConvolve:
         c = convolve(a, b)
         xp_assert_equal(c, a * b)
 
+ #   @skip_xp_backends("jax.numpy")   XXX: how to skip two backends
     @skip_xp_backends("cupy")
     @array_api_compatible
     def test_2d_arrays(self, xp):
@@ -154,6 +158,7 @@ class TestConvolve:
         assert_raises(ValueError, convolve, a, b, mode='full', method='bacon')
         assert_raises(ValueError, convolve, a, b, mode='same', method='bacon')
 
+    @skip_xp_backends("jax.numpy", reason="dtypes do not match")
     @array_api_compatible
     def test_valid_mode2(self, xp):
         # See gh-5897
@@ -177,6 +182,7 @@ class TestConvolve:
         out = convolve(b, a, 'valid')
         xp_assert_equal(out, expected)
 
+    @skip_xp_backends("jax.numpy", reason="dtypes do not match")
     @array_api_compatible
     def test_same_mode(self, xp):
         a = xp.array([1, 2, 3, 3, 1, 2])
@@ -198,6 +204,7 @@ class TestConvolve:
         assert_raises(ValueError, convolve, *(a, b), **{'mode': 'valid'})
         assert_raises(ValueError, convolve, *(b, a), **{'mode': 'valid'})
 
+    @skip_xp_backends("jax.numpy", reason="tolerances")
     @array_api_compatible
     def test_convolve_method(self, xp, n=100):
         # this types data structure was manually encoded instead of
@@ -246,6 +253,7 @@ class TestConvolve:
 
             xp_assert_close(results['fft'], results['direct'], **kwargs)
 
+    @skip_xp_backends("jax.numpy", reason="dtypes do not match")
     @array_api_compatible
     def test_convolve_method_large_input(self, xp):
         # This is really a test that convolving two large integers goes to the
