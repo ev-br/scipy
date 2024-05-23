@@ -97,8 +97,7 @@ class TestConvolve:
         c = convolve(a, b)
         xp_assert_equal(c, a * b)
 
- #   @skip_xp_backends("jax.numpy")   XXX: how to skip two backends
-    @skip_xp_backends("cupy")
+    @skip_xp_backends("jax.numpy", "cupy")
     @array_api_compatible
     def test_2d_arrays(self, xp):
         a = xp.array([[1, 2, 3], [3, 4, 5]])
