@@ -7,9 +7,12 @@ import math
 from math import prod as _prod
 import timeit
 import warnings
+
 from typing import Literal
 
 from numpy._typing import ArrayLike
+
+import functools
 
 from scipy._lib._array_api import array_namespace, is_cupy
 
@@ -1303,6 +1306,54 @@ def choose_conv_method(in1, in2, mode='full', measure=False):
     return 'direct'
 
 
+def convolve_dispatcher(in1, in2, mode='full', method='auto'):
+    """ Deduce the array namespace and if we can dispatch to the cupy namesake.
+
+    The signature must agree with that of convolve itself.
+
+    NB: Currently, raise if the namespace is CuPy and cannot dispatch to it.
+    """
+    xp = array_namespace(in1, in2)
+    if is_cupy(xp):
+        # Conditions are accurate as of CuPy 13.x
+        if method == "auto":
+            can_dispatch = in1.ndim == 1 and in2.ndim == 1
+        else:
+            can_dispatch = True
+
+        # XXX: inputs are cupy arrays and cupyx.scipy.convolve cannot be used
+        # do we want to convert to numpy/use the CPU version/convert back instead?
+        if not can_dispatch:
+            raise ValueError(
+                f"Cannot dispatch to CuPy for {in1.ndim = }, {in2.ndim = }, "
+                f"{mode = } and {method = }."
+            )
+    else:
+        can_dispatch = False
+
+    return xp, can_dispatch
+
+
+def dispatch_cupy(dispatcher, module_name):
+    def inner(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwds):
+            xp, can_dispatch = dispatcher(*args, **kwds)
+
+            if can_dispatch:
+                # delegate to the cupyx namesake
+                import importlib
+                cupyx_module = importlib.import_module(f"cupyx.scipy.{module_name}")
+                cupyx_func = getattr(cupyx_module, func.__name__)
+                return cupyx_func(*args, **kwds)
+            else:
+                # the original function
+                return func(*args, **kwds)
+        return wrapper
+    return inner
+
+
+@dispatch_cupy(convolve_dispatcher, module_name='signal')
 def convolve(in1, in2, mode='full', method='auto'):
     """
     Convolve two N-dimensional arrays.
@@ -1401,25 +1452,6 @@ def convolve(in1, in2, mode='full', method='auto'):
     >>> fig.show()
 
     """
-    xp = array_namespace(in1, in2)
-    if is_cupy(xp):
-        # delegate to cupyx-implemented namesake
-
-        def can_dispatch(in1, in2, mode, method):
-            if method == "auto":
-                return in1.ndim == 1 and in2.ndim == 1
-            else:
-                return True
-
-        if not can_dispatch(in1, in2, mode, method):
-            raise ValueError(
-                f"Cannot dispatch to CuPy for {in1.ndim = }, {in2.ndim = }, "
-                f"{mode = } and {method = }."
-            )
-
-        from cupyx.scipy.signal import convolve
-        return convolve(in1, in2, mode=mode, method=method)
-
     volume = np.asarray(in1)
     kernel = np.asarray(in2)
 
