@@ -32,70 +32,87 @@ from scipy.signal._upfirdn import _upfirdn_modes
 from scipy._lib import _testutils
 from scipy._lib._util import ComplexWarning, np_long, np_ulong
 
+from scipy._lib._array_api import  xp_assert_close, xp_assert_equal, is_cupy
+from scipy.conftest import array_api_compatible
 
-class _TestConvolve:
+pytestmark = [pytest.mark.usefixtures("skip_xp_backends")]
+skip_xp_backends = pytest.mark.skip_xp_backends
 
-    def test_basic(self):
-        a = [3, 4, 5, 6, 5, 4]
-        b = [1, 2, 3]
+
+class TestConvolve:
+
+    @array_api_compatible
+    def test_basic(self, xp):
+        a = xp.array([3, 4, 5, 6, 5, 4])
+        b = xp.array([1, 2, 3])
         c = convolve(a, b)
-        assert_array_equal(c, np.array([3, 10, 22, 28, 32, 32, 23, 12]))
+        xp_assert_equal(c, xp.array([3, 10, 22, 28, 32, 32, 23, 12]))
 
-    def test_same(self):
-        a = [3, 4, 5]
-        b = [1, 2, 3, 4]
+    @array_api_compatible
+    def test_same(self, xp):
+        a = xp.array([3, 4, 5])
+        b = xp.array([1, 2, 3, 4])
         c = convolve(a, b, mode="same")
-        assert_array_equal(c, np.array([10, 22, 34]))
+        xp_assert_equal(c, xp.array([10, 22, 34]))
 
-    def test_same_eq(self):
-        a = [3, 4, 5]
-        b = [1, 2, 3]
+    @array_api_compatible
+    def test_same_eq(self, xp):
+        a = xp.array([3, 4, 5])
+        b = xp.array([1, 2, 3])
         c = convolve(a, b, mode="same")
-        assert_array_equal(c, np.array([10, 22, 22]))
+        xp_assert_equal(c, xp.array([10, 22, 22]))
 
-    def test_complex(self):
-        x = np.array([1 + 1j, 2 + 1j, 3 + 1j])
-        y = np.array([1 + 1j, 2 + 1j])
+    @array_api_compatible
+    def test_complex(self, xp):
+        x = xp.array([1 + 1j, 2 + 1j, 3 + 1j])
+        y = xp.array([1 + 1j, 2 + 1j])
         z = convolve(x, y)
-        assert_array_equal(z, np.array([2j, 2 + 6j, 5 + 8j, 5 + 5j]))
+        xp_assert_equal(z, xp.array([2j, 2 + 6j, 5 + 8j, 5 + 5j]))
 
-    def test_zero_rank(self):
+    @array_api_compatible
+    def test_zero_rank(self, xp):
         a = 1289
         b = 4567
         c = convolve(a, b)
-        assert_equal(c, a * b)
+        xp_assert_equal(c, a * b)
 
-    def test_broadcastable(self):
-        a = np.arange(27).reshape(3, 3, 3)
-        b = np.arange(3)
+    @array_api_compatible
+    def test_broadcastable(self, xp):
+        a = xp.arange(27).reshape(3, 3, 3)
+        b = xp.arange(3)
         for i in range(3):
             b_shape = [1]*3
             b_shape[i] = 3
             x = convolve(a, b.reshape(b_shape), method='direct')
             y = convolve(a, b.reshape(b_shape), method='fft')
-            assert_allclose(x, y)
+            xp_assert_close(x, y)
 
-    def test_single_element(self):
+    @array_api_compatible
+    def test_single_element(self, xp):
         a = np.array([4967])
         b = np.array([3920])
         c = convolve(a, b)
-        assert_equal(c, a * b)
+        xp_assert_equal(c, a * b)
 
-    def test_2d_arrays(self):
-        a = [[1, 2, 3], [3, 4, 5]]
-        b = [[2, 3, 4], [4, 5, 6]]
+    @skip_xp_backends("cupy")
+    @array_api_compatible
+    def test_2d_arrays(self, xp):
+        a = xp.array([[1, 2, 3], [3, 4, 5]])
+        b = xp.array([[2, 3, 4], [4, 5, 6]])
         c = convolve(a, b)
-        d = np.array([[2, 7, 16, 17, 12],
+        d = xp.array([[2, 7, 16, 17, 12],
                    [10, 30, 62, 58, 38],
                    [12, 31, 58, 49, 30]])
-        assert_array_equal(c, d)
+        xp_assert_equal(c, d)
 
-    def test_input_swapping(self):
-        small = np.arange(8).reshape(2, 2, 2)
-        big = 1j * np.arange(27).reshape(3, 3, 3)
-        big += np.arange(27)[::-1].reshape(3, 3, 3)
+    @skip_xp_backends("cupy")
+    @array_api_compatible
+    def test_input_swapping(self, xp):
+        small = xp.arange(8).reshape(2, 2, 2)
+        big = 1j * xp.arange(27).reshape(3, 3, 3)
+        big += xp.arange(27)[::-1].reshape(3, 3, 3)
 
-        out_array = np.array(
+        out_array = xp.array(
             [[[0 + 0j, 26 + 0j, 25 + 1j, 24 + 2j],
               [52 + 0j, 151 + 5j, 145 + 11j, 93 + 11j],
               [46 + 6j, 133 + 23j, 127 + 29j, 81 + 23j],
@@ -116,71 +133,73 @@ class _TestConvolve:
               [38 + 222j, 73 + 499j, 51 + 521j, 21 + 291j],
               [12 + 144j, 20 + 318j, 7 + 331j, 0 + 182j]]])
 
-        assert_array_equal(convolve(small, big, 'full'), out_array)
-        assert_array_equal(convolve(big, small, 'full'), out_array)
-        assert_array_equal(convolve(small, big, 'same'),
+        xp_assert_equal(convolve(small, big, 'full'), out_array)
+        xp_assert_equal(convolve(big, small, 'full'), out_array)
+        xp_assert_equal(convolve(small, big, 'same'),
                            out_array[1:3, 1:3, 1:3])
-        assert_array_equal(convolve(big, small, 'same'),
+        xp_assert_equal(convolve(big, small, 'same'),
                            out_array[0:3, 0:3, 0:3])
-        assert_array_equal(convolve(small, big, 'valid'),
+        xp_assert_equal(convolve(small, big, 'valid'),
                            out_array[1:3, 1:3, 1:3])
-        assert_array_equal(convolve(big, small, 'valid'),
+        xp_assert_equal(convolve(big, small, 'valid'),
                            out_array[1:3, 1:3, 1:3])
 
-    def test_invalid_params(self):
-        a = [3, 4, 5]
-        b = [1, 2, 3]
+    @array_api_compatible
+    def test_invalid_params(self, xp):
+        a = xp.array([3, 4, 5])
+        b = xp.array([1, 2, 3])
         assert_raises(ValueError, convolve, a, b, mode='spam')
         assert_raises(ValueError, convolve, a, b, mode='eggs', method='fft')
         assert_raises(ValueError, convolve, a, b, mode='ham', method='direct')
         assert_raises(ValueError, convolve, a, b, mode='full', method='bacon')
         assert_raises(ValueError, convolve, a, b, mode='same', method='bacon')
 
-
-class TestConvolve(_TestConvolve):
-
-    def test_valid_mode2(self):
+    @array_api_compatible
+    def test_valid_mode2(self, xp):
         # See gh-5897
-        a = [1, 2, 3, 6, 5, 3]
-        b = [2, 3, 4, 5, 3, 4, 2, 2, 1]
-        expected = [70, 78, 73, 65]
+        a = xp.array([1, 2, 3, 6, 5, 3])
+        b = xp.array([2, 3, 4, 5, 3, 4, 2, 2, 1])
+        expected = xp.array([70, 78, 73, 65])
 
         out = convolve(a, b, 'valid')
-        assert_array_equal(out, expected)
+        xp_assert_equal(out, expected)
 
         out = convolve(b, a, 'valid')
-        assert_array_equal(out, expected)
+        xp_assert_equal(out, expected)
 
-        a = [1 + 5j, 2 - 1j, 3 + 0j]
-        b = [2 - 3j, 1 + 0j]
-        expected = [2 - 3j, 8 - 10j]
+        a = xp.array([1 + 5j, 2 - 1j, 3 + 0j])
+        b = xp.array([2 - 3j, 1 + 0j])
+        expected = xp.array([2 - 3j, 8 - 10j])
 
         out = convolve(a, b, 'valid')
-        assert_array_equal(out, expected)
+        xp_assert_equal(out, expected)
 
         out = convolve(b, a, 'valid')
-        assert_array_equal(out, expected)
+        xp_assert_equal(out, expected)
 
-    def test_same_mode(self):
-        a = [1, 2, 3, 3, 1, 2]
-        b = [1, 4, 3, 4, 5, 6, 7, 4, 3, 2, 1, 1, 3]
+    @array_api_compatible
+    def test_same_mode(self, xp):
+        a = xp.array([1, 2, 3, 3, 1, 2])
+        b = xp.array([1, 4, 3, 4, 5, 6, 7, 4, 3, 2, 1, 1, 3])
         c = convolve(a, b, 'same')
-        d = np.array([57, 61, 63, 57, 45, 36])
-        assert_array_equal(c, d)
+        d = xp.array([57, 61, 63, 57, 45, 36])
+        xp_assert_equal(c, d)
 
-    def test_invalid_shapes(self):
+    @array_api_compatible
+    def test_invalid_shapes(self, xp):
         # By "invalid," we mean that no one
         # array has dimensions that are all at
         # least as large as the corresponding
         # dimensions of the other array. This
         # setup should throw a ValueError.
-        a = np.arange(1, 7).reshape((2, 3))
-        b = np.arange(-6, 0).reshape((3, 2))
+        a = xp.arange(1, 7).reshape((2, 3))
+        b = xp.arange(-6, 0).reshape((3, 2))
 
         assert_raises(ValueError, convolve, *(a, b), **{'mode': 'valid'})
         assert_raises(ValueError, convolve, *(b, a), **{'mode': 'valid'})
 
-    def test_convolve_method(self, n=100):
+    @array_api_compatible
+    def test_convolve_method(self, xp, n=100):
         # this types data structure was manually encoded instead of
         # using custom filters on the soon-to-be-removed np.sctypes
         types = {'uint16', 'uint64', 'int64', 'int32',
@@ -193,22 +212,25 @@ class TestConvolve(_TestConvolve):
         # These are random arrays, which means test is much stronger than
         # convolving testing by convolving two np.ones arrays
         np.random.seed(42)
-        array_types = {'i': np.random.choice([0, 1], size=n),
-                       'f': np.random.randn(n)}
+        array_types = {'i': xp.asarray(np.random.choice([0, 1], size=n)),
+                       'f': xp.asarray(np.random.randn(n))}
         array_types['b'] = array_types['u'] = array_types['i']
         array_types['c'] = array_types['f'] + 0.5j*array_types['f']
 
         for t1, t2, mode in args:
-            x1 = array_types[np.dtype(t1).kind].astype(t1)
-            x2 = array_types[np.dtype(t2).kind].astype(t2)
+            if is_cupy(xp) and t2 == 'float16':
+                pytest.skip(reason="Cupy 13.x fails to jitify.")
+
+            x1 = array_types[xp.dtype(t1).kind].astype(t1)
+            x2 = array_types[xp.dtype(t2).kind].astype(t2)
 
             results = {key: convolve(x1, x2, method=key, mode=mode)
                        for key in ['fft', 'direct']}
 
-            assert_equal(results['fft'].dtype, results['direct'].dtype)
+            assert results['fft'].dtype == results['direct'].dtype
 
             if 'bool' in t1 and 'bool' in t2:
-                assert_equal(choose_conv_method(x1, x2), 'direct')
+                assert choose_conv_method(x1, x2) == 'direct'
                 continue
 
             # Found by experiment. Found approx smallest value for (rtol, atol)
@@ -222,24 +244,27 @@ class TestConvolve(_TestConvolve):
                 # defaults for np.allclose (different from assert_allclose)
                 kwargs = {'rtol': 1e-5, 'atol': 1e-8}
 
-            assert_allclose(results['fft'], results['direct'], **kwargs)
+            xp_assert_close(results['fft'], results['direct'], **kwargs)
 
-    def test_convolve_method_large_input(self):
+    @array_api_compatible
+    def test_convolve_method_large_input(self, xp):
         # This is really a test that convolving two large integers goes to the
         # direct method even if they're in the fft method.
         for n in [10, 20, 50, 51, 52, 53, 54, 60, 62]:
-            z = np.array([2**n], dtype=np.int64)
+            z = xp.array([2**n], dtype=xp.int64)
             fft = convolve(z, z, method='fft')
             direct = convolve(z, z, method='direct')
 
             # this is the case when integer precision gets to us
             # issue #6076 has more detail, hopefully more tests after resolved
             if n < 50:
-                assert_equal(fft, direct)
-                assert_equal(fft, 2**(2*n))
-                assert_equal(direct, 2**(2*n))
+                val = xp.array([2**(2*n)])
+                xp_assert_equal(fft, direct)
+                xp_assert_equal(fft, val)
+                xp_assert_equal(direct, val)
 
-    def test_mismatched_dims(self):
+    @array_api_compatible
+    def test_mismatched_dims(self, xp):
         # Input arrays should have the same number of dimensions
         assert_raises(ValueError, convolve, [1], 2, method='direct')
         assert_raises(ValueError, convolve, 1, [2], method='direct')
