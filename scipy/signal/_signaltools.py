@@ -14,7 +14,7 @@ from numpy._typing import ArrayLike
 
 import functools
 
-from scipy._lib._array_api import array_namespace, is_cupy
+from scipy._lib._array_api import array_namespace, is_cupy, is_jax, scipy_namespace_for
 
 from scipy.spatial import cKDTree
 from . import _sigtools
@@ -1328,6 +1328,9 @@ def convolve_dispatcher(in1, in2, mode='full', method='auto'):
                 f"Cannot dispatch to CuPy for {in1.ndim = }, {in2.ndim = }, "
                 f"{mode = } and {method = }."
             )
+
+    elif is_jax(xp):
+        can_dispatch = True
     else:
         can_dispatch = False
 
@@ -1340,12 +1343,18 @@ def dispatch_cupy(dispatcher, module_name):
         def wrapper(*args, **kwds):
             xp, can_dispatch = dispatcher(*args, **kwds)
 
-            if can_dispatch:
-                # delegate to the cupyx namesake
+            # try delegating to a cupyx/jax namesake
+            if can_dispatch and is_cupy(xp):
+                # XXX: scipy_namespace_for(cupy) is broken
                 import importlib
                 cupyx_module = importlib.import_module(f"cupyx.scipy.{module_name}")
                 cupyx_func = getattr(cupyx_module, func.__name__)
                 return cupyx_func(*args, **kwds)
+            elif can_dispatch and is_jax(xp):
+                xps = scipy_namespace_for(xp)
+                jax_module = getattr(xps, module_name)
+                jax_func = getattr(jax_module, func.__name__)
+                return jax_func(*args, **kwds)
             else:
                 # the original function
                 return func(*args, **kwds)
