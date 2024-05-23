@@ -1351,8 +1351,8 @@ def dispatch_cupy(dispatcher, module_name):
                 cupyx_func = getattr(cupyx_module, func.__name__)
                 return cupyx_func(*args, **kwds)
             elif can_dispatch and is_jax(xp):
-                xps = scipy_namespace_for(xp)
-                jax_module = getattr(xps, module_name)
+                spx = scipy_namespace_for(xp)
+                jax_module = getattr(spx, module_name)
                 jax_func = getattr(jax_module, func.__name__)
                 return jax_func(*args, **kwds)
             else:
