@@ -41,36 +41,36 @@ skip_xp_backends = pytest.mark.skip_xp_backends
 
 class TestConvolve:
 
-    @skip_xp_backends("jax.numpy", reasons=["dtypes do not match")]
+    @skip_xp_backends("jax.numpy", reasons=["dtypes do not match"])
     @array_api_compatible
     def test_basic(self, xp):
-        a = xp.array([3, 4, 5, 6, 5, 4])
-        b = xp.array([1, 2, 3])
+        a = xp.asarray([3, 4, 5, 6, 5, 4])
+        b = xp.asarray([1, 2, 3])
         c = convolve(a, b)
-        xp_assert_equal(c, xp.array([3, 10, 22, 28, 32, 32, 23, 12]))
+        xp_assert_equal(c, xp.asarray([3, 10, 22, 28, 32, 32, 23, 12]))
 
-    @skip_xp_backends("jax.numpy", reason="dtypes do not match")
+    @skip_xp_backends("jax.numpy", reasons=["dtypes do not match"])
     @array_api_compatible
     def test_same(self, xp):
-        a = xp.array([3, 4, 5])
-        b = xp.array([1, 2, 3, 4])
+        a = xp.asarray([3, 4, 5])
+        b = xp.asarray([1, 2, 3, 4])
         c = convolve(a, b, mode="same")
-        xp_assert_equal(c, xp.array([10, 22, 34]))
+        xp_assert_equal(c, xp.asarray([10, 22, 34]))
 
-    @skip_xp_backends("jax.numpy", reason="dtypes do not match")
+    @skip_xp_backends("jax.numpy", reasons=["dtypes do not match"])
     @array_api_compatible
     def test_same_eq(self, xp):
-        a = xp.array([3, 4, 5])
-        b = xp.array([1, 2, 3])
+        a = xp.asarray([3, 4, 5])
+        b = xp.asarray([1, 2, 3])
         c = convolve(a, b, mode="same")
-        xp_assert_equal(c, xp.array([10, 22, 22]))
+        xp_assert_equal(c, xp.asarray([10, 22, 22]))
 
     @array_api_compatible
     def test_complex(self, xp):
-        x = xp.array([1 + 1j, 2 + 1j, 3 + 1j])
-        y = xp.array([1 + 1j, 2 + 1j])
+        x = xp.asarray([1 + 1j, 2 + 1j, 3 + 1j])
+        y = xp.asarray([1 + 1j, 2 + 1j])
         z = convolve(x, y)
-        xp_assert_equal(z, xp.array([2j, 2 + 6j, 5 + 8j, 5 + 5j]))
+        xp_assert_equal(z, xp.asarray([2j, 2 + 6j, 5 + 8j, 5 + 5j]))
 
     @array_api_compatible
     def test_zero_rank(self, xp):
@@ -100,10 +100,10 @@ class TestConvolve:
     @skip_xp_backends("jax.numpy", "cupy")
     @array_api_compatible
     def test_2d_arrays(self, xp):
-        a = xp.array([[1, 2, 3], [3, 4, 5]])
-        b = xp.array([[2, 3, 4], [4, 5, 6]])
+        a = xp.asarray([[1, 2, 3], [3, 4, 5]])
+        b = xp.asarray([[2, 3, 4], [4, 5, 6]])
         c = convolve(a, b)
-        d = xp.array([[2, 7, 16, 17, 12],
+        d = xp.asarray([[2, 7, 16, 17, 12],
                    [10, 30, 62, 58, 38],
                    [12, 31, 58, 49, 30]])
         xp_assert_equal(c, d)
@@ -115,7 +115,7 @@ class TestConvolve:
         big = 1j * xp.arange(27).reshape(3, 3, 3)
         big += xp.arange(27)[::-1].reshape(3, 3, 3)
 
-        out_array = xp.array(
+        out_array = xp.asarray(
             [[[0 + 0j, 26 + 0j, 25 + 1j, 24 + 2j],
               [52 + 0j, 151 + 5j, 145 + 11j, 93 + 11j],
               [46 + 6j, 133 + 23j, 127 + 29j, 81 + 23j],
@@ -149,8 +149,8 @@ class TestConvolve:
 
     @array_api_compatible
     def test_invalid_params(self, xp):
-        a = xp.array([3, 4, 5])
-        b = xp.array([1, 2, 3])
+        a = xp.asarray([3, 4, 5])
+        b = xp.asarray([1, 2, 3])
         assert_raises(ValueError, convolve, a, b, mode='spam')
         assert_raises(ValueError, convolve, a, b, mode='eggs', method='fft')
         assert_raises(ValueError, convolve, a, b, mode='ham', method='direct')
@@ -161,9 +161,9 @@ class TestConvolve:
     @array_api_compatible
     def test_valid_mode2(self, xp):
         # See gh-5897
-        a = xp.array([1, 2, 3, 6, 5, 3])
-        b = xp.array([2, 3, 4, 5, 3, 4, 2, 2, 1])
-        expected = xp.array([70, 78, 73, 65])
+        a = xp.asarray([1, 2, 3, 6, 5, 3])
+        b = xp.asarray([2, 3, 4, 5, 3, 4, 2, 2, 1])
+        expected = xp.asarray([70, 78, 73, 65])
 
         out = convolve(a, b, 'valid')
         xp_assert_equal(out, expected)
@@ -172,8 +172,8 @@ class TestConvolve:
         xp_assert_equal(out, expected)
 
         a = xp.asarray([1 + 5j, 2 - 1j, 3 + 0j])
-        b = xp.array([2 - 3j, 1 + 0j])
-        expected = xp.array([2 - 3j, 8 - 10j])
+        b = xp.asarray([2 - 3j, 1 + 0j])
+        expected = xp.asarray([2 - 3j, 8 - 10j])
 
         out = convolve(a, b, 'valid')
         xp_assert_equal(out, expected)
@@ -181,13 +181,13 @@ class TestConvolve:
         out = convolve(b, a, 'valid')
         xp_assert_equal(out, expected)
 
-    @skip_xp_backends("jax.numpy", reason="dtypes do not match")
+    @skip_xp_backends("jax.numpy", reasons=["dtypes do not match"])
     @array_api_compatible
     def test_same_mode(self, xp):
-        a = xp.array([1, 2, 3, 3, 1, 2])
-        b = xp.array([1, 4, 3, 4, 5, 6, 7, 4, 3, 2, 1, 1, 3])
+        a = xp.asarray([1, 2, 3, 3, 1, 2])
+        b = xp.asarray([1, 4, 3, 4, 5, 6, 7, 4, 3, 2, 1, 1, 3])
         c = convolve(a, b, 'same')
-        d = xp.array([57, 61, 63, 57, 45, 36])
+        d = xp.asarray([57, 61, 63, 57, 45, 36])
         xp_assert_equal(c, d)
 
     @array_api_compatible
@@ -258,14 +258,14 @@ class TestConvolve:
         # This is really a test that convolving two large integers goes to the
         # direct method even if they're in the fft method.
         for n in [10, 20, 50, 51, 52, 53, 54, 60, 62]:
-            z = xp.array([2**n], dtype=xp.int64)
+            z = xp.asarray([2**n], dtype=xp.int64)
             fft = convolve(z, z, method='fft')
             direct = convolve(z, z, method='direct')
 
             # this is the case when integer precision gets to us
             # issue #6076 has more detail, hopefully more tests after resolved
             if n < 50:
-                val = xp.array([2**(2*n)])
+                val = xp.asarray([2**(2*n)])
                 xp_assert_equal(fft, direct)
                 xp_assert_equal(fft, val)
                 xp_assert_equal(direct, val)
