@@ -41,7 +41,7 @@ skip_xp_backends = pytest.mark.skip_xp_backends
 
 class TestConvolve:
 
-    @skip_xp_backends("jax.numpy", reason="dtypes do not match")
+    @skip_xp_backends("jax.numpy", reasons=["dtypes do not match")]
     @array_api_compatible
     def test_basic(self, xp):
         a = xp.array([3, 4, 5, 6, 5, 4])
@@ -171,7 +171,7 @@ class TestConvolve:
         out = convolve(b, a, 'valid')
         xp_assert_equal(out, expected)
 
-        a = xp.array([1 + 5j, 2 - 1j, 3 + 0j])
+        a = xp.asarray([1 + 5j, 2 - 1j, 3 + 0j])
         b = xp.array([2 - 3j, 1 + 0j])
         expected = xp.array([2 - 3j, 8 - 10j])
 
