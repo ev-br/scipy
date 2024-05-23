@@ -11,6 +11,8 @@ from typing import Literal
 
 from numpy._typing import ArrayLike
 
+from scipy._lib._array_api import array_namespace, is_cupy
+
 from scipy.spatial import cKDTree
 from . import _sigtools
 from ._ltisys import dlti
@@ -1399,6 +1401,25 @@ def convolve(in1, in2, mode='full', method='auto'):
     >>> fig.show()
 
     """
+    xp = array_namespace(in1, in2)
+    if is_cupy(xp):
+        # delegate to cupyx-implemented namesake
+
+        def can_dispatch(in1, in2, mode, method):
+            if method == "auto":
+                return in1.ndim == 1 and in2.ndim == 1
+            else:
+                return True
+
+        if not can_dispatch(in1, in2, mode, method):
+            raise ValueError(
+                f"Cannot dispatch to CuPy for {in1.ndim = }, {in2.ndim = }, "
+                f"{mode = } and {method = }."
+            )
+
+        from cupyx.scipy.signal import convolve
+        return convolve(in1, in2, mode=mode, method=method)
+
     volume = np.asarray(in1)
     kernel = np.asarray(in2)
 
