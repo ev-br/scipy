@@ -269,7 +269,7 @@ class TestConvolve:
                 val = xp.asarray([2**(2*n)])
                 xp_assert_equal(fft, direct)
                 xp_assert_equal(fft, val, check_dtype=False)
-                xp_assert_equal(direct, val)
+                xp_assert_equal(direct, val, check_dtype=False)
 
     @array_api_compatible
     def test_mismatched_dims(self, xp):

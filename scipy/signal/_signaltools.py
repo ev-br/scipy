@@ -1307,11 +1307,9 @@ def choose_conv_method(in1, in2, mode='full', measure=False):
 
 
 def convolve_dispatcher(in1, in2, mode='full', method='auto'):
-    """ Deduce the array namespace and if we can dispatch to the cupy namesake.
+    """ Deduce the array namespace and whether we can dispatch to the cupy namesake.
 
     The signature must agree with that of convolve itself.
-
-    NB: Currently, raise if the namespace is CuPy and cannot dispatch to it.
     """
     xp = array_namespace(in1, in2)
     if is_cupy(xp):
@@ -1321,12 +1319,11 @@ def convolve_dispatcher(in1, in2, mode='full', method='auto'):
         else:
             can_dispatch = True
 
-        # XXX: inputs are cupy arrays and cupyx.scipy.convolve cannot be used
-        # do we want to convert to numpy/use the CPU version/convert back instead?
+        # inputs are cupy arrays and cupyx.scipy.convolve cannot be used
         if not can_dispatch:
             raise ValueError(
-                f"Cannot dispatch to CuPy for {in1.ndim = }, {in2.ndim = }, "
-                f"{mode = } and {method = }."
+                f"Cannot dispatch to {xp.__name__} for {in1.ndim = }, "
+                f" {in2.ndim = }, {mode = } and {method = }."
             )
 
     elif is_jax(xp):
@@ -1345,7 +1342,7 @@ def dispatch_cupy(dispatcher, module_name):
 
             # try delegating to a cupyx/jax namesake
             if can_dispatch and is_cupy(xp):
-                # XXX: scipy_namespace_for(cupy) is broken
+                # https://github.com/cupy/cupy/issues/8336
                 import importlib
                 cupyx_module = importlib.import_module(f"cupyx.scipy.{module_name}")
                 cupyx_func = getattr(cupyx_module, func.__name__)
