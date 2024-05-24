@@ -264,10 +264,11 @@ class TestConvolve:
 
             # this is the case when integer precision gets to us
             # issue #6076 has more detail, hopefully more tests after resolved
+            # # XXX: revisit check_dtype under np 2.0: 32bit linux & windows
             if n < 50:
                 val = xp.asarray([2**(2*n)])
                 xp_assert_equal(fft, direct)
-                xp_assert_equal(fft, val)
+                xp_assert_equal(fft, val, check_dtype=False)
                 xp_assert_equal(direct, val)
 
     @array_api_compatible
