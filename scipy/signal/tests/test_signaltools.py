@@ -8,9 +8,7 @@ from math import gcd
 import pytest
 from pytest import raises as assert_raises
 from numpy.testing import (
-    # assert_equal,
-    assert_almost_equal, #assert_array_equal, # assert_array_almost_equal,
-    assert_allclose, #assert_, 
+    assert_allclose,
     assert_array_less,
     suppress_warnings)
 import numpy as np
@@ -2278,19 +2276,19 @@ class TestCorrelate2d:
         a = np.arange(5)
         b = np.array([3.2, 1.4, 3])
         for mode in ['full', 'valid', 'same']:
-            assert_almost_equal(np.correlate(a, b, mode=mode),
-                                signal.correlate(a, b, mode=mode))
-            assert_almost_equal(np.squeeze(signal.correlate2d([a], [b],
-                                                              mode=mode)),
-                                signal.correlate(a, b, mode=mode))
+            xp_assert_close(np.correlate(a, b, mode=mode),
+                            signal.correlate(a, b, mode=mode), atol=1.5e-7)
+            xp_assert_close(np.squeeze(signal.correlate2d([a], [b],
+                                                           mode=mode)),
+                             signal.correlate(a, b, mode=mode), atol=1.5e-7)
 
             # See gh-5897
             if mode == 'valid':
-                assert_almost_equal(np.correlate(b, a, mode=mode),
-                                    signal.correlate(b, a, mode=mode))
-                assert_almost_equal(np.squeeze(signal.correlate2d([b], [a],
-                                                                  mode=mode)),
-                                    signal.correlate(b, a, mode=mode))
+                xp_assert_close(np.correlate(b, a, mode=mode),
+                                signal.correlate(b, a, mode=mode), atol=1.5e-7)
+                xp_assert_close(np.squeeze(signal.correlate2d([b], [a],
+                                                               mode=mode)),
+                                signal.correlate(b, a, mode=mode), atol=1.5e-7)
 
     def test_invalid_shapes(self):
         # By "invalid," we mean that no one
@@ -2790,28 +2788,28 @@ class TestHilbert:
         h_real = np.real(h)
 
         # The real part should be equal to the original signals:
-        assert_almost_equal(h_real, a, decimal)
+        xp_assert_close(h_real, a, atol=1.5*10**(-decimal))
         # The absolute value should be one everywhere, for this input:
-        assert_almost_equal(h_abs, np.ones(a.shape), decimal)
+        xp_assert_close(h_abs, np.ones(a.shape), atol=1.5*10**(-decimal))
         # For the 'slow' sine - the phase should go from -pi/2 to pi/2 in
         # the first 256 bins:
-        assert_almost_equal(h_angle[0, :256],
+        xp_assert_close(h_angle[0, :256],
                             np.arange(-pi / 2, pi / 2, pi / 256),
-                            decimal)
+                            atol=1.5*10**(-decimal))
         # For the 'slow' cosine - the phase should go from 0 to pi in the
         # same interval:
-        assert_almost_equal(
-            h_angle[1, :256], np.arange(0, pi, pi / 256), decimal)
+        xp_assert_close(
+            h_angle[1, :256], np.arange(0, pi, pi / 256), atol=1.5*10**(-decimal))
         # The 'fast' sine should make this phase transition in half the time:
-        assert_almost_equal(h_angle[2, :128],
+        xp_assert_close(h_angle[2, :128],
                             np.arange(-pi / 2, pi / 2, pi / 128),
-                            decimal)
+                            atol=1.5*10**(-decimal))
         # Ditto for the 'fast' cosine:
-        assert_almost_equal(
-            h_angle[3, :128], np.arange(0, pi, pi / 128), decimal)
+        xp_assert_close(
+            h_angle[3, :128], np.arange(0, pi, pi / 128), atol=1.5*10**(-decimal))
 
         # The imaginary part of hilbert(cos(t)) = sin(t) Wikipedia
-        assert_almost_equal(h[1].imag, a0, decimal)
+        xp_assert_close(h[1].imag, a0, atol=1.5*10**(-decimal))
 
     def test_hilbert_axisN(self):
         # tests for axis and N arguments
@@ -2820,7 +2818,7 @@ class TestHilbert:
         aa = hilbert(a, axis=-1)
         xp_assert_equal(hilbert(a.T, axis=0), aa.T)
         # test 1d
-        assert_almost_equal(hilbert(a[0]), aa[0], 14)
+        xp_assert_close(hilbert(a[0]), aa[0], atol=1e-14)
 
         # test N
         aan = hilbert(a, N=20, axis=-1)
@@ -2848,7 +2846,7 @@ class TestHilbert:
                            3.552713678800501e-16 - 0.403810179797771j,
                            8.881784197001253e-17 - 0.751023775297729j,
                            9.444121133484362e-17 - 0.79252210110103j])
-        assert_almost_equal(aan[0], a0hilb, 14, 'N regression')
+        xp_assert_close(aan[0], a0hilb, atol=1e-14) #, 'N regression')
 
     @pytest.mark.parametrize('dtype', [np.float32, np.float64])
     def test_hilbert_types(self, dtype):
@@ -2889,27 +2887,27 @@ class TestPartialFractionExpansion:
                             abs(r[:, None] - r_true))
 
         rows, cols = linear_sum_assignment(distance)
-        assert_almost_equal(p[rows], p_true[cols], decimal=decimal)
-        assert_almost_equal(r[rows], r_true[cols], decimal=decimal)
+        xp_assert_close(p[rows], p_true[cols], atol=1.5*10**(-decimal))
+        xp_assert_close(r[rows], r_true[cols], atol=1.5*10**(-decimal))
 
     def test_compute_factors(self):
         factors, poly = _compute_factors([1, 2, 3], [3, 2, 1])
         assert len(factors) == 3
-        assert_almost_equal(factors[0], np.poly([2, 2, 3]))
-        assert_almost_equal(factors[1], np.poly([1, 1, 1, 3]))
-        assert_almost_equal(factors[2], np.poly([1, 1, 1, 2, 2]))
-        assert_almost_equal(poly, np.poly([1, 1, 1, 2, 2, 3]))
+        xp_assert_close(factors[0], np.poly([2, 2, 3]), atol=1.5e-7, check_dtype=False)
+        xp_assert_close(factors[1], np.poly([1, 1, 1, 3]), atol=1.5e-7, check_dtype=False)
+        xp_assert_close(factors[2], np.poly([1, 1, 1, 2, 2]), atol=1.5e-7, check_dtype=False)
+        xp_assert_close(poly, np.poly([1, 1, 1, 2, 2, 3]), atol=1.5e-7, check_dtype=False)
 
         factors, poly = _compute_factors([1, 2, 3], [3, 2, 1],
                                          include_powers=True)
         assert len(factors) == 6
-        assert_almost_equal(factors[0], np.poly([1, 1, 2, 2, 3]))
-        assert_almost_equal(factors[1], np.poly([1, 2, 2, 3]))
-        assert_almost_equal(factors[2], np.poly([2, 2, 3]))
-        assert_almost_equal(factors[3], np.poly([1, 1, 1, 2, 3]))
-        assert_almost_equal(factors[4], np.poly([1, 1, 1, 3]))
-        assert_almost_equal(factors[5], np.poly([1, 1, 1, 2, 2]))
-        assert_almost_equal(poly, np.poly([1, 1, 1, 2, 2, 3]))
+        xp_assert_close(factors[0], np.poly([1, 1, 2, 2, 3]), atol=1.5e-7, check_dtype=False)
+        xp_assert_close(factors[1], np.poly([1, 2, 2, 3]), atol=1.5e-7, check_dtype=False)
+        xp_assert_close(factors[2], np.poly([2, 2, 3]), atol=1.5e-7, check_dtype=False)
+        xp_assert_close(factors[3], np.poly([1, 1, 1, 2, 3]), atol=1.5e-7, check_dtype=False)
+        xp_assert_close(factors[4], np.poly([1, 1, 1, 3]), atol=1.5e-7, check_dtype=False)
+        xp_assert_close(factors[5], np.poly([1, 1, 1, 2, 2]), atol=1.5e-7, check_dtype=False)
+        xp_assert_close(poly, np.poly([1, 1, 1, 2, 2, 3]), atol=1.5e-7, check_dtype=False)
 
     def test_group_poles(self):
         unique, multiplicity = _group_poles(
@@ -2921,18 +2919,18 @@ class TestPartialFractionExpansion:
         # Test are taken from issue #4464, note that poles in scipy are
         # in increasing by absolute value order, opposite to MATLAB.
         r, p, k = residue([5, 3, -2, 7], [-4, 0, 8, 3])
-        assert_almost_equal(r, [1.3320, -0.6653, -1.4167], decimal=4)
-        assert_almost_equal(p, [-0.4093, -1.1644, 1.5737], decimal=4)
-        assert_almost_equal(k, [-1.2500], decimal=4)
+        xp_assert_close(r, [1.3320, -0.6653, -1.4167], atol=1.5e-4)
+        xp_assert_close(p, [-0.4093, -1.1644, 1.5737], atol=1.5e-4)
+        xp_assert_close(k, [-1.2500], atol=1.5e-4)
 
         r, p, k = residue([-4, 8], [1, 6, 8])
-        assert_almost_equal(r, [8, -12])
-        assert_almost_equal(p, [-2, -4])
+        xp_assert_close(r, [8., -12], atol=1.5e-7)
+        xp_assert_close(p, [-2.0, -4], atol=1.5e-7)
         assert k.size == 0
 
         r, p, k = residue([4, 1], [1, -1, -2])
-        assert_almost_equal(r, [1, 3])
-        assert_almost_equal(p, [-1, 2])
+        xp_assert_close(r, [1., 3], atol=1.5e-7)
+        xp_assert_close(p, [-1., 2], atol=1.5e-7)
         assert k.size == 0
 
         r, p, k = residue([4, 3], [2, -3.4, 1.98, -0.406])
@@ -2942,18 +2940,18 @@ class TestPartialFractionExpansion:
         assert k.size == 0
 
         r, p, k = residue([2, 1], [1, 5, 8, 4])
-        self.assert_rp_almost_equal(r, p, [-1, 1, 3], [-1, -2, -2])
+        self.assert_rp_almost_equal(r, p, [-1., 1, 3], [-1., -2, -2])
         assert k.size == 0
 
         r, p, k = residue([3, -1.1, 0.88, -2.396, 1.348],
                           [1, -0.7, -0.14, 0.048])
-        assert_almost_equal(r, [-3, 4, 1])
-        assert_almost_equal(p, [0.2, -0.3, 0.8])
-        assert_almost_equal(k, [3, 1])
+        xp_assert_close(r, [-3., 4, 1], atol=1.5e-7)
+        xp_assert_close(p, [0.2, -0.3, 0.8], atol=1.5e-7)
+        xp_assert_close(k, [3., 1], atol=1.5e-7)
 
         r, p, k = residue([1], [1, 2, -3])
-        assert_almost_equal(r, [0.25, -0.25])
-        assert_almost_equal(p, [1, -3])
+        xp_assert_close(r, [0.25, -0.25], atol=1.5e-7)
+        xp_assert_close(p, [1., -3], atol=1.5e-7)
         assert k.size == 0
 
         r, p, k = residue([1, 0, -5], [1, 0, 0, 0, -1])
@@ -2962,28 +2960,28 @@ class TestPartialFractionExpansion:
         assert k.size == 0
 
         r, p, k = residue([3, 8, 6], [1, 3, 3, 1])
-        self.assert_rp_almost_equal(r, p, [1, 2, 3], [-1, -1, -1])
+        self.assert_rp_almost_equal(r, p, [1.+0j, 2, 3], [-1.+0j, -1, -1])
         assert k.size == 0
 
         r, p, k = residue([3, -1], [1, -3, 2])
-        assert_almost_equal(r, [-2, 5])
-        assert_almost_equal(p, [1, 2])
+        xp_assert_close(r, [-2., 5], atol=1.5e-7)
+        xp_assert_close(p, [1., 2], atol=1.5e-7)
         assert k.size == 0
 
         r, p, k = residue([2, 3, -1], [1, -3, 2])
-        assert_almost_equal(r, [-4, 13])
-        assert_almost_equal(p, [1, 2])
-        assert_almost_equal(k, [2])
+        xp_assert_close(r, [-4., 13], atol=1.5e-7)
+        xp_assert_close(p, [1., 2], atol=1.5e-7)
+        xp_assert_close(k, [2.], atol=1.5e-7)
 
         r, p, k = residue([7, 2, 3, -1], [1, -3, 2])
-        assert_almost_equal(r, [-11, 69])
-        assert_almost_equal(p, [1, 2])
-        assert_almost_equal(k, [7, 23])
+        xp_assert_close(r, [-11., 69], atol=1.5e-7)
+        xp_assert_close(p, [1., 2], atol=1.5e-7)
+        xp_assert_close(k, [7., 23], atol=1.5e-7)
 
         r, p, k = residue([2, 3, -1], [1, -3, 4, -2])
         self.assert_rp_almost_equal(r, p, [4, -1 + 3.5j, -1 - 3.5j],
                                     [1, 1 - 1j, 1 + 1j])
-        assert_almost_equal(k.size, 0)
+        assert k.size == 0
 
     def test_residue_leading_zeros(self):
         # Leading zeros in numerator or denominator must not affect the answer.
@@ -2991,21 +2989,21 @@ class TestPartialFractionExpansion:
         r1, p1, k1 = residue([0, 5, 3, -2, 7], [-4, 0, 8, 3])
         r2, p2, k2 = residue([5, 3, -2, 7], [0, -4, 0, 8, 3])
         r3, p3, k3 = residue([0, 0, 5, 3, -2, 7], [0, 0, 0, -4, 0, 8, 3])
-        assert_almost_equal(r0, r1)
-        assert_almost_equal(r0, r2)
-        assert_almost_equal(r0, r3)
-        assert_almost_equal(p0, p1)
-        assert_almost_equal(p0, p2)
-        assert_almost_equal(p0, p3)
-        assert_almost_equal(k0, k1)
-        assert_almost_equal(k0, k2)
-        assert_almost_equal(k0, k3)
+        xp_assert_close(r0, r1, atol=1.5e-7)
+        xp_assert_close(r0, r2, atol=1.5e-7)
+        xp_assert_close(r0, r3, atol=1.5e-7)
+        xp_assert_close(p0, p1, atol=1.5e-7)
+        xp_assert_close(p0, p2, atol=1.5e-7)
+        xp_assert_close(p0, p3, atol=1.5e-7)
+        xp_assert_close(k0, k1, atol=1.5e-7)
+        xp_assert_close(k0, k2, atol=1.5e-7)
+        xp_assert_close(k0, k3, atol=1.5e-7)
 
-    def test_resiude_degenerate(self):
+    def test_residue_degenerate(self):
         # Several tests for zero numerator and denominator.
         r, p, k = residue([0, 0], [1, 6, 8])
-        assert_almost_equal(r, [0, 0])
-        assert_almost_equal(p, [-2, -4])
+        xp_assert_close(r, [0, 0.], atol=1.5e-7)
+        xp_assert_close(p, [-2, -4.], atol=1.5e-7)
         assert k.size == 0
 
         r, p, k = residue(0, 1)
@@ -3020,28 +3018,28 @@ class TestPartialFractionExpansion:
         r, p, k = residuez([1, 6, 6, 2], [1, -(2 + 1j), (1 + 2j), -1j])
         self.assert_rp_almost_equal(r, p, [-2+2.5j, 7.5+7.5j, -4.5-12j],
                                     [1j, 1, 1])
-        assert_almost_equal(k, [2j])
+        xp_assert_close(k, [2j], atol=1.5e-7)
 
         r, p, k = residuez([1, 2, 1], [1, -1, 0.3561])
         self.assert_rp_almost_equal(r, p,
                                     [-0.9041 - 5.9928j, -0.9041 + 5.9928j],
                                     [0.5 + 0.3257j, 0.5 - 0.3257j],
                                     decimal=4)
-        assert_almost_equal(k, [2.8082], decimal=4)
+        xp_assert_close(k, [2.8082], atol=1.5e-4)
 
         r, p, k = residuez([1, -1], [1, -5, 6])
-        assert_almost_equal(r, [-1, 2])
-        assert_almost_equal(p, [2, 3])
+        xp_assert_close(r, [-1, 2.], atol=1.5e-7)
+        xp_assert_close(p, [2, 3.], atol=1.5e-7)
         assert k.size == 0
 
         r, p, k = residuez([2, 3, 4], [1, 3, 3, 1])
-        self.assert_rp_almost_equal(r, p, [4, -5, 3], [-1, -1, -1])
+        self.assert_rp_almost_equal(r, p, [4.+0j, -5, 3], [-1.+0j, -1, -1])
         assert k.size == 0
 
         r, p, k = residuez([1, -10, -4, 4], [2, -2, -4])
-        assert_almost_equal(r, [0.5, -1.5])
-        assert_almost_equal(p, [-1, 2])
-        assert_almost_equal(k, [1.5, -1])
+        xp_assert_close(r, [0.5, -1.5], atol=1.5e-7)
+        xp_assert_close(p, [-1, 2.], atol=1.5e-7)
+        xp_assert_close(k, [1.5, -1.], atol=1.5e-7)
 
         r, p, k = residuez([18], [18, 3, -4, -1])
         self.assert_rp_almost_equal(r, p,
@@ -3049,44 +3047,44 @@ class TestPartialFractionExpansion:
         assert k.size == 0
 
         r, p, k = residuez([2, 3], np.polymul([1, -1/2], [1, 1/4]))
-        assert_almost_equal(r, [-10/3, 16/3])
-        assert_almost_equal(p, [-0.25, 0.5])
+        xp_assert_close(r, [-10/3, 16/3], atol=1.5e-7)
+        xp_assert_close(p, [-0.25, 0.5], atol=1.5e-7)
         assert k.size == 0
 
         r, p, k = residuez([1, -2, 1], [1, -1])
-        assert_almost_equal(r, [0])
-        assert_almost_equal(p, [1])
-        assert_almost_equal(k, [1, -1])
+        xp_assert_close(r, [0.], atol=1.5e-7)
+        xp_assert_close(p, [1.], atol=1.5e-7)
+        xp_assert_close(k, [1., -1], atol=1.5e-7)
 
-        r, p, k = residuez(1, [1, -1j])
-        assert_almost_equal(r, [1])
-        assert_almost_equal(p, [1j])
+        r, p, k = residuez(1, [1., -1j])
+        xp_assert_close(r, [1.+0j], atol=1.5e-7)
+        xp_assert_close(p, [1j], atol=1.5e-7)
         assert k.size == 0
 
         r, p, k = residuez(1, [1, -1, 0.25])
-        assert_almost_equal(r, [0, 1])
-        assert_almost_equal(p, [0.5, 0.5])
+        xp_assert_close(r, [0, 1.], atol=1.5e-7)
+        xp_assert_close(p, [0.5, 0.5], atol=1.5e-7)
         assert k.size == 0
 
         r, p, k = residuez(1, [1, -0.75, .125])
-        assert_almost_equal(r, [-1, 2])
-        assert_almost_equal(p, [0.25, 0.5])
+        xp_assert_close(r, [-1, 2.], atol=1.5e-7)
+        xp_assert_close(p, [0.25, 0.5], atol=1.5e-7)
         assert k.size == 0
 
         r, p, k = residuez([1, 6, 2], [1, -2, 1])
-        assert_almost_equal(r, [-10, 9])
-        assert_almost_equal(p, [1, 1])
-        assert_almost_equal(k, [2])
+        xp_assert_close(r, [-10, 9.], atol=1.5e-7)
+        xp_assert_close(p, [1, 1.], atol=1.5e-7)
+        xp_assert_close(k, [2.], atol=1.5e-7)
 
         r, p, k = residuez([6, 2], [1, -2, 1])
-        assert_almost_equal(r, [-2, 8])
-        assert_almost_equal(p, [1, 1])
+        xp_assert_close(r, [-2, 8.], atol=1.5e-7)
+        xp_assert_close(p, [1, 1.], atol=1.5e-7)
         assert k.size == 0
 
         r, p, k = residuez([1, 6, 6, 2], [1, -2, 1])
-        assert_almost_equal(r, [-24, 15])
-        assert_almost_equal(p, [1, 1])
-        assert_almost_equal(k, [10, 2])
+        xp_assert_close(r, [-24, 15.], atol=1.5e-7)
+        xp_assert_close(p, [1, 1.], atol=1.5e-7)
+        xp_assert_close(k, [10, 2.], atol=1.5e-7)
 
         r, p, k = residuez([1, 0, 1], [1, 0, 0, 0, 0, -1])
         self.assert_rp_almost_equal(r, p,
@@ -3104,20 +3102,20 @@ class TestPartialFractionExpansion:
         r1, p1, k1 = residuez([5, 3, -2, 7, 0], [-4, 0, 8, 3])
         r2, p2, k2 = residuez([5, 3, -2, 7], [-4, 0, 8, 3, 0])
         r3, p3, k3 = residuez([5, 3, -2, 7, 0, 0], [-4, 0, 8, 3, 0, 0, 0])
-        assert_almost_equal(r0, r1)
-        assert_almost_equal(r0, r2)
-        assert_almost_equal(r0, r3)
-        assert_almost_equal(p0, p1)
-        assert_almost_equal(p0, p2)
-        assert_almost_equal(p0, p3)
-        assert_almost_equal(k0, k1)
-        assert_almost_equal(k0, k2)
-        assert_almost_equal(k0, k3)
+        xp_assert_close(r0, r1, atol=1.5e-7)
+        xp_assert_close(r0, r2, atol=1.5e-7)
+        xp_assert_close(r0, r3, atol=1.5e-7)
+        xp_assert_close(p0, p1, atol=1.5e-7)
+        xp_assert_close(p0, p2, atol=1.5e-7)
+        xp_assert_close(p0, p3, atol=1.5e-7)
+        xp_assert_close(k0, k1, atol=1.5e-7)
+        xp_assert_close(k0, k2, atol=1.5e-7)
+        xp_assert_close(k0, k3, atol=1.5e-7)
 
     def test_residuez_degenerate(self):
         r, p, k = residuez([0, 0], [1, 6, 8])
-        assert_almost_equal(r, [0, 0])
-        assert_almost_equal(p, [-2, -4])
+        xp_assert_close(r, [0, 0.], atol=1.5e-7)
+        xp_assert_close(p, [-2, -4.], atol=1.5e-7)
         assert k.size == 0
 
         r, p, k = residuez(0, 1)
@@ -3189,60 +3187,60 @@ class TestPartialFractionExpansion:
 
     def test_invres(self):
         b, a = invres([1], [1], [])
-        assert_almost_equal(b, [1])
-        assert_almost_equal(a, [1, -1])
+        xp_assert_close(b, [1], atol=1.5e-7)
+        xp_assert_close(a, [1, -1], atol=1.5e-7, check_dtype=False)
 
         b, a = invres([1 - 1j, 2, 0.5 - 3j], [1, 0.5j, 1 + 1j], [])
-        assert_almost_equal(b, [3.5 - 4j, -8.5 + 0.25j, 3.5 + 3.25j])
-        assert_almost_equal(a, [1, -2 - 1.5j, 0.5 + 2j, 0.5 - 0.5j])
+        xp_assert_close(b, [3.5 - 4j, -8.5 + 0.25j, 3.5 + 3.25j], atol=1.5e-7)
+        xp_assert_close(a, [1, -2 - 1.5j, 0.5 + 2j, 0.5 - 0.5j], atol=1.5e-7)
 
         b, a = invres([0.5, 1], [1 - 1j, 2 + 2j], [1, 2, 3])
-        assert_almost_equal(b, [1, -1 - 1j, 1 - 2j, 0.5 - 3j, 10])
-        assert_almost_equal(a, [1, -3 - 1j, 4])
+        xp_assert_close(b, [1, -1 - 1j, 1 - 2j, 0.5 - 3j, 10], atol=1.5e-7)
+        xp_assert_close(a, [1, -3 - 1j, 4], atol=1.5e-7)
 
         b, a = invres([-1, 2, 1j, 3 - 1j, 4, -2],
                       [-1, 2 - 1j, 2 - 1j, 3, 3, 3], [])
-        assert_almost_equal(b, [4 - 1j, -28 + 16j, 40 - 62j, 100 + 24j,
-                                -292 + 219j, 192 - 268j])
-        assert_almost_equal(a, [1, -12 + 2j, 53 - 20j, -96 + 68j, 27 - 72j,
-                                108 - 54j, -81 + 108j])
+        xp_assert_close(b, [4 - 1j, -28 + 16j, 40 - 62j, 100 + 24j,
+                                -292 + 219j, 192 - 268j], atol=1.5e-7)
+        xp_assert_close(a, [1, -12 + 2j, 53 - 20j, -96 + 68j, 27 - 72j,
+                                108 - 54j, -81 + 108j], atol=1.5e-7)
 
         b, a = invres([-1, 1j], [1, 1], [1, 2])
-        assert_almost_equal(b, [1, 0, -4, 3 + 1j])
-        assert_almost_equal(a, [1, -2, 1])
+        xp_assert_close(b, [1, 0, -4, 3 + 1j], atol=1.5e-7)
+        xp_assert_close(a, [1., -2, 1], atol=1.5e-7)
 
     def test_invresz(self):
         b, a = invresz([1], [1], [])
-        assert_almost_equal(b, [1])
-        assert_almost_equal(a, [1, -1])
+        xp_assert_close(b, [1], atol=1.5e-7, check_dtype=False)
+        xp_assert_close(a, [1, -1], atol=1.5e-7, check_dtype=False)
 
         b, a = invresz([1 - 1j, 2, 0.5 - 3j], [1, 0.5j, 1 + 1j], [])
-        assert_almost_equal(b, [3.5 - 4j, -8.5 + 0.25j, 3.5 + 3.25j])
-        assert_almost_equal(a, [1, -2 - 1.5j, 0.5 + 2j, 0.5 - 0.5j])
+        xp_assert_close(b, [3.5 - 4j, -8.5 + 0.25j, 3.5 + 3.25j], atol=1.5e-7)
+        xp_assert_close(a, [1, -2 - 1.5j, 0.5 + 2j, 0.5 - 0.5j], atol=1.5e-7)
 
         b, a = invresz([0.5, 1], [1 - 1j, 2 + 2j], [1, 2, 3])
-        assert_almost_equal(b, [2.5, -3 - 1j, 1 - 2j, -1 - 3j, 12])
-        assert_almost_equal(a, [1, -3 - 1j, 4])
+        xp_assert_close(b, [2.5, -3 - 1j, 1 - 2j, -1 - 3j, 12], atol=1.5e-7)
+        xp_assert_close(a, [1, -3 - 1j, 4], atol=1.5e-7)
 
         b, a = invresz([-1, 2, 1j, 3 - 1j, 4, -2],
                        [-1, 2 - 1j, 2 - 1j, 3, 3, 3], [])
-        assert_almost_equal(b, [6, -50 + 11j, 100 - 72j, 80 + 58j,
-                                -354 + 228j, 234 - 297j])
-        assert_almost_equal(a, [1, -12 + 2j, 53 - 20j, -96 + 68j, 27 - 72j,
-                                108 - 54j, -81 + 108j])
+        xp_assert_close(b, [6, -50 + 11j, 100 - 72j, 80 + 58j,
+                                -354 + 228j, 234 - 297j], atol=1.5e-7)
+        xp_assert_close(a, [1, -12 + 2j, 53 - 20j, -96 + 68j, 27 - 72j,
+                                108 - 54j, -81 + 108j], atol=1.5e-7)
 
         b, a = invresz([-1, 1j], [1, 1], [1, 2])
-        assert_almost_equal(b, [1j, 1, -3, 2])
-        assert_almost_equal(a, [1, -2, 1])
+        xp_assert_close(b, [1j, 1, -3, 2], atol=1.5e-7)
+        xp_assert_close(a, [1., -2, 1], atol=1.5e-7)
 
     def test_inverse_scalar_arguments(self):
         b, a = invres(1, 1, 1)
-        assert_almost_equal(b, [1, 0])
-        assert_almost_equal(a, [1, -1])
+        xp_assert_close(b, [1, 0], atol=1.5e-7, check_dtype=False)
+        xp_assert_close(a, [1, -1], atol=1.5e-7, check_dtype=False)
 
         b, a = invresz(1, 1, 1)
-        assert_almost_equal(b, [2, -1])
-        assert_almost_equal(a, [1, -1])
+        xp_assert_close(b, [2, -1], atol=1.5e-7, check_dtype=False)
+        xp_assert_close(a, [1, -1], atol=1.5e-7, check_dtype=False)
 
 
 class TestVectorstrength:
@@ -3257,8 +3255,8 @@ class TestVectorstrength:
 
         assert strength.ndim == 0
         assert phase.ndim == 0
-        assert_almost_equal(strength, targ_strength)
-        assert_almost_equal(phase, 2 * np.pi * targ_phase)
+        xp_assert_close(strength, targ_strength, atol=1.5e-7)
+        xp_assert_close(phase, 2 * np.pi * targ_phase, atol=1.5e-7)
 
     def test_single_2dperiod(self):
         events = np.array([.5])
@@ -3271,7 +3269,7 @@ class TestVectorstrength:
         assert strength.ndim == 1
         assert phase.ndim == 1
         xp_assert_close(strength, targ_strength, atol=1.5e-6)
-        assert_almost_equal(phase, 2 * np.pi * targ_phase)
+        xp_assert_close(phase, 2 * np.pi * targ_phase, atol=1.5e-7)
 
     def test_equal_1dperiod(self):
         events = np.array([.25, .25, .25, .25, .25, .25])
@@ -3283,8 +3281,8 @@ class TestVectorstrength:
 
         assert strength.ndim == 0
         assert phase.ndim == 0
-        assert_almost_equal(strength, targ_strength)
-        assert_almost_equal(phase, 2 * np.pi * targ_phase)
+        xp_assert_close(strength, targ_strength, atol=1.5e-7)
+        xp_assert_close(phase, 2 * np.pi * targ_phase, atol=1.5e-7)
 
     def test_equal_2dperiod(self):
         events = np.array([.25, .25, .25, .25, .25, .25])
@@ -3296,8 +3294,8 @@ class TestVectorstrength:
 
         assert strength.ndim == 1
         assert phase.ndim == 1
-        assert_almost_equal(strength, targ_strength)
-        assert_almost_equal(phase, 2 * np.pi * targ_phase)
+        xp_assert_close(strength, targ_strength, atol=1.5e-7)
+        xp_assert_close(phase, 2 * np.pi * targ_phase, atol=1.5e-7)
 
     def test_spaced_1dperiod(self):
         events = np.array([.1, 1.1, 2.1, 4.1, 10.1])
@@ -3309,8 +3307,8 @@ class TestVectorstrength:
 
         assert strength.ndim == 0
         assert phase.ndim == 0
-        assert_almost_equal(strength, targ_strength)
-        assert_almost_equal(phase, 2 * np.pi * targ_phase)
+        xp_assert_close(strength, targ_strength, atol=1.5e-7)
+        xp_assert_close(phase, 2 * np.pi * targ_phase, atol=1.5e-7)
 
     def test_spaced_2dperiod(self):
         events = np.array([.1, 1.1, 2.1, 4.1, 10.1])
@@ -3322,8 +3320,8 @@ class TestVectorstrength:
 
         assert strength.ndim == 1
         assert phase.ndim == 1
-        assert_almost_equal(strength, targ_strength)
-        assert_almost_equal(phase, 2 * np.pi * targ_phase)
+        xp_assert_close(strength, targ_strength, atol=1.5e-7)
+        xp_assert_close(phase, 2 * np.pi * targ_phase, atol=1.5e-7)
 
     def test_partial_1dperiod(self):
         events = np.array([.25, .5, .75])
@@ -3335,8 +3333,8 @@ class TestVectorstrength:
 
         assert strength.ndim == 0
         assert phase.ndim == 0
-        assert_almost_equal(strength, targ_strength)
-        assert_almost_equal(phase, 2 * np.pi * targ_phase)
+        xp_assert_close(strength, targ_strength, atol=1.5e-7)
+        xp_assert_close(phase, 2 * np.pi * targ_phase, atol=1.5e-7)
 
     def test_partial_2dperiod(self):
         events = np.array([.25, .5, .75])
@@ -3348,8 +3346,8 @@ class TestVectorstrength:
 
         assert strength.ndim == 1
         assert phase.ndim == 1
-        assert_almost_equal(strength, targ_strength)
-        assert_almost_equal(phase, 2 * np.pi * targ_phase)
+        xp_assert_close(strength, targ_strength, atol=1.5e-7)
+        xp_assert_close(phase, 2 * np.pi * targ_phase, atol=1.5e-7)
 
     def test_opposite_1dperiod(self):
         events = np.array([0, .25, .5, .75])
@@ -3360,7 +3358,7 @@ class TestVectorstrength:
 
         assert strength.ndim == 0
         assert phase.ndim == 0
-        assert_almost_equal(strength, targ_strength)
+        xp_assert_close(strength, targ_strength, atol=1.5e-7, check_dtype=False)
 
     def test_opposite_2dperiod(self):
         events = np.array([0, .25, .5, .75])
@@ -3371,7 +3369,7 @@ class TestVectorstrength:
 
         assert strength.ndim == 1
         assert phase.ndim == 1
-        assert_almost_equal(strength, targ_strength)
+        xp_assert_close(strength, targ_strength, atol=1.5e-7)
 
     def test_2d_events_ValueError(self):
         events = np.array([[1, 2]])
@@ -3679,28 +3677,28 @@ class TestUniqueRoots:
     def test_real_no_repeat(self):
         p = [-1.0, -0.5, 0.3, 1.2, 10.0]
         unique, multiplicity = unique_roots(p)
-        assert_almost_equal(unique, p, decimal=15)
+        xp_assert_close(unique, p, atol=1e-15)
         xp_assert_equal(multiplicity, np.ones(len(p)), check_dtype=False)
 
     def test_real_repeat(self):
         p = [-1.0, -0.95, -0.89, -0.8, 0.5, 1.0, 1.05]
 
         unique, multiplicity = unique_roots(p, tol=1e-1, rtype='min')
-        assert_almost_equal(unique, [-1.0, -0.89, 0.5, 1.0], decimal=15)
+        xp_assert_close(unique, [-1.0, -0.89, 0.5, 1.0], atol=1e-15)
         xp_assert_equal(multiplicity, [2, 2, 1, 2])
 
         unique, multiplicity = unique_roots(p, tol=1e-1, rtype='max')
-        assert_almost_equal(unique, [-0.95, -0.8, 0.5, 1.05], decimal=15)
+        xp_assert_close(unique, [-0.95, -0.8, 0.5, 1.05], atol=1e-15)
         xp_assert_equal(multiplicity, [2, 2, 1, 2])
 
         unique, multiplicity = unique_roots(p, tol=1e-1, rtype='avg')
-        assert_almost_equal(unique, [-0.975, -0.845, 0.5, 1.025], decimal=15)
+        xp_assert_close(unique, [-0.975, -0.845, 0.5, 1.025], atol=1e-15)
         xp_assert_equal(multiplicity, [2, 2, 1, 2])
 
     def test_complex_no_repeat(self):
         p = [-1.0, 1.0j, 0.5 + 0.5j, -1.0 - 1.0j, 3.0 + 2.0j]
         unique, multiplicity = unique_roots(p)
-        assert_almost_equal(unique, p, decimal=15)
+        xp_assert_close(unique, p, atol=1e-15)
         xp_assert_equal(multiplicity, np.ones(len(p)), check_dtype=False)
 
     def test_complex_repeat(self):
@@ -3708,20 +3706,20 @@ class TestUniqueRoots:
              0.5 + 0.5j, 0.45 + 0.55j]
 
         unique, multiplicity = unique_roots(p, tol=1e-1, rtype='min')
-        assert_almost_equal(unique, [-1.0, -0.95 + 0.15j, 0.0, 0.45 + 0.55j],
-                            decimal=15)
+        xp_assert_close(unique, [-1.0, -0.95 + 0.15j, 0.0, 0.45 + 0.55j],
+                            atol=1e-15)
         xp_assert_equal(multiplicity, [2, 2, 1, 2])
 
         unique, multiplicity = unique_roots(p, tol=1e-1, rtype='max')
-        assert_almost_equal(unique,
+        xp_assert_close(unique,
                             [-1.0 + 0.05j, -0.90 + 0.15j, 0.0, 0.5 + 0.5j],
-                            decimal=15)
+                            atol=1e-15)
         xp_assert_equal(multiplicity, [2, 2, 1, 2])
 
         unique, multiplicity = unique_roots(p, tol=1e-1, rtype='avg')
-        assert_almost_equal(
+        xp_assert_close(
             unique, [-1.0 + 0.025j, -0.925 + 0.15j, 0.0, 0.475 + 0.525j],
-            decimal=15)
+            atol=1e-15)
         xp_assert_equal(multiplicity, [2, 2, 1, 2])
 
     def test_gh_4915(self):
@@ -3731,20 +3729,20 @@ class TestUniqueRoots:
         unique, multiplicity = unique_roots(p)
         unique = np.sort(unique)
 
-        assert_almost_equal(np.sort(unique), true_roots, decimal=7)
+        xp_assert_close(np.sort(unique), true_roots, atol=1e-7)
         xp_assert_equal(multiplicity, [2, 2, 2, 2])
 
     def test_complex_roots_extra(self):
         unique, multiplicity = unique_roots([1.0, 1.0j, 1.0])
-        assert_almost_equal(unique, [1.0, 1.0j], decimal=15)
+        xp_assert_close(unique, [1.0, 1.0j], atol=1e-15)
         xp_assert_equal(multiplicity, [2, 1])
 
         unique, multiplicity = unique_roots([1, 1 + 2e-9, 1e-9 + 1j], tol=0.1)
-        assert_almost_equal(unique, [1.0, 1e-9 + 1.0j], decimal=15)
+        xp_assert_close(unique, [1.0, 1e-9 + 1.0j], atol=1e-15)
         xp_assert_equal(multiplicity, [2, 1])
 
     def test_single_unique_root(self):
         p = np.random.rand(100) + 1j * np.random.rand(100)
         unique, multiplicity = unique_roots(p, 2)
-        assert_almost_equal(unique, [np.min(p)], decimal=15)
+        xp_assert_close(unique, [np.min(p)], atol=1e-15)
         xp_assert_equal(multiplicity, [100])
