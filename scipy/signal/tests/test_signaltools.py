@@ -284,50 +284,55 @@ class TestConvolve:
 
 class _TestConvolve2d:
 
-    def test_2d_arrays(self):
-        a = [[1, 2, 3], [3, 4, 5]]
-        b = [[2, 3, 4], [4, 5, 6]]
-        d = np.array([[2, 7, 16, 17, 12],
+    @array_api_compatible
+    def test_2d_arrays(self, xp):
+        a = xp.asarray([[1, 2, 3], [3, 4, 5]])
+        b = xp.asarray([[2, 3, 4], [4, 5, 6]])
+        d = xp.asarray([[2, 7, 16, 17, 12],
                    [10, 30, 62, 58, 38],
                    [12, 31, 58, 49, 30]])
         e = convolve2d(a, b)
-        assert_array_equal(e, d)
+        xp_assert_equal(e, d)
 
-    def test_valid_mode(self):
-        e = [[2, 3, 4, 5, 6, 7, 8], [4, 5, 6, 7, 8, 9, 10]]
-        f = [[1, 2, 3], [3, 4, 5]]
-        h = np.array([[62, 80, 98, 116, 134]])
+    @array_api_compatible
+    def test_valid_mode(self, xp):
+        e = xp.asarray([[2, 3, 4, 5, 6, 7, 8], [4, 5, 6, 7, 8, 9, 10]])
+        f = xp.asarray([[1, 2, 3], [3, 4, 5]])
+        h = xp.asarray([[62, 80, 98, 116, 134]])
 
         g = convolve2d(e, f, 'valid')
-        assert_array_equal(g, h)
+        xp_assert_equal(g, h)
 
         # See gh-5897
         g = convolve2d(f, e, 'valid')
-        assert_array_equal(g, h)
+        xp_assert_equal(g, h)
 
-    def test_valid_mode_complx(self):
-        e = [[2, 3, 4, 5, 6, 7, 8], [4, 5, 6, 7, 8, 9, 10]]
-        f = np.array([[1, 2, 3], [3, 4, 5]], dtype=complex) + 1j
-        h = np.array([[62.+24.j, 80.+30.j, 98.+36.j, 116.+42.j, 134.+48.j]])
+    @array_api_compatible
+    def test_valid_mode_complx(self, xp):
+        e = xp.asarray([[2, 3, 4, 5, 6, 7, 8], [4, 5, 6, 7, 8, 9, 10]])
+        f = xp.asarray([[1, 2, 3], [3, 4, 5]], dtype=complex) + 1j
+        h = xp.asarray([[62.+24.j, 80.+30.j, 98.+36.j, 116.+42.j, 134.+48.j]])
 
         g = convolve2d(e, f, 'valid')
-        assert_array_almost_equal(g, h)
+        xp_assert_close(g, h)
 
         # See gh-5897
         g = convolve2d(f, e, 'valid')
-        assert_array_equal(g, h)
+        xp_assert_equal(g, h)
 
-    def test_fillvalue(self):
-        a = [[1, 2, 3], [3, 4, 5]]
-        b = [[2, 3, 4], [4, 5, 6]]
+    @array_api_compatible
+    def test_fillvalue(self, xp):
+        a = xp.asarray([[1, 2, 3], [3, 4, 5]])
+        b = xp.asarray([[2, 3, 4], [4, 5, 6]])
         fillval = 1
         c = convolve2d(a, b, 'full', 'fill', fillval)
-        d = np.array([[24, 26, 31, 34, 32],
+        d = xp.asarray([[24, 26, 31, 34, 32],
                    [28, 40, 62, 64, 52],
                    [32, 46, 67, 62, 48]])
-        assert_array_equal(c, d)
+        xp_assert_equal(c, d)
 
-    def test_fillvalue_errors(self):
+    @array_api_compatible
+    def test_fillvalue_errors(self, xp):
         msg = "could not cast `fillvalue` directly to the output "
         with np.testing.suppress_warnings() as sup:
             sup.filter(ComplexWarning, "Casting complex values")
@@ -338,75 +343,82 @@ class _TestConvolve2d:
         with assert_raises(ValueError, match=msg):
             convolve2d([[1]], [[1, 2]], fillvalue=[1, 2])
 
-    def test_fillvalue_empty(self):
+    @array_api_compatible
+    def test_fillvalue_empty(self, xp):
         # Check that fillvalue being empty raises an error:
         assert_raises(ValueError, convolve2d, [[1]], [[1, 2]],
                       fillvalue=[])
 
-    def test_wrap_boundary(self):
-        a = [[1, 2, 3], [3, 4, 5]]
-        b = [[2, 3, 4], [4, 5, 6]]
+    @array_api_compatible
+    def test_wrap_boundary(self, xp):
+        a = xp.asarray([[1, 2, 3], [3, 4, 5]])
+        b = xp.asarray([[2, 3, 4], [4, 5, 6]])
         c = convolve2d(a, b, 'full', 'wrap')
-        d = np.array([[80, 80, 74, 80, 80],
+        d = xp.asarray([[80, 80, 74, 80, 80],
                    [68, 68, 62, 68, 68],
                    [80, 80, 74, 80, 80]])
-        assert_array_equal(c, d)
+        xp_assert_equal(c, d)
 
-    def test_sym_boundary(self):
-        a = [[1, 2, 3], [3, 4, 5]]
-        b = [[2, 3, 4], [4, 5, 6]]
+    @array_api_compatible
+    def test_sym_boundary(self, xp):
+        a = xp.asarray([[1, 2, 3], [3, 4, 5]])
+        b = xp.asarray([[2, 3, 4], [4, 5, 6]])
         c = convolve2d(a, b, 'full', 'symm')
-        d = np.array([[34, 30, 44, 62, 66],
+        d = xp.asarray([[34, 30, 44, 62, 66],
                    [52, 48, 62, 80, 84],
                    [82, 78, 92, 110, 114]])
-        assert_array_equal(c, d)
+        xp_assert_equal(c, d)
 
+    @array_api_compatible
     @pytest.mark.parametrize('func', [convolve2d, correlate2d])
     @pytest.mark.parametrize('boundary, expected',
                              [('symm', [[37.0, 42.0, 44.0, 45.0]]),
                               ('wrap', [[43.0, 44.0, 42.0, 39.0]])])
-    def test_same_with_boundary(self, func, boundary, expected):
+    def test_same_with_boundary(self, func, boundary, expected, xp):
         # Test boundary='symm' and boundary='wrap' with a "long" kernel.
         # The size of the kernel requires that the values in the "image"
         # be extended more than once to handle the requested boundary method.
         # This is a regression test for gh-8684 and gh-8814.
-        image = np.array([[2.0, -1.0, 3.0, 4.0]])
-        kernel = np.ones((1, 21))
+        image = xp.asarray([[2.0, -1.0, 3.0, 4.0]])
+        kernel = xp.ones((1, 21))
         result = func(image, kernel, mode='same', boundary=boundary)
         # The expected results were calculated "by hand".  Because the
         # kernel is all ones, the same result is expected for convolve2d
         # and correlate2d.
-        assert_array_equal(result, expected)
+        xp_assert_equal(result, expected)
 
-    def test_boundary_extension_same(self):
+    @array_api_compatible
+    def test_boundary_extension_same(self, xp):
         # Regression test for gh-12686.
         # Use ndimage.convolve with appropriate arguments to create the
         # expected result.
         import scipy.ndimage as ndi
-        a = np.arange(1, 10*3+1, dtype=float).reshape(10, 3)
-        b = np.arange(1, 10*10+1, dtype=float).reshape(10, 10)
+        a = xp.arange(1, 10*3+1, dtype=float).reshape(10, 3)
+        b = xp.arange(1, 10*10+1, dtype=float).reshape(10, 10)
         c = convolve2d(a, b, mode='same', boundary='wrap')
-        assert_array_equal(c, ndi.convolve(a, b, mode='wrap', origin=(-1, -1)))
+        xp_assert_equal(c, xp.asarray(ndi.convolve(a, b, mode='wrap', origin=(-1, -1))))
 
-    def test_boundary_extension_full(self):
+    @array_api_compatible
+    def test_boundary_extension_full(self, xp):
         # Regression test for gh-12686.
         # Use ndimage.convolve with appropriate arguments to create the
         # expected result.
         import scipy.ndimage as ndi
-        a = np.arange(1, 3*3+1, dtype=float).reshape(3, 3)
-        b = np.arange(1, 6*6+1, dtype=float).reshape(6, 6)
+        a = xp.arange(1, 3*3+1, dtype=float).reshape(3, 3)
+        b = xp.arange(1, 6*6+1, dtype=float).reshape(6, 6)
         c = convolve2d(a, b, mode='full', boundary='wrap')
-        apad = np.pad(a, ((3, 3), (3, 3)), 'wrap')
-        assert_array_equal(c, ndi.convolve(apad, b, mode='wrap')[:-1, :-1])
+        apad = xp.pad(a, ((3, 3), (3, 3)), 'wrap')
+        xp_assert_equal(c, xp.asarray(ndi.convolve(apad, b, mode='wrap')[:-1, :-1]))
 
-    def test_invalid_shapes(self):
+    @array_api_compatible
+    def test_invalid_shapes(self, xp):
         # By "invalid," we mean that no one
         # array has dimensions that are all at
         # least as large as the corresponding
         # dimensions of the other array. This
         # setup should throw a ValueError.
-        a = np.arange(1, 7).reshape((2, 3))
-        b = np.arange(-6, 0).reshape((3, 2))
+        a = xp.arange(1, 7).reshape((2, 3))
+        b = xp.arange(-6, 0).reshape((3, 2))
 
         assert_raises(ValueError, convolve2d, *(a, b), **{'mode': 'valid'})
         assert_raises(ValueError, convolve2d, *(b, a), **{'mode': 'valid'})
@@ -414,62 +426,67 @@ class _TestConvolve2d:
 
 class TestConvolve2d(_TestConvolve2d):
 
-    def test_same_mode(self):
-        e = [[1, 2, 3], [3, 4, 5]]
-        f = [[2, 3, 4, 5, 6, 7, 8], [4, 5, 6, 7, 8, 9, 10]]
+    @array_api_compatible
+    def test_same_mode(self, xp):
+        e = xp.asarray([[1, 2, 3], [3, 4, 5]])
+        f = xp.asarray([[2, 3, 4, 5, 6, 7, 8], [4, 5, 6, 7, 8, 9, 10]])
         g = convolve2d(e, f, 'same')
-        h = np.array([[22, 28, 34],
+        h = xp.array([[22, 28, 34],
                    [80, 98, 116]])
-        assert_array_equal(g, h)
+        xp_assert_equal(g, h)
 
-    def test_valid_mode2(self):
+    @array_api_compatible
+    def test_valid_mode2(self, xp):
         # See gh-5897
-        e = [[1, 2, 3], [3, 4, 5]]
-        f = [[2, 3, 4, 5, 6, 7, 8], [4, 5, 6, 7, 8, 9, 10]]
-        expected = [[62, 80, 98, 116, 134]]
+        e = xp.asarray([[1, 2, 3], [3, 4, 5]])
+        f = xp.asarray([[2, 3, 4, 5, 6, 7, 8], [4, 5, 6, 7, 8, 9, 10]])
+        expected = xp.asarray([[62, 80, 98, 116, 134]])
 
         out = convolve2d(e, f, 'valid')
-        assert_array_equal(out, expected)
+        xp_assert_equal(out, expected)
 
         out = convolve2d(f, e, 'valid')
-        assert_array_equal(out, expected)
+        xp_assert_equal(out, expected)
 
-        e = [[1 + 1j, 2 - 3j], [3 + 1j, 4 + 0j]]
-        f = [[2 - 1j, 3 + 2j, 4 + 0j], [4 - 0j, 5 + 1j, 6 - 3j]]
-        expected = [[27 - 1j, 46. + 2j]]
+        e = xp.asarray([[1 + 1j, 2 - 3j], [3 + 1j, 4 + 0j]])
+        f = xp.asarray([[2 - 1j, 3 + 2j, 4 + 0j], [4 - 0j, 5 + 1j, 6 - 3j]])
+        expected = xp.asarray([[27 - 1j, 46. + 2j]])
 
         out = convolve2d(e, f, 'valid')
-        assert_array_equal(out, expected)
+        xp_assert_equal(out, expected)
 
         # See gh-5897
         out = convolve2d(f, e, 'valid')
-        assert_array_equal(out, expected)
+        xp_assert_equal(out, expected)
 
-    def test_consistency_convolve_funcs(self):
+    @array_api_compatible
+    def test_consistency_convolve_funcs(self, xp):
         # Compare np.convolve, signal.convolve, signal.convolve2d
-        a = np.arange(5)
-        b = np.array([3.2, 1.4, 3])
+        a = xp.arange(5)
+        b = xp.array([3.2, 1.4, 3])
         for mode in ['full', 'valid', 'same']:
-            assert_almost_equal(np.convolve(a, b, mode=mode),
-                                signal.convolve(a, b, mode=mode))
-            assert_almost_equal(np.squeeze(
+            xp_assert_close(np.convolve(a, b, mode=mode),
+                            signal.convolve(a, b, mode=mode))
+            xp_assert_close(np.squeeze(
                 signal.convolve2d([a], [b], mode=mode)),
                 signal.convolve(a, b, mode=mode))
 
-    def test_invalid_dims(self):
+    @array_api_compatible
+    def test_invalid_dims(self, xp):
         assert_raises(ValueError, convolve2d, 3, 4)
         assert_raises(ValueError, convolve2d, [3], [4])
         assert_raises(ValueError, convolve2d, [[[3]]], [[[4]]])
 
+    @array_api_compatible
     @pytest.mark.slow
     @pytest.mark.xfail_on_32bit("Can't create large array for test")
-    def test_large_array(self):
+    def test_large_array(self, xp):
         # Test indexing doesn't overflow an int (gh-10761)
-        n = 2**31 // (1000 * np.int64().itemsize)
+        n = 2**31 // (1000 * xp.int64().itemsize)
         _testutils.check_free_memory(2 * n * 1001 * np.int64().itemsize / 1e6)
 
         # Create a chequered pattern of 1s and 0s
-        a = np.zeros(1001 * n, dtype=np.int64)
+        a = xp.zeros(1001 * n, dtype=xp.int64)
         a[::2] = 1
         a = np.lib.stride_tricks.as_strided(a, shape=(n, 1000), strides=(8008, 8))
 
@@ -1113,7 +1130,7 @@ class TestMedFilt:
     def test_basic(self):
         d = signal.medfilt(self.IN, self.KERNEL_SIZE)
         e = signal.medfilt2d(np.array(self.IN, float), self.KERNEL_SIZE)
-        assert_array_equal(d, self.OUT)
+        xp_assert_equal(d, self.OUT)
         assert_array_equal(d, e)
 
     @pytest.mark.parametrize('dtype', [np.ubyte, np.byte, np.ushort, np.short,
