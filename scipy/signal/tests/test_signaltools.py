@@ -10,7 +10,8 @@ from pytest import raises as assert_raises
 from numpy.testing import (
     assert_equal,
     assert_almost_equal, #assert_array_equal, # assert_array_almost_equal,
-    assert_allclose, assert_, assert_array_less,
+    assert_allclose, #assert_, 
+    assert_array_less,
     suppress_warnings)
 import numpy as np
 
@@ -773,9 +774,9 @@ class TestFFTConvolve:
 
     def test_empty(self):
         # Regression test for #1745: crashes with 0-length input.
-        assert_(fftconvolve([], []).size == 0)
-        assert_(fftconvolve([5, 6], []).size == 0)
-        assert_(fftconvolve([], [7]).size == 0)
+        assert fftconvolve([], []).size == 0
+        assert fftconvolve([5, 6], []).size == 0
+        assert fftconvolve([], [7]).size == 0
 
     def test_zero_rank(self):
         a = np.array(4967)
@@ -800,7 +801,7 @@ class TestFFTConvolve:
             out = fftconvolve(a, b, 'full')
         else:
             out = fftconvolve(a, b, 'full', axes=axes)
-        assert_(np.allclose(out, expected, rtol=1e-10))
+        assert_allclose(out, expected, rtol=1e-10)
 
     @pytest.mark.parametrize('axes', [1, [1], -1, [-1]])
     def test_random_data_axes(self, axes):
@@ -814,7 +815,7 @@ class TestFFTConvolve:
         expected = np.tile(expected, [2, 1])
 
         out = fftconvolve(a, b, 'full', axes=axes)
-        assert_(np.allclose(out, expected, rtol=1e-10))
+        assert_allclose(out, expected, rtol=1e-10)
 
     @pytest.mark.parametrize('axes', [[1, 4],
                                       [4, 1],
@@ -1023,9 +1024,9 @@ class TestOAConvolve:
 
     def test_empty(self):
         # Regression test for #1745: crashes with 0-length input.
-        assert_(oaconvolve([], []).size == 0)
-        assert_(oaconvolve([5, 6], []).size == 0)
-        assert_(oaconvolve([], [7]).size == 0)
+        assert oaconvolve([], []).size == 0
+        assert oaconvolve([5, 6], []).size == 0
+        assert oaconvolve([], [7]).size == 0
 
     def test_zero_rank(self):
         a = np.array(4967)
@@ -1191,7 +1192,7 @@ class TestMedFilt:
         dummy = np.arange(10, dtype=np.float64)
         a = dummy[5:6]
         a.strides = 16
-        assert_(signal.medfilt(a, 1) == 5.)
+        assert signal.medfilt(a, 1) == 5.
 
     @pytest.mark.parametrize("dtype", [np.ubyte, np.float32, np.float64])
     def test_medfilt2d_parallel(self, dtype):
@@ -1290,7 +1291,7 @@ class TestResample:
         # test for issue #6505 - should not modify window.shape when axis ≠ 0
         sig2 = np.tile(np.arange(160), (2, 1))
         signal.resample(sig2, num, axis=-1, window=win)
-        assert_(win.shape == (160,))
+        assert win.shape == (160,)
 
     @pytest.mark.parametrize('window', (None, 'hamming'))
     @pytest.mark.parametrize('N', (20, 19))
@@ -1405,7 +1406,7 @@ class TestResample:
                 else:
                     assert y_to.shape == y_resamp.shape
                     corr = np.corrcoef(y_to, y_resamp)[0, 1]
-                    assert_(corr > 0.99, msg=(corr, rate, rate_to))
+                    assert corr > 0.99, (corr, rate, rate_to)
 
         # Random data
         rng = np.random.RandomState(0)
@@ -1421,7 +1422,7 @@ class TestResample:
                                                 padtype=padtype)
             assert y_to.shape == y_resamp.shape
             corr = np.corrcoef(y_to, y_resamp)[0, 1]
-            assert_(corr > 0.99, msg=corr)
+            assert corr > 0.99, corr
 
         # More tests of fft method (Master 0.18.1 fails these)
         if method == 'fft':
@@ -2368,14 +2369,14 @@ class TestFiltFilt:
         y = self.filtfilt(zpk, x, padlen=n)
         # Result should be just xlow.
         err = np.abs(y - xlow).max()
-        assert_(err < 1e-4)
+        assert err < 1e-4
 
         # A 2D case.
         x2d = np.vstack([xlow, xlow + xhigh])
         y2d = self.filtfilt(zpk, x2d, padlen=n, axis=1)
         assert_equal(y2d.shape, x2d.shape)
         err = np.abs(y2d - xlow).max()
-        assert_(err < 1e-4)
+        assert err < 1e-4
 
         # Use the previous result to check the use of the axis keyword.
         # (Regression test for ticket #1620)
@@ -2529,9 +2530,9 @@ def test_choose_conv_method():
             assert_equal(method, true_method)
 
             method_try, times = choose_conv_method(x, h, mode=mode, measure=True)
-            assert_(method_try in {'fft', 'direct'})
-            assert_(isinstance(times, dict))
-            assert_('fft' in times.keys() and 'direct' in times.keys())
+            assert method_try in {'fft', 'direct'}
+            assert isinstance(times, dict)
+            assert 'fft' in times.keys() and 'direct' in times.keys()
 
         n = 10
         for not_fft_conv_supp in ["complex256", "complex192"]:
