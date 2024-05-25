@@ -9,7 +9,7 @@ import pytest
 from pytest import raises as assert_raises
 from numpy.testing import (
     assert_equal,
-    assert_almost_equal, assert_array_equal, # assert_array_almost_equal,
+    assert_almost_equal, #assert_array_equal, # assert_array_almost_equal,
     assert_allclose, assert_, assert_array_less,
     suppress_warnings)
 import numpy as np
@@ -1149,8 +1149,8 @@ class TestMedFilt:
     def test_basic(self):
         d = signal.medfilt(self.IN, self.KERNEL_SIZE)
         e = signal.medfilt2d(np.array(self.IN, float), self.KERNEL_SIZE)
-        xp_assert_equal(d, self.OUT)
-        assert_array_equal(d, e)
+        xp_assert_equal(d, self.OUT, check_dtype=False)
+        xp_assert_equal(d, e, check_dtype=False)
 
     @pytest.mark.parametrize('dtype', [np.ubyte, np.byte, np.ushort, np.short,
                                        np_ulong, np_long, np.ulonglong, np.ulonglong,
@@ -1247,7 +1247,7 @@ class TestMedFilt:
                 data, Mslice, Nslice = future.result()
                 output[Mslice, Nslice] = data
 
-        assert_array_equal(output, expected)
+        xp_assert_equal(output, expected)
 
 
 class TestWiener:
@@ -1335,7 +1335,7 @@ class TestResample:
         window = np.random.RandomState(0).randn(2)
         window_orig = window.copy()
         signal.resample_poly(impulse, 5, 1, window=window, padtype=padtype)
-        assert_array_equal(window, window_orig)
+        xp_assert_equal(window, window_orig)
 
     @pytest.mark.parametrize('padtype', padtype_options)
     def test_output_float32(self, padtype):
@@ -1403,7 +1403,7 @@ class TestResample:
                     else:
                         assert_allclose(y_resamp, y_to, atol=1e-3)
                 else:
-                    assert_array_equal(y_to.shape, y_resamp.shape)
+                    assert y_to.shape == y_resamp.shape
                     corr = np.corrcoef(y_to, y_resamp)[0, 1]
                     assert_(corr > 0.99, msg=(corr, rate, rate_to))
 
@@ -1419,7 +1419,7 @@ class TestResample:
             else:
                 y_resamp = signal.resample_poly(x, rate_to, rate,
                                                 padtype=padtype)
-            assert_array_equal(y_to.shape, y_resamp.shape)
+            assert y_to.shape == y_resamp.shape
             corr = np.corrcoef(y_to, y_resamp)[0, 1]
             assert_(corr > 0.99, msg=corr)
 
@@ -1509,7 +1509,7 @@ class TestCSpline1DEval:
 class TestOrderFilt:
 
     def test_basic(self):
-        assert_array_equal(signal.order_filter([1, 2, 3], [1, 0, 1], 1),
+        xp_assert_equal(signal.order_filter([1, 2, 3], [1, 0, 1], 1),
                            [2, 3, 2])
 
 
@@ -1851,8 +1851,8 @@ class _TestLinearFilter:
         zi = lfiltic(b, a, [1., 0])
         zi_1 = lfiltic(b, a, [1, 0])
         zi_2 = lfiltic(b, a, [True, False])
-        assert_array_equal(zi, zi_1)
-        assert_array_equal(zi, zi_2)
+        xp_assert_equal(zi, zi_1, check_dtype=False)
+        xp_assert_equal(zi, zi_2, check_dtype=False)
 
     def test_short_x_FIR(self):
         # regression test for #5116
@@ -2388,9 +2388,9 @@ class TestFiltFilt:
         zpk = butter(3, 0.125, output='zpk')
         y0 = self.filtfilt(zpk, x, padlen=0, axis=0)
         y1 = self.filtfilt(zpk, np.swapaxes(x, 0, 1), padlen=0, axis=1)
-        assert_array_equal(y0, np.swapaxes(y1, 0, 1))
+        xp_assert_equal(y0, np.swapaxes(y1, 0, 1))
         y2 = self.filtfilt(zpk, np.swapaxes(x, 0, 2), padlen=0, axis=2)
-        assert_array_equal(y0, np.swapaxes(y2, 0, 2))
+        xp_assert_equal(y0, np.swapaxes(y2, 0, 2))
 
     def test_acoeff(self):
         if self.filtfilt_kind != 'tf':
@@ -2589,12 +2589,12 @@ class TestDecimate:
     def test_basic_IIR(self):
         x = np.arange(12)
         y = signal.decimate(x, 2, n=1, ftype='iir', zero_phase=False).round()
-        assert_array_equal(y, x[::2])
+        xp_assert_equal(y, x[::2], check_dtype=False)
 
     def test_basic_FIR(self):
         x = np.arange(12)
         y = signal.decimate(x, 2, n=1, ftype='fir', zero_phase=False).round()
-        assert_array_equal(y, x[::2])
+        xp_assert_equal(y, x[::2], check_dtype=False)
 
     def test_shape(self):
         # Regression test for ticket #1480.
