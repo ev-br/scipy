@@ -190,6 +190,7 @@ class TestConvolve:
         d = xp.asarray([57, 61, 63, 57, 45, 36])
         xp_assert_equal(c, d)
 
+    @skip_xp_backends("cupy", reasons=["different exception"])
     @array_api_compatible
     def test_invalid_shapes(self, xp):
         # By "invalid," we mean that no one
