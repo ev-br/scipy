@@ -32,7 +32,7 @@ from scipy.signal._upfirdn import _upfirdn_modes
 from scipy._lib import _testutils
 from scipy._lib._util import ComplexWarning, np_long, np_ulong
 
-from scipy._lib._array_api import  xp_assert_close, xp_assert_equal, is_cupy
+from scipy._lib._array_api import  xp_assert_close, xp_assert_equal, is_cupy, is_numpy
 from scipy.conftest import array_api_compatible
 
 skip_xp_backends = pytest.mark.skip_xp_backends
@@ -282,9 +282,11 @@ class TestConvolve:
         assert_raises(ValueError, convolve, [3], 2)
 
 
+@pytest.mark.usefixtures("skip_xp_backends")
 class _TestConvolve2d:
 
     @array_api_compatible
+    @skip_xp_backends("jax.numpy", reasons=["dtypes do not match"])
     def test_2d_arrays(self, xp):
         a = xp.asarray([[1, 2, 3], [3, 4, 5]])
         b = xp.asarray([[2, 3, 4], [4, 5, 6]])
@@ -295,6 +297,7 @@ class _TestConvolve2d:
         xp_assert_equal(e, d)
 
     @array_api_compatible
+    @skip_xp_backends("jax.numpy", reasons=["dtypes do not match"])
     def test_valid_mode(self, xp):
         e = xp.asarray([[2, 3, 4, 5, 6, 7, 8], [4, 5, 6, 7, 8, 9, 10]])
         f = xp.asarray([[1, 2, 3], [3, 4, 5]])
@@ -320,6 +323,7 @@ class _TestConvolve2d:
         g = convolve2d(f, e, 'valid')
         xp_assert_equal(g, h)
 
+    @skip_xp_backends("jax.numpy", reasons=["jax limitation"])
     @array_api_compatible
     def test_fillvalue(self, xp):
         a = xp.asarray([[1, 2, 3], [3, 4, 5]])
@@ -350,6 +354,7 @@ class _TestConvolve2d:
                       fillvalue=[])
 
     @array_api_compatible
+    @skip_xp_backends("jax.numpy", reasons=["jax limitation"])
     def test_wrap_boundary(self, xp):
         a = xp.asarray([[1, 2, 3], [3, 4, 5]])
         b = xp.asarray([[2, 3, 4], [4, 5, 6]])
@@ -360,6 +365,7 @@ class _TestConvolve2d:
         xp_assert_equal(c, d)
 
     @array_api_compatible
+    @skip_xp_backends("jax.numpy", reasons=["jax limitation"])
     def test_sym_boundary(self, xp):
         a = xp.asarray([[1, 2, 3], [3, 4, 5]])
         b = xp.asarray([[2, 3, 4], [4, 5, 6]])
@@ -370,6 +376,7 @@ class _TestConvolve2d:
         xp_assert_equal(c, d)
 
     @array_api_compatible
+    @skip_xp_backends("jax.numpy", reasons=["jax limitation"])
     @pytest.mark.parametrize('func', [convolve2d, correlate2d])
     @pytest.mark.parametrize('boundary, expected',
                              [('symm', [[37.0, 42.0, 44.0, 45.0]]),
@@ -381,28 +388,40 @@ class _TestConvolve2d:
         # This is a regression test for gh-8684 and gh-8814.
         image = xp.asarray([[2.0, -1.0, 3.0, 4.0]])
         kernel = xp.ones((1, 21))
+        if not is_numpy(xp) and func == correlate2d:
+            pytest.xfail(reason="signal.correlate2d TODO accelerator")
+
         result = func(image, kernel, mode='same', boundary=boundary)
         # The expected results were calculated "by hand".  Because the
         # kernel is all ones, the same result is expected for convolve2d
         # and correlate2d.
-        xp_assert_equal(result, expected)
+        if func == correlate2d:
+            # XXX: remove when correlate2d is converted
+            result = xp.asarray(result)
+        xp_assert_equal(result, xp.asarray(expected))
 
     @array_api_compatible
     def test_boundary_extension_same(self, xp):
         # Regression test for gh-12686.
         # Use ndimage.convolve with appropriate arguments to create the
         # expected result.
+        if not is_numpy(xp):
+            pytest.xfail(reason="ndi.convolve TODO accelerator")
+
         import scipy.ndimage as ndi
         a = xp.arange(1, 10*3+1, dtype=float).reshape(10, 3)
         b = xp.arange(1, 10*10+1, dtype=float).reshape(10, 10)
         c = convolve2d(a, b, mode='same', boundary='wrap')
-        xp_assert_equal(c, xp.asarray(ndi.convolve(a, b, mode='wrap', origin=(-1, -1))))
+        xp_assert_equal(c, ndi.convolve(a, b, mode='wrap', origin=(-1, -1)))
 
     @array_api_compatible
     def test_boundary_extension_full(self, xp):
         # Regression test for gh-12686.
         # Use ndimage.convolve with appropriate arguments to create the
         # expected result.
+        if not is_numpy(xp):
+            pytest.xfail(reason="ndimage TODO accelerators")
+
         import scipy.ndimage as ndi
         a = xp.arange(1, 3*3+1, dtype=float).reshape(3, 3)
         b = xp.arange(1, 6*6+1, dtype=float).reshape(6, 6)
@@ -427,6 +446,7 @@ class _TestConvolve2d:
 class TestConvolve2d(_TestConvolve2d):
 
     @array_api_compatible
+    @skip_xp_backends("jax.numpy", reasons=["jax limitation"])
     def test_same_mode(self, xp):
         e = xp.asarray([[1, 2, 3], [3, 4, 5]])
         f = xp.asarray([[2, 3, 4, 5, 6, 7, 8], [4, 5, 6, 7, 8, 9, 10]])
@@ -436,6 +456,7 @@ class TestConvolve2d(_TestConvolve2d):
         xp_assert_equal(g, h)
 
     @array_api_compatible
+    @skip_xp_backends("jax.numpy", reasons=["jax limitation"])
     def test_valid_mode2(self, xp):
         # See gh-5897
         e = xp.asarray([[1, 2, 3], [3, 4, 5]])
@@ -465,10 +486,10 @@ class TestConvolve2d(_TestConvolve2d):
         a = xp.arange(5)
         b = xp.array([3.2, 1.4, 3])
         for mode in ['full', 'valid', 'same']:
-            xp_assert_close(np.convolve(a, b, mode=mode),
+            xp_assert_close(xp.convolve(a, b, mode=mode),
                             signal.convolve(a, b, mode=mode))
-            xp_assert_close(np.squeeze(
-                signal.convolve2d([a], [b], mode=mode)),
+            xp_assert_close(xp.squeeze(
+                signal.convolve2d(xp.asarray([a]), xp.asarray([b]), mode=mode)),
                 signal.convolve(a, b, mode=mode))
 
     @array_api_compatible

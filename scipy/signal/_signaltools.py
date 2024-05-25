@@ -1710,6 +1710,27 @@ def wiener(im, mysize=None, noise=None):
     return out
 
 
+def convolve2d_dispatcher(in1, in2, mode='full', boundary='fill', fillvalue=0):
+    """ Deduce the array namespace and whether we can dispatch to the cupy namesake.
+
+    The signature must agree with that of convolve2d itself.
+    """
+    xp = array_namespace(in1, in2)
+    if is_jax(xp):
+        can_dispatch = boundary == 'fill' and fillvalue == 0
+
+        if not can_dispatch:
+            raise ValueError(
+                f"Cannot dispatch to {xp.__name__} for {in1.ndim = }, "
+                f" {in2.ndim = }, {boundary = } and {fillvalue = }."
+            )
+    else:
+        can_dispatch = True
+
+    return xp, can_dispatch
+
+
+@dispatch_cupy(convolve2d_dispatcher, module_name='signal')
 def convolve2d(in1, in2, mode='full', boundary='fill', fillvalue=0):
     """
     Convolve two 2-dimensional arrays.
