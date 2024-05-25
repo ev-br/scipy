@@ -283,7 +283,7 @@ class TestConvolve:
 
 
 @pytest.mark.usefixtures("skip_xp_backends")
-class _TestConvolve2d:
+class TestConvolve2d:
 
     @array_api_compatible
     @skip_xp_backends("jax.numpy", reasons=["dtypes do not match"])
@@ -441,9 +441,6 @@ class _TestConvolve2d:
 
         assert_raises(ValueError, convolve2d, *(a, b), **{'mode': 'valid'})
         assert_raises(ValueError, convolve2d, *(b, a), **{'mode': 'valid'})
-
-
-class TestConvolve2d(_TestConvolve2d):
 
     @array_api_compatible
     @skip_xp_backends("jax.numpy", reasons=["jax limitation"])
