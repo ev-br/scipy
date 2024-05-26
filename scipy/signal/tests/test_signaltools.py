@@ -7,9 +7,7 @@ from math import gcd
 
 import pytest
 from pytest import raises as assert_raises
-from numpy.testing import (
-    assert_array_less,
-    suppress_warnings)
+from numpy.testing import suppress_warnings
 import numpy as np
 
 from scipy.fft import fft
@@ -2681,7 +2679,7 @@ class TestDecimate:
         x = np.sqrt(2. / n) * np.sin(2 * np.pi * (sfreq / 30.) * t)
         xp_assert_close(np.linalg.norm(x), 1., rtol=1e-3)
         x_out = signal.decimate(x, 30, ftype='fir')
-        assert_array_less(np.linalg.norm(x_out), 0.01)
+        assert np.linalg.norm(x_out) < 0.01
 
     def test_long_float32(self):
         # regression: gh-15072.  With 32-bit float and either lfilter
