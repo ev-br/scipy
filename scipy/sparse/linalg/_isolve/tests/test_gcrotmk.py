@@ -163,3 +163,30 @@ class TestGCROTMK:
 
         if info == 0:
             assert_allclose(A.dot(xp), b)
+
+    def test_complex(self):
+        # test_rgi.py::::TestRegularGridInterpolator::test_complex[slinear]
+        n = 7**4
+        a = np.eye(n, dtype=float)
+
+        vals = np.asarray([0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0])
+        vals = (vals[:, None, None, None] +
+                vals[None, :, None, None] * 10 +
+                vals[None, None, :, None] * 100 +
+                vals[None, None, None, :] * 1000)
+        vals = vals - 2j*vals
+        vals = vals.flatten()
+
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            res, info = gcrotmk(a, vals, atol=1e-5)
+
+        assert info == 0
+
+        res_re, _ = gcrotmk(a, vals.real, atol=1e-5)
+        res_im, _ = gcrotmk(a, vals.imag, atol=1e-5)
+
+        assert_allclose(res, res_re + 1j*res_im)
+
+
