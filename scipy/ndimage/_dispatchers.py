@@ -25,28 +25,7 @@ for func in funcs:
 """
 import numpy as np
 from scipy._lib._array_api import array_namespace
-
-
-# XXX: handling of optional arguments relies on that array_namespace() ignores
-#      None arguments. No idea if it's deliberate or not. If not, make a wrapper here
-
-def _skip_if_dtype(arg):
-    """'array or dtype' polymorphism.
-
-    Return None for np.int8, dtype('float32') or 'f' etc
-           arg for np.empty(3) etc
-    """
-
-    if isinstance(arg, str):
-        return None
-    if type(arg) is type:
-        return None if issubclass(arg, np.generic) else arg
-    else:
-        return None if isinstance(arg, np.dtype) else arg
-
-
-def _skip_if_int(arg):
-    return None if (arg is None or isinstance(arg, int)) else arg
+from scipy.ndimage._ni_support import _skip_if_dtype, _skip_if_int
 
 
 def affine_transform_dispatcher(

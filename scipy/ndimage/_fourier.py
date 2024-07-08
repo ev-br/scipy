@@ -29,9 +29,11 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
+from scipy._lib._array_api import array_namespace
 from scipy._lib._util import normalize_axis_index
 from . import _ni_support
 from . import _nd_image
+from ._ni_support import _skip_if_dtype, _skip_if_int
 
 __all__ = ['fourier_gaussian', 'fourier_uniform', 'fourier_ellipsoid',
            'fourier_shift']
@@ -67,6 +69,22 @@ def _get_output_fourier_complex(output, input):
         raise RuntimeError("output shape not correct")
     return output
 
+'''
+# XXX: move out, combine with the version in _dispatchers
+def _skip_if_dtype(arg):
+    """'array or dtype' polymorphism.
+
+    Return None for np.int8, dtype('float32') or 'f' etc
+           arg for np.empty(3) etc
+    """
+
+    if isinstance(arg, str):
+        return None
+    if type(arg) is type:
+        return None if issubclass(arg, np.generic) else arg
+    else:
+        return None if isinstance(arg, np.dtype) else arg
+'''
 
 def fourier_gaussian(input, sigma, n=-1, axis=-1, output=None):
     """
@@ -114,8 +132,14 @@ def fourier_gaussian(input, sigma, n=-1, axis=-1, output=None):
     >>> ax2.imshow(result.real)  # the imaginary part is an artifact
     >>> plt.show()
     """
+    xp = array_namespace(input, _skip_if_dtype(output))
     input = np.asarray(input)
     output = _get_output_fourier(output, input)
+
+    # by now, `output` is either a numpy or xp- array object
+    output = np.asarray(output)
+
+    # NB: numpy arrays below
     axis = normalize_axis_index(axis, input.ndim)
     sigmas = _ni_support._normalize_sequence(sigma, input.ndim)
     sigmas = np.asarray(sigmas, dtype=np.float64)
@@ -123,6 +147,8 @@ def fourier_gaussian(input, sigma, n=-1, axis=-1, output=None):
         sigmas = sigmas.copy()
 
     _nd_image.fourier_filter(input, sigmas, n, axis, output, 0)
+
+    output = xp.asarray(output)    # XXX: check that no copy was made if xp != np
     return output
 
 
@@ -172,14 +198,19 @@ def fourier_uniform(input, size, n=-1, axis=-1, output=None):
     >>> ax2.imshow(result.real)  # the imaginary part is an artifact
     >>> plt.show()
     """
+    xp = array_namespace(input, _skip_if_dtype(output))
     input = np.asarray(input)
     output = _get_output_fourier(output, input)
+    output = np.asarray(output)
+
     axis = normalize_axis_index(axis, input.ndim)
     sizes = _ni_support._normalize_sequence(size, input.ndim)
     sizes = np.asarray(sizes, dtype=np.float64)
     if not sizes.flags.contiguous:
         sizes = sizes.copy()
     _nd_image.fourier_filter(input, sizes, n, axis, output, 1)
+
+    output = xp.asarray(output)
     return output
 
 
@@ -233,20 +264,26 @@ def fourier_ellipsoid(input, size, n=-1, axis=-1, output=None):
     >>> ax2.imshow(result.real)  # the imaginary part is an artifact
     >>> plt.show()
     """
+    xp = array_namespace(input, _skip_if_dtype(output))
+
     input = np.asarray(input)
     if input.ndim > 3:
         raise NotImplementedError("Only 1d, 2d and 3d inputs are supported")
     output = _get_output_fourier(output, input)
+    output = np.asarray(output)
+
     if output.size == 0:
         # The C code has a bug that can result in a segfault with arrays
         # that have size 0 (gh-17270), so check here.
-        return output
+        return xp.asarray(output)
     axis = normalize_axis_index(axis, input.ndim)
     sizes = _ni_support._normalize_sequence(size, input.ndim)
     sizes = np.asarray(sizes, dtype=np.float64)
     if not sizes.flags.contiguous:
         sizes = sizes.copy()
     _nd_image.fourier_filter(input, sizes, n, axis, output, 2)
+
+    output = xp.asarray(output)
     return output
 
 
@@ -295,12 +332,17 @@ def fourier_shift(input, shift, n=-1, axis=-1, output=None):
     >>> ax2.imshow(result.real)  # the imaginary part is an artifact
     >>> plt.show()
     """
+    xp = array_namespace(input, _skip_if_dtype(output))
     input = np.asarray(input)
     output = _get_output_fourier_complex(output, input)
+    output = np.asarray(output)
+
     axis = normalize_axis_index(axis, input.ndim)
     shifts = _ni_support._normalize_sequence(shift, input.ndim)
     shifts = np.asarray(shifts, dtype=np.float64)
     if not shifts.flags.contiguous:
         shifts = shifts.copy()
     _nd_image.fourier_shift(input, shifts, n, axis, output)
+
+    output = xp.asarray(output)
     return output

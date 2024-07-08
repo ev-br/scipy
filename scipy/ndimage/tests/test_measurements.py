@@ -9,7 +9,7 @@ from scipy._lib._array_api import (
     assert_array_almost_equal,
     assert_almost_equal,
 )
-from scipy._lib._array_api import is_cupy
+from scipy._lib._array_api import np_compat, is_cupy
 
 import pytest
 from pytest import raises as assert_raises
@@ -22,7 +22,7 @@ from scipy.conftest import array_api_compatible
 skip_xp_backends = pytest.mark.skip_xp_backends
 pytestmark = [array_api_compatible, pytest.mark.usefixtures("skip_xp_backends"),
               # XXX: only CuPy delegation is implemented
-              skip_xp_backends("jax.numpy", "torch", "array_api_strict"),
+#              skip_xp_backends("jax.numpy", "torch"),
 ]
 
 IS_WINDOWS_AND_NP1 = os.name == 'nt' and np.__version__ < '2'
@@ -31,14 +31,18 @@ class Test_measurements_stats:
     """ndimage._measurements._stats() is a utility used by other functions."""
 
     def test_a(self, xp):
+        # testing private functions, which do not call `array_namespace` themselves 
+        if xp == np:
+            xp = np_compat
+
         x = xp.asarray([0, 1, 2, 6])
         labels = [0, 0, 1, 1]
         index = [0, 1]
         for shp in [(4,), (2, 2)]:
-            x = xp.asarray(x).reshape(shp)
-            labels = xp.asarray(labels).reshape(shp)
+            x = xp.reshape(x, shp)
+            labels = xp.reshape(xp.asarray(labels), shp)
             counts, sums = ndimage._measurements._stats(
-                x, labels=labels, index=index)
+                xp, x, labels=labels, index=index)
 
             dtype_arg = {'dtype': xp.int64} if IS_WINDOWS_AND_NP1 else {}
             xp_assert_equal(counts, xp.asarray([2, 2], **dtype_arg))
@@ -47,32 +51,38 @@ class Test_measurements_stats:
     def test_b(self, xp):
         # Same data as test_a, but different labels.  The label 9 exceeds the
         # length of 'labels', so this test will follow a different code path.
+
+        # testing private functions, which do not call `array_namespace` themselves 
+        if xp == np:
+            xp = np_compat
+
         x = xp.asarray([0, 1, 2, 6])
         labels = xp.asarray([0, 0, 9, 9])
         index = xp.asarray([0, 9])
         for shp in [(4,), (2, 2)]:
-            x = xp.asarray(x).reshape(shp)
-            labels = xp.asarray(labels).reshape(shp)
+            x = xp.reshape(x, shp)
+            labels = xp.reshape(labels, shp)
+
             counts, sums = ndimage._measurements._stats(
-                x, labels=labels, index=index)
+                xp, x, labels=labels, index=index)
 
             dtype_arg = {'dtype': xp.int64} if IS_WINDOWS_AND_NP1 else {}
             xp_assert_equal(counts, xp.asarray([2, 2], **dtype_arg))
             xp_assert_equal(sums, xp.asarray([1.0, 8.0]))
 
     def test_a_centered(self, xp):
-
-        if is_cupy(xp):
-            pytest.xfail("_measurements._stats(..., centered=True) with CuPy arrays")
+        # testing private functions, which do not call `array_namespace` themselves 
+        if xp == np:
+            xp = np_compat
 
         x = xp.asarray([0, 1, 2, 6])
         labels = xp.asarray([0, 0, 1, 1])
         index = xp.asarray([0, 1])
         for shp in [(4,), (2, 2)]:
-            x = xp.asarray(x).reshape(shp)
-            labels = xp.asarray(labels).reshape(shp)
+            x = xp.reshape(x, shp)
+            labels = xp.reshape(labels, shp)
             counts, sums, centers = ndimage._measurements._stats(
-                x, labels=labels, index=index, centered=True)
+                xp, x, labels=labels, index=index, centered=True)
 
             dtype_arg = {'dtype': xp.int64} if IS_WINDOWS_AND_NP1 else {}
             xp_assert_equal(counts, xp.asarray([2, 2], **dtype_arg))
@@ -80,14 +90,18 @@ class Test_measurements_stats:
             xp_assert_equal(centers, xp.asarray([0.5, 8.0]))
 
     def test_b_centered(self, xp):
+        # testing private functions, which do not call `array_namespace` themselves 
+        if xp == np:
+            xp = np_compat
+
         x = xp.asarray([0, 1, 2, 6])
         labels = xp.asarray([0, 0, 9, 9])
         index = xp.asarray([0, 9])
         for shp in [(4,), (2, 2)]:
-            x = xp.asarray(x).reshape(shp)
-            labels = xp.asarray(labels).reshape(shp)
+            x = xp.reshape(x, shp)
+            labels = xp.reshape(labels, shp)
             counts, sums, centers = ndimage._measurements._stats(
-                x, labels=labels, index=index, centered=True)
+                xp, x, labels=labels, index=index, centered=True)
 
             dtype_arg = {'dtype': xp.int64} if IS_WINDOWS_AND_NP1 else {}
             xp_assert_equal(counts, xp.asarray([2, 2], **dtype_arg))
@@ -95,14 +109,18 @@ class Test_measurements_stats:
             xp_assert_equal(centers, xp.asarray([0.5, 8.0]))
 
     def test_nonint_labels(self, xp):
+        # testing private functions, which do not call `array_namespace` themselves 
+        if xp == np:
+            xp = np_compat
+
         x = xp.asarray([0, 1, 2, 6])
         labels = xp.asarray([0.0, 0.0, 9.0, 9.0])
         index = xp.asarray([0.0, 9.0])
         for shp in [(4,), (2, 2)]:
-            x = xp.asarray(x).reshape(shp)
-            labels = xp.asarray(labels).reshape(shp)
+            x = xp.reshape(x, shp)
+            labels = xp.reshape(labels, shp)
             counts, sums, centers = ndimage._measurements._stats(
-                x, labels=labels, index=index, centered=True)
+                xp, x, labels=labels, index=index, centered=True)
 
             dtype_arg = {'dtype': xp.int64} if IS_WINDOWS_AND_NP1 else {}
             xp_assert_equal(counts, xp.asarray([2, 2], **dtype_arg))

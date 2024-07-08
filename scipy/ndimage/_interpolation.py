@@ -33,9 +33,11 @@ import warnings
 
 import numpy as np
 from scipy._lib._util import normalize_axis_index
+from scipy._lib._array_api import array_namespace
 
 from scipy import special
 from . import _ni_support
+from ._ni_support import _skip_if_dtype
 from . import _nd_image
 from ._ni_docstrings import docfiller
 
@@ -116,10 +118,15 @@ def spline_filter1d(input, order=3, axis=-1, output=np.float64,
     """
     if order < 0 or order > 5:
         raise RuntimeError('spline order not supported')
+
+    xp = array_namespace(input, _skip_if_dtype(output))
+
     input = np.asarray(input)
     complex_output = np.iscomplexobj(input)
     output = _ni_support._get_output(output, input,
                                      complex_output=complex_output)
+    output = np.asarray(output)
+
     if complex_output:
         spline_filter1d(input.real, order, axis, output.real, mode)
         spline_filter1d(input.imag, order, axis, output.imag, mode)
@@ -130,6 +137,8 @@ def spline_filter1d(input, order=3, axis=-1, output=np.float64,
         mode = _ni_support._extend_mode_to_code(mode)
         axis = normalize_axis_index(axis, input.ndim)
         _nd_image.spline_filter1d(input, order, axis, output, mode)
+
+    output = xp.asarray(output)
     return output
 
 @docfiller

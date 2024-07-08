@@ -23,7 +23,7 @@ from scipy.conftest import array_api_compatible
 skip_xp_backends = pytest.mark.skip_xp_backends
 pytestmark = [array_api_compatible, pytest.mark.usefixtures("skip_xp_backends"),
               # XXX: only CuPy delegation is implemented
-              skip_xp_backends("jax.numpy", "torch", "array_api_strict"),
+              skip_xp_backends("jax.numpy", "torch"),
 ]
 
 
@@ -168,6 +168,8 @@ class TestNdimageFilters:
         array = xp.asarray([1, 2])
         weights = xp.asarray([2])
         expected = xp.asarray([2, 4])
+
+        breakpoint()
 
         output = ndimage.correlate(array, weights)
         assert_array_almost_equal(output, expected)

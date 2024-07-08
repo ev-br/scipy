@@ -34,6 +34,9 @@ from . import _ni_label
 from . import _nd_image
 from . import _morphology
 
+from scipy._lib._array_api import (array_namespace,
+        xp_isscalar, xp_ravel, xp_bincount, _asarray, xp_searchsorted, xp_conj)
+
 __all__ = ['label', 'find_objects', 'labeled_comprehension', 'sum', 'mean',
            'variance', 'standard_deviation', 'minimum', 'maximum', 'median',
            'minimum_position', 'maximum_position', 'extrema', 'center_of_mass',
@@ -577,15 +580,16 @@ def labeled_comprehension(input, labels, index, func, out_dtype, default,
     return output
 
 
-def _safely_castable_to_int(dt):
+def _safely_castable_to_int(dt, xp):
     """Test whether the NumPy data type `dt` can be safely cast to an int."""
-    int_size = np.dtype(int).itemsize
-    safe = ((np.issubdtype(dt, np.signedinteger) and dt.itemsize <= int_size) or
-            (np.issubdtype(dt, np.unsignedinteger) and dt.itemsize < int_size))
-    return safe
+#    int_size = np.dtype(int).itemsize
+#    safe = ((np.issubdtype(dt, np.signedinteger) and dt.itemsize <= int_size) or
+#            (np.issubdtype(dt, np.unsignedinteger) and dt.itemsize < int_size))
+#    return safe
+    return xp.isdtype(dt, "integral")    # XXX
 
 
-def _stats(input, labels=None, index=None, centered=False):
+def _stats(xp, input, labels=None, index=None, centered=False):
     """Count, sum, and optionally compute (sum - centre)^2 of input by label
 
     Parameters
@@ -618,77 +622,76 @@ def _stats(input, labels=None, index=None, centered=False):
     """
     def single_group(vals):
         if centered:
-            vals_c = vals - vals.mean()
-            return vals.size, vals.sum(), (vals_c * vals_c.conjugate()).sum()
+            vals_c = vals - xp.mean(vals)
+            return vals.size, xp.sum(vals), xp.sum(vals_c * vals_c.conjugate())
         else:
-            return vals.size, vals.sum()
+            return vals.size, xp.sum(vals)
 
     if labels is None:
         return single_group(input)
 
     # ensure input and labels match sizes
-    input, labels = np.broadcast_arrays(input, labels)
+    input, labels = xp.broadcast_arrays(input, labels)
 
     if index is None:
         return single_group(input[labels > 0])
 
-    if np.isscalar(index):
+    if xp_isscalar(index, xp):
         return single_group(input[labels == index])
 
     def _sum_centered(labels):
         # `labels` is expected to be an ndarray with the same shape as `input`.
         # It must contain the label indices (which are not necessarily the labels
         # themselves).
-        means = sums / counts
-        centered_input = input - means[labels]
+        means = xp.astype(sums, xp.float64) / xp.astype(counts, xp.float64)   # XXX: f64 hardcoded
+        centered_input = xp.astype(input, means.dtype) - xp.take(means, labels)
         # bincount expects 1-D inputs, so we ravel the arguments.
-        bc = np.bincount(labels.ravel(),
-                              weights=(centered_input *
-                                       centered_input.conjugate()).ravel())
+        w = xp_ravel(centered_input * xp_conj(centered_input), xp)
+        bc = xp_bincount(xp_ravel(labels, xp), w)
         return bc
 
     # Remap labels to unique integers if necessary, or if the largest
     # label is larger than the number of values.
 
-    if (not _safely_castable_to_int(labels.dtype) or
-            labels.min() < 0 or labels.max() > labels.size):
+    if (not _safely_castable_to_int(labels.dtype, xp) or
+            xp.min(labels) < 0 or xp.max(labels) > labels.size):
         # Use np.unique to generate the label indices.  `new_labels` will
         # be 1-D, but it should be interpreted as the flattened N-D array of
         # label indices.
-        unique_labels, new_labels = np.unique(labels, return_inverse=True)
-        new_labels = np.reshape(new_labels, (-1,))  # flatten, since it may be >1-D
-        counts = np.bincount(new_labels)
-        sums = np.bincount(new_labels, weights=input.ravel())
+        unique_labels, new_labels = xp.unique_inverse(labels)
+        new_labels = xp.reshape(new_labels, (-1,))  # flatten, since it may be >1-D
+        counts = xp_bincount(new_labels, xp=xp)
+        sums = xp_bincount(new_labels, weights=xp_ravel(input, xp), xp=xp)
         if centered:
             # Compute the sum of the mean-centered squares.
             # We must reshape new_labels to the N-D shape of `input` before
             # passing it _sum_centered.
-            sums_c = _sum_centered(new_labels.reshape(labels.shape))
-        idxs = np.searchsorted(unique_labels, index)
+            sums_c = _sum_centered(xp.reshape(new_labels, labels.shape))
+        idxs = xp_searchsorted(unique_labels, index, xp=xp)
         # make all of idxs valid
         idxs[idxs >= unique_labels.size] = 0
-        found = (unique_labels[idxs] == index)
+        found = (xp.take(unique_labels, idxs) == index)
     else:
         # labels are an integer type allowed by bincount, and there aren't too
         # many, so call bincount directly.
-        counts = np.bincount(labels.ravel())
-        sums = np.bincount(labels.ravel(), weights=input.ravel())
+        counts = xp_bincount(xp_ravel(labels, xp), xp=xp)
+        sums = xp_bincount(xp_ravel(labels, xp), weights=xp_ravel(input, xp), xp=xp)
         if centered:
             sums_c = _sum_centered(labels)
         # make sure all index values are valid
-        idxs = np.asanyarray(index, np.int_).copy()
+        idxs = _asarray(index, copy=True, xp=xp)   # XXX
         found = (idxs >= 0) & (idxs < counts.size)
         idxs[~found] = 0
 
-    counts = counts[idxs]
+    counts = xp.take(counts, idxs)
     counts[~found] = 0
-    sums = sums[idxs]
+    sums = xp.take(sums, idxs)
     sums[~found] = 0
 
     if not centered:
         return (counts, sums)
     else:
-        sums_c = sums_c[idxs]
+        sums_c = xp.take(sums_c, idxs)
         sums_c[~found] = 0
         return (counts, sums, sums_c)
 
@@ -748,7 +751,8 @@ def sum_labels(input, labels=None, index=None):
 
 
     """
-    count, sum = _stats(input, labels, index)
+    xp = array_namespace(input, labels, index)
+    count, sum = _stats(xp, input, labels, index)
     return sum
 
 
@@ -800,9 +804,9 @@ def mean(input, labels=None, index=None):
     [10.285714285714286, 21.0]
 
     """
-
-    count, sum = _stats(input, labels, index)
-    return sum / np.asanyarray(count).astype(np.float64)
+    xp = array_namespace(input, labels, index)
+    count, sum = _stats(xp, input, labels, index)
+    return sum / xp.astype(count, xp.float64)
 
 
 def variance(input, labels=None, index=None):
@@ -854,7 +858,8 @@ def variance(input, labels=None, index=None):
     6.1875
 
     """
-    count, sum, sum_c_sq = _stats(input, labels, index, centered=True)
+    xp = array_namespace(input, labels, index)
+    count, sum, sum_c_sq = _stats(xp, input, labels, index, centered=True)
     return sum_c_sq / np.asanyarray(count).astype(float)
 
 

@@ -587,3 +587,62 @@ def xp_vector_norm(x: Array, /, *,
     else:
         # to maintain backwards compatibility
         return np.linalg.norm(x, ord=ord, axis=axis, keepdims=keepdims)
+
+
+# work around xp.real raising for floats etc
+def xp_real(a, xp=None):
+    xp = array_namespace(a) if xp is None else xp
+    if xp.isdtype(a.dtype, 'complex floating'):
+        return xp.real(a)
+    else:
+        return a
+
+
+# work around xp.real raising for floats etc
+def xp_imag(a, xp=None):
+    xp = array_namespace(a) if xp is None else xp
+    if xp.isdtype(a.dtype, 'complex floating'):
+        return xp.imag(a)
+    else:
+        return xp.zeros_like(a)
+
+
+# work around xp.real raising for floats etc
+def xp_conj(a, xp=None):
+    xp = array_namespace(a) if xp is None else xp
+    if xp.isdtype(a.dtype, 'complex floating'):
+        return xp.conj(a)
+    else:
+        return a
+
+
+def xp_ravel(a, xp):
+    return xp.reshape(a, (-1,))
+
+
+def xp_isscalar(a, xp):
+    return xp.asarray(a).ndim == 0
+
+
+def xp_bincount(x, /, weights=None, xp=None):
+    if xp is None:
+        xp = array_namespace(x, weights)
+    bincount = getattr(xp, "bincount", None)
+    if bincount:
+        return bincount(x, weights)
+    else:
+        x = np.asarray(x)
+        if weights is not None:
+            weights = np.asarray(weights)
+        result = np.bincount(x, weights)
+        return xp.asarray(result)
+
+
+def xp_searchsorted(x1, x2, xp=None):
+    if xp is None:
+        xp = array_namespace(x1, x2)
+    x1 = np.asarray(x1)
+    x2 = np.asarray(x2)
+    result = np.searchsorted(x1, x2)
+    return xp.asarray(result)
+
