@@ -561,3 +561,22 @@ def xp_sign(x: Array, /, *, xp: ModuleType | None = None) -> Array:
     sign = xp.where(x < 0, -one, sign)
     sign = xp.where(x == 0, 0*one, sign)
     return sign
+
+
+# work around xp.real raising for floats etc
+def xp_real(a, xp=None):
+    xp = array_namespace(a) if xp is None else xp
+    if xp.isdtype(a.dtype, 'complex floating'):
+        return xp.real(a)
+    else:
+        return a
+
+
+# work around xp.real raising for floats etc
+def xp_imag(a, xp=None):
+    xp = array_namespace(a) if xp is None else xp
+    if xp.isdtype(a.dtype, 'complex floating'):
+        return xp.imag(a)
+    else:
+        return xp.zeros_like(a)
+

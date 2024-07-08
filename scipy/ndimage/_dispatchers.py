@@ -129,14 +129,35 @@ def find_objects_dispatcher(input, max_label=0):
 def fourier_ellipsoid_dispatcher(input, size, n=-1, axis=-1, output=None):
     return array_namespace(input, _skip_if_dtype(output))
 
+
+def fourier_ellipsoid_converter(input, size, n=-1, axis=-1, output=None):
+    np_input = np.asarray(input)
+    np_output = np.asarray(output) if isinstance(output, np.ndarray) else output
+    return np_input, size, n, axis, np_output
+
+
 fourier_uniform_dispatcher = fourier_ellipsoid_dispatcher
+fourier_uniform_converter = fourier_ellipsoid_converter
 
 
 def fourier_gaussian_dispatcher(input, sigma, n=-1, axis=-1, output=None):
     return array_namespace(input, _skip_if_dtype(output))
 
+
+def fourier_gaussian_converter(input, sigma, n=-1, axis=-1, output=None):
+    np_input = np.asarray(input)
+    np_output = np.asarray(output) if isinstance(output, np.ndarray) else output
+    return np_input, sigma, n, axis, np_output
+
+
 def fourier_shift_dispatcher(input, shift, n=-1, axis=-1, output=None):
     return array_namespace(input, _skip_if_dtype(output))
+
+
+def fourier_shift_converter(input, shift, n=-1, axis=-1, output=None):
+    np_input = np.asarray(input)
+    np_output = np.asarray(output) if isinstance(output, np.ndarray) else output
+    return np_input, shift, n, axis, np_output
 
 
 def gaussian_filter_dispatcher(input, sigma, order=0, output=None, *args, **kwds):
@@ -221,6 +242,12 @@ uniform_filter1d_dispatcher = maximum_filter1d_dispatcher
 def maximum_dispatcher(input, labels=None, index=None):
     return array_namespace(input, labels, _skip_if_int(index))
 
+def maximum_converter(input, labels=None, index=None):
+    np_input = np.asarray(input)
+    np_labels = None if labels is None else np.asarray(labels)
+    np_index = np.asarray(index) if isinstance(index, np.ndarray) else index
+    return np_input, np_labels, np_index
+
 minimum_dispatcher = maximum_dispatcher
 median_dispatcher = maximum_dispatcher
 mean_dispatcher = maximum_dispatcher
@@ -234,6 +261,21 @@ minimum_position_dispatcher = maximum_dispatcher
 
 extrema_dispatcher = maximum_dispatcher
 center_of_mass_dispatcher = extrema_dispatcher
+
+sum_converter = maximum_converter
+minimum_converter = maximum_converter
+median_converter = maximum_converter
+mean_converter = maximum_converter
+variance_converter = maximum_converter
+standard_deviation_converter = maximum_converter
+sum_labels_converter = maximum_converter
+sum_converter = maximum_converter  # ndimage.sum is sum_labels
+
+maximum_position_converter = maximum_converter
+minimum_position_converter = maximum_converter
+
+extrema_converter = maximum_converter
+center_of_mass_converter = extrema_converter
 
 
 def median_filter_dispatcher(
