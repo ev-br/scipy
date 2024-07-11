@@ -38,6 +38,7 @@ from scipy._lib._array_api import array_namespace
 from scipy import special
 from . import _ni_support
 from ._ni_support import _skip_if_dtype
+from . import _dispatchers
 from . import _nd_image
 from ._ni_docstrings import docfiller
 
@@ -48,7 +49,7 @@ __all__ = ['spline_filter1d', 'spline_filter', 'geometric_transform',
 
 @docfiller
 def spline_filter1d(input, order=3, axis=-1, output=np.float64,
-                    mode='mirror'):
+                    mode='mirror', xp=None):
     """
     Calculate a 1-D spline filter along the given axis.
 
@@ -116,11 +117,11 @@ def spline_filter1d(input, order=3, axis=-1, output=np.float64,
     >>> plt.show()
 
     """
+    if xp is None:
+        xp = _dispatchers.spline_filter1d_dispatcher(input, order, axis, output)
+
     if order < 0 or order > 5:
         raise RuntimeError('spline order not supported')
-
-    xp = array_namespace(input, _skip_if_dtype(output))
-
     input = np.asarray(input)
     complex_output = np.iscomplexobj(input)
     output = _ni_support._get_output(output, input,
@@ -142,7 +143,7 @@ def spline_filter1d(input, order=3, axis=-1, output=np.float64,
     return output
 
 @docfiller
-def spline_filter(input, order=3, output=np.float64, mode='mirror'):
+def spline_filter(input, order=3, output=np.float64, mode='mirror', xp=None):
     """
     Multidimensional spline filter.
 
@@ -198,12 +199,18 @@ def spline_filter(input, order=3, output=np.float64, mode='mirror'):
     >>> plt.show()
 
     """
+    if xp is None:
+        xp = _dispatchers.spline_filter_dispatcher(input, order, output)
+
     if order < 2 or order > 5:
         raise RuntimeError('spline order not supported')
+
     input = np.asarray(input)
     complex_output = np.iscomplexobj(input)
     output = _ni_support._get_output(output, input,
                                      complex_output=complex_output)
+    output = np.asarray(output)
+
     if complex_output:
         spline_filter(input.real, order, output.real, mode)
         spline_filter(input.imag, order, output.imag, mode)
@@ -214,6 +221,8 @@ def spline_filter(input, order=3, output=np.float64, mode='mirror'):
             input = output
     else:
         output[...] = input[...]
+
+    output = xp.asarray(output)
     return output
 
 
@@ -237,7 +246,7 @@ def _prepad_for_spline_filter(input, mode, cval):
 def geometric_transform(input, mapping, output_shape=None,
                         output=None, order=3,
                         mode='constant', cval=0.0, prefilter=True,
-                        extra_arguments=(), extra_keywords={}):
+                        extra_arguments=(), extra_keywords={}, xp=None):
     """
     Apply an arbitrary geometric transform.
 
@@ -342,6 +351,11 @@ def geometric_transform(input, mapping, output_shape=None,
     array([2, 3, 4, 1, 2])
 
     """
+    if xp is None:
+        xp = _dispatchers.geometric_transform_dispatcher(
+            input, mapping, output_shape, output
+        )
+
     if order < 0 or order > 5:
         raise RuntimeError('spline order not supported')
     input = np.asarray(input)
@@ -361,6 +375,8 @@ def geometric_transform(input, mapping, output_shape=None,
                             cval=np.real(cval), **kwargs)
         geometric_transform(input.imag, mapping, output=output.imag,
                             cval=np.imag(cval), **kwargs)
+
+        output = xp.asarray(output)
         return output
 
     if prefilter and order > 1:
@@ -374,12 +390,13 @@ def geometric_transform(input, mapping, output_shape=None,
     _nd_image.geometric_transform(filtered, mapping, None, None, None, output,
                                   order, mode, cval, npad, extra_arguments,
                                   extra_keywords)
+    output = xp.asarray(output)
     return output
 
 
 @docfiller
 def map_coordinates(input, coordinates, output=None, order=3,
-                    mode='constant', cval=0.0, prefilter=True):
+                    mode='constant', cval=0.0, prefilter=True, xp=None):
     """
     Map the input array to new coordinates by interpolation.
 
@@ -449,6 +466,9 @@ def map_coordinates(input, coordinates, output=None, order=3,
     array([ True, False], dtype=bool)
 
     """
+    if xp is None:
+        xp = _dispatchers.map_coordinates_dispatcher(input, coordinates, output)
+
     if order < 0 or order > 5:
         raise RuntimeError('spline order not supported')
     input = np.asarray(input)
@@ -479,6 +499,7 @@ def map_coordinates(input, coordinates, output=None, order=3,
     mode = _ni_support._extend_mode_to_code(mode)
     _nd_image.geometric_transform(filtered, None, coordinates, None, None,
                                   output, order, mode, cval, npad, None, None)
+    output = xp.asarray(output)
     return output
 
 

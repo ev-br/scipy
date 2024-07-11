@@ -125,7 +125,6 @@ def _skip_if_dtype(arg):
     Return None for np.int8, dtype('float32') or 'f' etc
            arg for np.empty(3) etc
     """
-
     if isinstance(arg, str):
         return None
     if type(arg) is type:

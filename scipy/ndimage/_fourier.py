@@ -34,6 +34,7 @@ from scipy._lib._util import normalize_axis_index
 from . import _ni_support
 from . import _nd_image
 from ._ni_support import _skip_if_dtype, _skip_if_int
+from . import _dispatchers
 
 __all__ = ['fourier_gaussian', 'fourier_uniform', 'fourier_ellipsoid',
            'fourier_shift']
@@ -69,24 +70,8 @@ def _get_output_fourier_complex(output, input):
         raise RuntimeError("output shape not correct")
     return output
 
-'''
-# XXX: move out, combine with the version in _dispatchers
-def _skip_if_dtype(arg):
-    """'array or dtype' polymorphism.
 
-    Return None for np.int8, dtype('float32') or 'f' etc
-           arg for np.empty(3) etc
-    """
-
-    if isinstance(arg, str):
-        return None
-    if type(arg) is type:
-        return None if issubclass(arg, np.generic) else arg
-    else:
-        return None if isinstance(arg, np.dtype) else arg
-'''
-
-def fourier_gaussian(input, sigma, n=-1, axis=-1, output=None):
+def fourier_gaussian(input, sigma, n=-1, axis=-1, output=None, xp=None):
     """
     Multidimensional Gaussian fourier filter.
 
@@ -132,7 +117,9 @@ def fourier_gaussian(input, sigma, n=-1, axis=-1, output=None):
     >>> ax2.imshow(result.real)  # the imaginary part is an artifact
     >>> plt.show()
     """
-    xp = array_namespace(input, _skip_if_dtype(output))
+    if xp is None:
+        xp = _dispatchers.fourier_gaussian_dispatcher(input, sigma, n, axis, output)
+
     input = np.asarray(input)
     output = _get_output_fourier(output, input)
 
@@ -152,7 +139,7 @@ def fourier_gaussian(input, sigma, n=-1, axis=-1, output=None):
     return output
 
 
-def fourier_uniform(input, size, n=-1, axis=-1, output=None):
+def fourier_uniform(input, size, n=-1, axis=-1, output=None, xp=None):
     """
     Multidimensional uniform fourier filter.
 
@@ -198,7 +185,8 @@ def fourier_uniform(input, size, n=-1, axis=-1, output=None):
     >>> ax2.imshow(result.real)  # the imaginary part is an artifact
     >>> plt.show()
     """
-    xp = array_namespace(input, _skip_if_dtype(output))
+    if xp is None:
+        xp = _dispatchers.fourier_uniform_dispatcher(input, size, n, axis, output)
     input = np.asarray(input)
     output = _get_output_fourier(output, input)
     output = np.asarray(output)
@@ -214,7 +202,7 @@ def fourier_uniform(input, size, n=-1, axis=-1, output=None):
     return output
 
 
-def fourier_ellipsoid(input, size, n=-1, axis=-1, output=None):
+def fourier_ellipsoid(input, size, n=-1, axis=-1, output=None, xp=None):
     """
     Multidimensional ellipsoid Fourier filter.
 
@@ -264,7 +252,8 @@ def fourier_ellipsoid(input, size, n=-1, axis=-1, output=None):
     >>> ax2.imshow(result.real)  # the imaginary part is an artifact
     >>> plt.show()
     """
-    xp = array_namespace(input, _skip_if_dtype(output))
+    if xp is None:
+        xp = _dispatchers.fourier_ellipsoid_dispatcher(input, size, n, axis, output)
 
     input = np.asarray(input)
     if input.ndim > 3:
@@ -287,7 +276,7 @@ def fourier_ellipsoid(input, size, n=-1, axis=-1, output=None):
     return output
 
 
-def fourier_shift(input, shift, n=-1, axis=-1, output=None):
+def fourier_shift(input, shift, n=-1, axis=-1, output=None, xp=None):
     """
     Multidimensional Fourier shift filter.
 
@@ -332,7 +321,8 @@ def fourier_shift(input, shift, n=-1, axis=-1, output=None):
     >>> ax2.imshow(result.real)  # the imaginary part is an artifact
     >>> plt.show()
     """
-    xp = array_namespace(input, _skip_if_dtype(output))
+    if xp is None:
+        xp = _dispatchers.fourier_shift_dispatcher(input, shift, n, axis, output)
     input = np.asarray(input)
     output = _get_output_fourier_complex(output, input)
     output = np.asarray(output)

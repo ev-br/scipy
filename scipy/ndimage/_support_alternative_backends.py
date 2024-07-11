@@ -32,7 +32,7 @@ def dispatch_xp(dispatcher, module_name):
                 return jax_func(*args, **kwds)
             else:
                 # the original function
-                return func(*args, **kwds)
+                return func(*args, **kwds, xp=xp)
         return wrapper
     return inner
 

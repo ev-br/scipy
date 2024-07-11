@@ -30,6 +30,7 @@
 
 import numpy as np
 from . import _ni_support
+from . import _dispatchers
 from . import _ni_label
 from . import _nd_image
 from . import _morphology
@@ -696,7 +697,7 @@ def _stats(xp, input, labels=None, index=None, centered=False):
         return (counts, sums, sums_c)
 
 
-def sum(input, labels=None, index=None):
+def sum(input, labels=None, index=None, xp=None):
     """
     Calculate the sum of the values of the array.
 
@@ -707,10 +708,10 @@ def sum(input, labels=None, index=None):
     docstring for more details.
 
     """
-    return sum_labels(input, labels, index)
+    return sum_labels(input, labels, index, xp)
 
 
-def sum_labels(input, labels=None, index=None):
+def sum_labels(input, labels=None, index=None, xp=None):
     """
     Calculate the sum of the values of the array.
 
@@ -751,12 +752,13 @@ def sum_labels(input, labels=None, index=None):
 
 
     """
-    xp = array_namespace(input, labels, index)
+    if xp is None:
+        xp = _dispatchers.sum_dispatcher(input, labels, index)
     count, sum = _stats(xp, input, labels, index)
     return sum
 
 
-def mean(input, labels=None, index=None):
+def mean(input, labels=None, index=None, xp=None):
     """
     Calculate the mean of the values of an array at labels.
 
@@ -804,12 +806,13 @@ def mean(input, labels=None, index=None):
     [10.285714285714286, 21.0]
 
     """
-    xp = array_namespace(input, labels, index)
+    if xp is None:
+        xp = _dispatchers.mean_dispatcher(input, labels, index)
     count, sum = _stats(xp, input, labels, index)
     return sum / xp.astype(count, xp.float64)
 
 
-def variance(input, labels=None, index=None):
+def variance(input, labels=None, index=None, xp=None):
     """
     Calculate the variance of the values of an N-D image array, optionally at
     specified sub-regions.
@@ -858,7 +861,8 @@ def variance(input, labels=None, index=None):
     6.1875
 
     """
-    xp = array_namespace(input, labels, index)
+    if xp is None:
+        xp = _dispatchers.variance_dispatcher(input, labels, index)
     count, sum, sum_c_sq = _stats(xp, input, labels, index, centered=True)
     return sum_c_sq / np.asanyarray(count).astype(float)
 

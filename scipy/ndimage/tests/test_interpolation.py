@@ -18,7 +18,7 @@ from scipy.conftest import array_api_compatible
 skip_xp_backends = pytest.mark.skip_xp_backends
 pytestmark = [array_api_compatible, pytest.mark.usefixtures("skip_xp_backends"),
               # XXX: only CuPy delegation is implemented
-              skip_xp_backends("jax.numpy", "torch", "array_api_strict"),
+#              skip_xp_backends("jax.numpy", "torch", "array_api_strict"),
 ]
 
 
@@ -88,14 +88,14 @@ class TestNdimageInterpolation:
     @pytest.mark.parametrize('order', range(6))
     def test_boundary_spline_accuracy(self, mode, order, xp):
         """Tests based on examples from gh-2640"""
-        data = xp.arange(-6, 7, dtype=float)
+        data = xp.arange(-6, 7, dtype=xp.float64)
         x = xp.linspace(-8, 15, num=1000)
         y = ndimage.map_coordinates(data, xp.asarray([x]), order=order, mode=mode)
 
         # compute expected value using explicit padding via np.pad
         npad = 32
         pad_mode = ndimage_to_numpy_mode.get(mode)
-        padded = xp.pad(data, npad, mode=pad_mode)
+        padded = xp.asarray(np.pad(np.asarray(data), npad, mode=pad_mode))
         expected = ndimage.map_coordinates(padded, xp.asarray([npad + x]), order=order,
                                            mode=mode)
 
@@ -108,7 +108,7 @@ class TestNdimageInterpolation:
         dtype = getattr(xp, dtype)
         data = xp.ones([], dtype=dtype)
         out = ndimage.spline_filter(data, order=order)
-        assert out == xp.asarray(1)
+        assert out == xp.asarray(1, dtype=out.dtype)
 
     @pytest.mark.parametrize('order', range(2, 6))
     @pytest.mark.parametrize('dtype', types)
@@ -121,10 +121,13 @@ class TestNdimageInterpolation:
     @pytest.mark.parametrize('order', range(2, 6))
     @pytest.mark.parametrize('dtype', types)
     def test_spline03(self, dtype, order, xp):
+        if xp.__name__ == 'array_api_strict':
+            pytest.xfail("array_api_strict dtypes cannot be used for output=")
+
         dtype = getattr(xp, dtype)
         data = xp.ones([], dtype=dtype)
         out = ndimage.spline_filter(data, order, output=dtype)
-        assert out == xp.asarray(1)
+        assert out == xp.asarray(1, dtype=out.dtype)
 
     @pytest.mark.parametrize('order', range(2, 6))
     @pytest.mark.parametrize('dtype', types)
@@ -158,7 +161,7 @@ class TestNdimageInterpolation:
 
         out = ndimage.geometric_transform(data, mapping, data.shape,
                                           order=order)
-        assert_array_almost_equal(out, [1])
+        assert_array_almost_equal(out, xp.asarray([1], dtype=out.dtype))
 
     @pytest.mark.parametrize('order', range(0, 6))
     def test_geometric_transform02(self, order, xp):
@@ -172,7 +175,7 @@ class TestNdimageInterpolation:
 
         out = ndimage.geometric_transform(data, mapping, data.shape,
                                           order=order)
-        assert_array_almost_equal(out, [1, 1, 1, 1])
+        assert_array_almost_equal(out, xp.asarray([1, 1, 1, 1], dtype=out.dtype))
 
     @pytest.mark.parametrize('order', range(0, 6))
     def test_geometric_transform03(self, order, xp):
@@ -186,7 +189,7 @@ class TestNdimageInterpolation:
 
         out = ndimage.geometric_transform(data, mapping, data.shape,
                                           order=order)
-        assert_array_almost_equal(out, [0, 1, 1, 1])
+        assert_array_almost_equal(out, xp.asarray([0, 1, 1, 1], dtype=out.dtype))
 
     @pytest.mark.parametrize('order', range(0, 6))
     def test_geometric_transform04(self, order, xp):
@@ -200,7 +203,7 @@ class TestNdimageInterpolation:
 
         out = ndimage.geometric_transform(data, mapping, data.shape,
                                           order=order)
-        assert_array_almost_equal(out, [0, 4, 1, 3])
+        assert_array_almost_equal(out, xp.asarray([0, 4, 1, 3], dtype=out.dtype))
 
     @pytest.mark.parametrize('order', range(0, 6))
     @pytest.mark.parametrize('dtype', ["float64", "complex128"])
@@ -210,12 +213,13 @@ class TestNdimageInterpolation:
 
         dtype = getattr(xp, dtype)
         data = xp.asarray([[1, 1, 1, 1],
-                         [1, 1, 1, 1],
-                         [1, 1, 1, 1]], dtype=dtype)
+                           [1, 1, 1, 1],
+                           [1, 1, 1, 1]], dtype=dtype)
         expected = xp.asarray([[0, 1, 1, 1],
                              [0, 1, 1, 1],
                              [0, 1, 1, 1]], dtype=dtype)
-        if data.dtype.kind == 'c':
+#        if data.dtype.kind == 'c':
+        if xp.isdtype(data.dtype, 'complex floating'):
             data -= 1j * data
             expected -= 1j * expected
 
@@ -240,9 +244,10 @@ class TestNdimageInterpolation:
 
         out = ndimage.geometric_transform(data, mapping, data.shape,
                                           order=order)
-        assert_array_almost_equal(out, [[0, 4, 1, 3],
-                                        [0, 7, 6, 8],
-                                        [0, 3, 5, 3]])
+        expected = xp.asarray([[0, 4, 1, 3],
+                               [0, 7, 6, 8],
+                               [0, 3, 5, 3]], dtype=out.dtype)
+        assert_array_almost_equal(out, expected)
 
     @pytest.mark.parametrize('order', range(0, 6))
     def test_geometric_transform07(self, order, xp):
@@ -258,9 +263,10 @@ class TestNdimageInterpolation:
 
         out = ndimage.geometric_transform(data, mapping, data.shape,
                                           order=order)
-        assert_array_almost_equal(out, [[0, 0, 0, 0],
-                                        [4, 1, 3, 2],
-                                        [7, 6, 8, 5]])
+        expected = xp.asarray([[0, 0, 0, 0],
+                               [4, 1, 3, 2],
+                               [7, 6, 8, 5]], dtype=out.dtype)
+        assert_array_almost_equal(out, expected)
 
     @pytest.mark.parametrize('order', range(0, 6))
     def test_geometric_transform08(self, order, xp):
@@ -276,9 +282,10 @@ class TestNdimageInterpolation:
 
         out = ndimage.geometric_transform(data, mapping, data.shape,
                                           order=order)
-        assert_array_almost_equal(out, [[0, 0, 0, 0],
-                                        [0, 4, 1, 3],
-                                        [0, 7, 6, 8]])
+        expected = xp.asarray([[0, 0, 0, 0],
+                               [0, 4, 1, 3],
+                               [0, 7, 6, 8]], dtype=out.dtype)
+        assert_array_almost_equal(out, expected)
 
     @pytest.mark.parametrize('order', range(0, 6))
     def test_geometric_transform10(self, order, xp):
