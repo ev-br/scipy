@@ -728,6 +728,18 @@ class TestInsert:
         xx = np.random.default_rng(1234).uniform(low=0, high=7, size=41)
         assert_allclose(spl_1(xx), splev(xx, (tf, cf, k)), atol=1e-15)
 
+    @pytest.mark.xfail(reason="XXX .insert only implemented for real coefficients")
+    @pytest.mark.parametrize('extrapolate', [None, 'periodic'])
+    def test_complex(self, extrapolate):
+        x = np.arange(8)*2*np.pi
+        y = np.sin(x) + 1j*np.cos(x)
+        spl = make_interp_spline(x, y, k=3)
+        spl.extrapolate = extrapolate
+
+        xv = 3.5
+        spl_1 = spl.insert_knot(xv)
+
+
     def test_insert_periodic_too_few_internal_knots(self):
         # both FITPACK and spl.insert_knot raise when there's not enough
         # internal knots to make a periodic extension.

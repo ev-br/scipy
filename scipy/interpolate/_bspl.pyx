@@ -234,7 +234,7 @@ def evaluate_all_bspl(const double[::1] t, int k, double xval, int m, int nu=0):
 
 def insert(double xval,
            const double[::1] t,
-           const double_or_complex[:, ::1] c,
+           const double[:, ::1] c,
            int k,
            bint periodic=False
         ):
