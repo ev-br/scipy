@@ -1705,12 +1705,32 @@ class TestLSQ:
 
     @parametrize_lsq_methods
     def test_complex(self, method):
-        if method == "qr":
-            pytest.xfail("method='qr' does not handle complex-valued `y` yet.")
-
         # cmplx-valued `y`
         x, t, k = self.x, self.t, self.k
         yc = self.y * (1. + 2.j)
+
+        b = make_lsq_spline(x, yc, t, k, method=method)
+        b_re = make_lsq_spline(x, yc.real, t, k, method=method)
+        b_im = make_lsq_spline(x, yc.imag, t, k, method=method)
+
+        assert_allclose(b(x), b_re(x) + 1.j*b_im(x), atol=1e-15, rtol=1e-15)
+
+    @parametrize_lsq_methods
+    def test_complex_2(self, method):
+        # test complex-valued y with y.ndim > 1
+
+        x, t, k = self.x, self.t, self.k
+        yc = self.y * (1. + 2.j)
+        yc = np.stack((yc, yc), axis=1)
+
+        b = make_lsq_spline(x, yc, t, k, method=method)
+        b_re = make_lsq_spline(x, yc.real, t, k, method=method)
+        b_im = make_lsq_spline(x, yc.imag, t, k, method=method)
+
+        assert_allclose(b(x), b_re(x) + 1.j*b_im(x), atol=1e-15, rtol=1e-15)
+
+        # repeat with num_trailing_dims > 1 : yc.shape[1:] = (2, 2)
+        yc = np.stack((yc, yc), axis=1)
 
         b = make_lsq_spline(x, yc, t, k, method=method)
         b_re = make_lsq_spline(x, yc.real, t, k, method=method)

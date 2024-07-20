@@ -1668,27 +1668,41 @@ def make_lsq_spline(x, y, t, k=3, w=None, axis=0, check_finite=True, *, method="
     # number of coefficients
     n = t.size - k - 1
 
+    # complex y: view as float, preserve the length
+    was_complex =  y.dtype.kind == 'c'
+    yy = y.view(float)
+    if was_complex and y.ndim == 1:
+        yy = yy.reshape(y.shape[0], 2)
+
     # multiple r.h.s
-    extradim = prod(y.shape[1:])
-    yy = y.reshape(-1, extradim)
+    extradim = prod(yy.shape[1:])
+    yy = yy.reshape(-1, extradim)
 
     if method == "norm-eq":
         # construct A.T @ A and rhs with A the collocation matrix, and
         # rhs = A.T @ y for solving the LSQ problem  ``A.T @ A @ c = A.T @ y``
         lower = True
         ab = np.zeros((k+1, n), dtype=np.float64, order='F')
-        rhs = np.zeros((n, extradim), dtype=y.dtype, order='F')
+        rhs = np.zeros((n, extradim), dtype=np.float64) #, order='F')
         _bspl._norm_eq_lsq(x, t, k,
                            yy,
                            w,
                            ab, rhs)
+
+        # undo complex -> float
+        if was_complex:
+            rhs = rhs.view(complex)
+
         # have observation matrix & rhs, can solve the LSQ problem
         cho_decomp = cholesky_banded(ab, overwrite_ab=True, lower=lower,
                                      check_finite=check_finite)
         c = cho_solve_banded((cho_decomp, lower), rhs, overwrite_b=True,
                              check_finite=check_finite)
+
     elif method == "qr":
         _, _, c = _lsq_solve_qr(x, yy, t, k, w)
+        if was_complex:
+            c = c.view(complex)
     else:
         raise ValueError(f"Unknown {method =}.")
 
