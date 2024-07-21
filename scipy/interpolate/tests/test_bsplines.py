@@ -1951,7 +1951,7 @@ class TestGivensQR:
 
         R = PackedMatrix(A, offset, nc)
         y_ = y[:, None]     # _qr_reduce requires `y` a 2D array
-        _bspl._qr_reduce(A, offset, nc, y_)      # modifies arguments in-place
+        _dierckx.qr_reduce(A, offset, nc, y_)      # modifies arguments in-place
 
         # signs may differ
         assert_allclose(np.minimum(R.todense() + r,
@@ -1982,7 +1982,7 @@ class TestGivensQR:
         y_ = y[:, None]
 
         RR, yy = _qr_reduce_py(R, y_)
-        _bspl._qr_reduce(A, offset, nc , y_)   # in-place
+        _dierckx.qr_reduce(A, offset, nc , y_)   # in-place
 
         assert_allclose(RR.a, R.a, atol=1e-15)
         assert_equal(RR.offset, R.offset)
@@ -2013,7 +2013,7 @@ class TestGivensQR:
         y = np.c_[y, y**2]
         A, offset, nc = _bspl._data_matrix(x, t, k, w=np.ones_like(x))
         R = PackedMatrix(A, offset, nc)
-        _bspl._qr_reduce(A, offset, nc, y)
+        _dierckx.qr_reduce(A, offset, nc, y)
 
         c = fpback(R, y)
         cc = _dierckx.fpback(A, nc, y)
