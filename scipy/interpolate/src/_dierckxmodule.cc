@@ -146,7 +146,7 @@ py_fpback(PyObject* self, PyObject *args)
                         static_cast<double *>(PyArray_DATA(a_c))
         );
     }
-    catch (const std::exception& a) {
+    catch (const std::exception& e) {
         PyErr_SetString(PyExc_RuntimeError, e.what());
         return NULL;
     }
@@ -201,7 +201,7 @@ py_qr_reduce(PyObject* self, PyObject *args, PyObject *kwargs)
             startrow
         );
     }
-    catch (const std::exception& a) {
+    catch (const std::exception& e) {
         PyErr_SetString(PyExc_RuntimeError, e.what());
         return NULL;
     }
