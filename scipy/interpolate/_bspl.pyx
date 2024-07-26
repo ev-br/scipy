@@ -89,6 +89,23 @@ cdef extern from "src/__fitpack.h" namespace "fitpack":
                      double *wrk
     ) except+ nogil
 
+    void _evaluate_ndbspline(
+        const double *xi_ptr, ssize_t npts, ssize_t ndim, # xi, shape(n_xi, ndim)
+        const double *t_ptr, ssize_t max_len_t,           # t, shape(ndim, max_len_t)
+        const long *len_t_ptr,                            # len_t, shape(ndim,)
+        const long *k_ptr,                                # k, shape(ndim,)
+        const int *nu_ptr,                                # nu, shape(ndim,)
+        int extrapolate,
+        # precomputed helpers 
+        const double *c1r, ssize_t num_c_tr,              # c1, shape(num_c_tr,)
+        const ssize_t *strides_c1_ptr,                    # strides_c1, shape(ndim,)
+        const ssize_t *indices_k1d_ptr,                   # indices_k1, shape((max(k)+1)**ndim, ndim)
+        # output 
+        double *out_ptr,                                  # out, shape(npts, num_c_tr
+        double *wrk
+    ) except+
+
+
 
 ctypedef fused int32_or_int64:
     cnp.npy_int32
