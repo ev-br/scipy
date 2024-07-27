@@ -192,7 +192,7 @@ class NdBSpline:
         # tabulate the flat indices for iterating over the (k+1)**ndim subarray
         shape = tuple(kd + 1 for kd in self.k)
         indices = np.unravel_index(np.arange(prod(shape)), shape)
-        _indices_k1d = np.asarray(indices, dtype=np.intp).T
+        _indices_k1d = np.asarray(indices, dtype=np.intp).T.copy()
 
         # complex -> double
         was_complex = self.c.dtype.kind == 'c'

@@ -451,7 +451,7 @@ def evaluate_ndbspline(const double[:, ::1] xi,
                        const double[::1] c1r,
                        npy_intp num_c_tr,
                        const npy_intp[::1] strides_c1,
-                       const npy_intp[:, ::] indices_k1d,
+                       const npy_intp[:, ::1] indices_k1d,
                        double[:, ::1] out,
                       ):
         """Evaluate an N-dim tensor product spline or its derivative.
