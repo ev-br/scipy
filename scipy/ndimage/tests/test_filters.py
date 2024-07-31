@@ -926,9 +926,12 @@ class TestNdimageFilters:
         'axes', tuple(itertools.combinations(range(-3, 3), 2))
     )
     @pytest.mark.parametrize('origin', [(0, 0), (-1, 1)])
-    def test_correlate_convolve_axes(self, func, dtype, axes, origin):
+    def test_correlate_convolve_axes(self, func, dtype, axes, origin, xp):
         array = np.arange(6 * 8 * 12, dtype=dtype).reshape(6, 8, 12)
         weights = np.arange(3 * 5).reshape(3, 5)
+
+        array = xp.asarray(array)
+        weights = xp.asarray(weights)
         axes = tuple(ax % array.ndim for ax in axes)
         if len(tuple(set(axes))) != len(axes):
             # parametrized cases with duplicate axes raise an error
@@ -939,11 +942,12 @@ class TestNdimageFilters:
 
         missing_axis = tuple(set(range(3)) - set(axes))[0]
         weights_3d = np.expand_dims(weights, missing_axis)
+        weights_3d = xp.asarray(weights_3d)
         origin_3d = [0, 0, 0]
         for i, ax in enumerate(axes):
             origin_3d[ax] = origin[i]
         expected = func(array, weights=weights_3d, origin=origin_3d)
-        assert_allclose(output, expected)
+        xp_assert_close(output, expected)
 
     kwargs_gauss = dict(radius=[4, 2, 3], order=[0, 1, 2],
                         mode=['reflect', 'nearest', 'constant'])
