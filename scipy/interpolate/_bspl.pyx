@@ -66,6 +66,17 @@ cdef extern from "src/__fitpack.h" namespace "fitpack":
                         double *wrk
     ) except+ nogil
 
+    void _design_matrix_csr[I](const double *xptr, ssize_t n,  # x, shape (n,)
+                        const double *tptr, ssize_t len_t,     # t, shape (len_t,)
+                        int k,
+                        int extrapolate,
+                        int nu,
+                        # outputs
+                        I *indices_ptr,          # indices, shape (n * (k + 1),)
+                        double *data_ptr,        # data, shape (n* (k + 1), )
+                        # workspace
+                        double *wrk                         
+    ) except+ nogil
 
     void norm_eq_lsq(const double *xptr, ssize_t m,      # x, shape (m,)
                      const double *tptr, ssize_t len_t,   # t, shape (len_t,)
@@ -404,28 +415,25 @@ def _make_design_matrix(const double[::1] x,
     indices
         The indices array of a CSR array of the b-spline design matrix.
     """
+
     cdef:
-        cnp.npy_intp i, j, m, ind
-        cnp.npy_intp n = x.shape[0]
+        int n = x.shape[0]
         double[::1] work = np.empty(2*k+2, dtype=float)
         double[::1] data = np.zeros(n * (k + 1), dtype=float)
-        double xval
-    ind = k
-    for i in range(n):
-        xval = x[i]
 
-        # Find correct interval. Note that interval >= 0 always as
-        # extrapolate=False and out of bound values are already dealt with in
-        # design_matrix
-        ind = find_interval(t, k, xval, ind, extrapolate)
-        _deBoor_D(&t[0], xval, k, ind, nu, &work[0])
+        int32_or_int64 *ptr= &indices[0]
 
-        # data[(k + 1) * i : (k + 1) * (i + 1)] = work[:k + 1]
-        # indices[(k + 1) * i : (k + 1) * (i + 1)] = np.arange(ind - k, ind + 1)
-        for j in range(k + 1):
-            m = (k + 1) * i + j
-            data[m] = work[j]
-            indices[m] = ind - k + j
+    with nogil:
+        _design_matrix_csr(
+            &x[0], x.shape[0],
+            &t[0], t.shape[0],
+            k,
+            extrapolate,
+            nu,
+            ptr,
+            &data[0],
+            &work[0]
+        )
 
     return np.asarray(data), np.asarray(indices)
 

@@ -214,6 +214,23 @@ _colloc_matrix(const double *xptr, ssize_t m,       // x, shape(m,)
 
 
 /*
+ * (A helper for the) b-spline design matrix in the CSR format.
+ */ 
+template<typename I>
+void _design_matrix_csr(const double *xptr, ssize_t n,  // x, shape (n,)
+                        const double *tptr, ssize_t nt, // t, shape (nt,)
+                        int k,
+                        int extrapolate,
+                        int nu,
+                        // outputs
+                        I *indices_ptr,          // indices, shape (n * (k + 1),)
+                        double *data_ptr,        // data, shape (n* (k + 1), )
+                        // workspace
+                        double *wrk                         
+);
+
+
+/*
  * Construct the l.h.s. and r.h.s of the normal equations for the LSQ spline fitting.
  */
 void
@@ -229,3 +246,56 @@ norm_eq_lsq(const double *xptr, ssize_t m,      // x, shape (m,)
 );
 
 } // namespace fitpack
+
+
+
+
+/* Implementation of _design_matrix_csr */
+
+namespace fitpack {
+
+
+template<typename I>
+void _design_matrix_csr(const double *xptr, ssize_t n,  // x, shape (n,)
+                        const double *tptr, ssize_t len_t, // t, shape (len_t,)
+                        int k,
+                        int extrapolate,
+                        int nu,
+                        // outputs
+                        I *indices_ptr,          // indices, shape (n * (k + 1),)
+                        double *data_ptr,        // data, shape (n* (k + 1), )
+                        // workspace
+                        double *wrk                         
+)
+{
+    auto x = ConstRealArray1D(xptr, n);
+    auto t = ConstRealArray1D(tptr, len_t);
+    auto data = RealArray1D(data_ptr, n*(k+1));
+    auto indices = Array1D<I, BOUNDS_CHECK>(indices_ptr, n*(k+1));
+
+    ssize_t ind = k;
+    for (ssize_t i=0; i < n; i++) {
+        double xval = x(i);
+
+        // find the interval
+        ind = _find_interval(t.data, len_t, k, xval, ind, extrapolate);
+        if (ind < 0){
+            // should not happen here, validation is expected on the python side
+            throw std::runtime_error("find_interval: out of bounds with x = " + std::to_string(xval));
+        }
+
+        // compute non-zero b-splines
+        _deBoor_D(t.data, xval, k, ind, nu, wrk);
+
+        // data[(k + 1) * i : (k + 1) * (i + 1)] = work[:k + 1]
+        // indices[(k + 1) * i : (k + 1) * (i + 1)] = np.arange(ind - k, ind + 1)
+        for (ssize_t j=0; j < k+1; j++) {
+            ssize_t m = j + (k+1)*i;
+            data(m) = wrk[j];
+            indices(m) = ind - k + j;
+        }
+    }
+}
+
+} // namespace fitpack
+
