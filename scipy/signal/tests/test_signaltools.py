@@ -9,7 +9,7 @@ import pytest
 from pytest import raises as assert_raises
 from numpy.testing import (
     assert_equal,
-    assert_almost_equal, assert_array_equal, assert_array_almost_equal,
+    assert_almost_equal, assert_array_equal, #assert_array_almost_equal,
     assert_allclose, assert_, assert_array_less,
     suppress_warnings)
 import numpy as np
@@ -34,6 +34,7 @@ from scipy._lib._util import ComplexWarning, np_long, np_ulong
 
 from scipy._lib._array_api import (
     xp_assert_close, xp_assert_equal, is_numpy,
+    assert_array_almost_equal
 )
 from scipy.conftest import array_api_compatible
 
@@ -999,15 +1000,19 @@ def gen_oa_shapes_eq(sizes):
             if a >= b]
 
 
+@pytest.mark.usefixtures("skip_xp_backends")
 class TestOAConvolve:
     @pytest.mark.slow()
     @pytest.mark.parametrize('shape_a_0, shape_b_0',
                              gen_oa_shapes_eq(list(range(100)) +
                                               list(range(100, 1000, 23)))
                              )
-    def test_real_manylens(self, shape_a_0, shape_b_0):
+    @array_api_compatible
+    def test_real_manylens(self, shape_a_0, shape_b_0, xp):
         a = np.random.rand(shape_a_0)
         b = np.random.rand(shape_b_0)
+        a = xp.asarray(a)
+        b = xp.asarray(b)
 
         expected = fftconvolve(a, b)
         out = oaconvolve(a, b)
@@ -1018,13 +1023,17 @@ class TestOAConvolve:
                              gen_oa_shapes([50, 47, 6, 4, 1]))
     @pytest.mark.parametrize('is_complex', [True, False])
     @pytest.mark.parametrize('mode', ['full', 'valid', 'same'])
+    @array_api_compatible
     def test_1d_noaxes(self, shape_a_0, shape_b_0,
-                       is_complex, mode, monkeypatch):
+                       is_complex, mode, monkeypatch, xp):
         a = np.random.rand(shape_a_0)
         b = np.random.rand(shape_b_0)
         if is_complex:
             a = a + 1j*np.random.rand(shape_a_0)
             b = b + 1j*np.random.rand(shape_b_0)
+
+        a = xp.asarray(a)
+        b = xp.asarray(b)
 
         expected = fftconvolve(a, b, mode=mode)
 
@@ -1041,9 +1050,10 @@ class TestOAConvolve:
     @pytest.mark.parametrize('shape_b_extra', [1, 3])
     @pytest.mark.parametrize('is_complex', [True, False])
     @pytest.mark.parametrize('mode', ['full', 'valid', 'same'])
+    @array_api_compatible
     def test_1d_axes(self, axes, shape_a_0, shape_b_0,
                      shape_a_extra, shape_b_extra,
-                     is_complex, mode, monkeypatch):
+                     is_complex, mode, monkeypatch, xp):
         ax_a = [shape_a_extra]*2
         ax_b = [shape_b_extra]*2
         ax_a[axes] = shape_a_0
@@ -1054,6 +1064,9 @@ class TestOAConvolve:
         if is_complex:
             a = a + 1j*np.random.rand(*ax_a)
             b = b + 1j*np.random.rand(*ax_b)
+
+        a = xp.asarray(a)
+        b = xp.asarray(b)
 
         expected = fftconvolve(a, b, mode=mode, axes=axes)
 
@@ -1067,14 +1080,18 @@ class TestOAConvolve:
                              'shape_a_1, shape_b_1, mode',
                              gen_oa_shapes_2d([50, 47, 6, 4]))
     @pytest.mark.parametrize('is_complex', [True, False])
+    @array_api_compatible
     def test_2d_noaxes(self, shape_a_0, shape_b_0,
                        shape_a_1, shape_b_1, mode,
-                       is_complex, monkeypatch):
+                       is_complex, monkeypatch, xp):
         a = np.random.rand(shape_a_0, shape_a_1)
         b = np.random.rand(shape_b_0, shape_b_1)
         if is_complex:
             a = a + 1j*np.random.rand(shape_a_0, shape_a_1)
             b = b + 1j*np.random.rand(shape_b_0, shape_b_1)
+
+        a = xp.asarray(a)
+        b = xp.asarray(b)
 
         expected = fftconvolve(a, b, mode=mode)
 
@@ -1091,10 +1108,11 @@ class TestOAConvolve:
     @pytest.mark.parametrize('shape_a_extra', [1, 3])
     @pytest.mark.parametrize('shape_b_extra', [1, 3])
     @pytest.mark.parametrize('is_complex', [True, False])
+    @array_api_compatible
     def test_2d_axes(self, axes, shape_a_0, shape_b_0,
                      shape_a_1, shape_b_1, mode,
                      shape_a_extra, shape_b_extra,
-                     is_complex, monkeypatch):
+                     is_complex, monkeypatch, xp):
         ax_a = [shape_a_extra]*3
         ax_b = [shape_b_extra]*3
         ax_a[axes[0]] = shape_a_0
@@ -1108,6 +1126,9 @@ class TestOAConvolve:
             a = a + 1j*np.random.rand(*ax_a)
             b = b + 1j*np.random.rand(*ax_b)
 
+        a = xp.asarray(a)
+        b = xp.asarray(b)
+
         expected = fftconvolve(a, b, mode=mode, axes=axes)
 
         monkeypatch.setattr(signal._signaltools, 'fftconvolve',
@@ -1116,23 +1137,27 @@ class TestOAConvolve:
 
         assert_array_almost_equal(out, expected)
 
-    def test_empty(self):
+    # FIXME: mark np_only
+    @array_api_compatible
+    def test_empty(self, xp):
         # Regression test for #1745: crashes with 0-length input.
-        assert_(oaconvolve([], []).size == 0)
-        assert_(oaconvolve([5, 6], []).size == 0)
-        assert_(oaconvolve([], [7]).size == 0)
+        assert oaconvolve([], []).size == 0
+        assert oaconvolve([5, 6], []).size == 0
+        assert oaconvolve([], [7]).size == 0
 
-    def test_zero_rank(self):
-        a = np.array(4967)
-        b = np.array(3920)
+    @array_api_compatible
+    def test_zero_rank(self, xp):
+        a = xp.asarray(4967)
+        b = xp.asarray(3920)
         out = oaconvolve(a, b)
-        assert_equal(out, a * b)
+        xp_assert_equal(out, a * b)
 
-    def test_single_element(self):
-        a = np.array([4967])
-        b = np.array([3920])
+    @array_api_compatible
+    def test_single_element(self, xp):
+        a = np.asarray([4967])
+        b = np.asarray([3920])
         out = oaconvolve(a, b)
-        assert_equal(out, a * b)
+        xp_assert_equal(out, a * b)
 
 
 class TestAllFreqConvolves:

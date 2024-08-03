@@ -27,8 +27,8 @@ from ._fir_filter_design import firwin
 from ._sosfilt import _sosfilt
 
 from scipy._lib._array_api import (
-    array_namespace, is_torch, is_numpy, copy, size as xp_size, xp_astype,
-    is_complex, is_integer, is_integer_dtype
+    array_namespace, is_torch, is_numpy, copy, size as xp_size,
+    is_integer, is_integer_dtype
 )
 
 __all__ = ['correlate', 'correlation_lags', 'correlate2d',
@@ -522,12 +522,14 @@ def _freq_domain_conv(in1, in2, axes, shape, calc_fast_len=False, xp=None):
 
     """
     if xp is None:
-        xp = np
+        raise RuntimeError
 
     if not len(axes):
         return in1 * in2
 
-    complex_result = is_complex(in1, xp) or is_complex(in2, xp)
+    # complex_result = is_complex(in1, xp) or is_complex(in2, xp)
+    complex_result = (xp.isdtype(in1.dtype, 'complex floating') or
+                      xp.isdtype(in2.dtype, 'complex floating'))
 
     if calc_fast_len:
         # Speed up FFT by padding to optimal size.
@@ -543,9 +545,9 @@ def _freq_domain_conv(in1, in2, axes, shape, calc_fast_len=False, xp=None):
 
     if is_integer(in1, xp):
         # XXX: xp-dependent default fp dtype?
-        in1 = xp_astype(in1, xp.float64, xp)
+        in1 = xp.astype(in1, xp.float64)
     if is_integer(in2, xp):
-        in2 = xp_astype(in2, xp.float64, xp)
+        in2 = xp.astype(in2, xp.float64)
 
     sp1 = fft(in1, fshape, axes=axes)
     sp2 = fft(in2, fshape, axes=axes)
@@ -559,7 +561,7 @@ def _freq_domain_conv(in1, in2, axes, shape, calc_fast_len=False, xp=None):
     return ret
 
 
-def _apply_conv_mode(ret, s1, s2, mode, axes, xp=None):
+def _apply_conv_mode(ret, s1, s2, mode, axes, xp):
     """Calculate the convolution result shape based on the `mode` argument.
 
     Returns the result sliced to the correct size for the given mode.
@@ -584,9 +586,6 @@ def _apply_conv_mode(ret, s1, s2, mode, axes, xp=None):
         A copy of `res`, sliced to the correct size for the given `mode`.
 
     """
-    if xp is None:
-        xp = np
-
     if mode == "full":
         return copy(ret, xp=xp)
     elif mode == "same":
@@ -911,8 +910,10 @@ def oaconvolve(in1, in2, mode="full", axes=None):
     >>> fig.show()
 
     """
-    in1 = np.asarray(in1)
-    in2 = np.asarray(in2)
+    xp = array_namespace(in1, in2)
+
+    in1 = xp.asarray(in1)
+    in2 = xp.asarray(in2)
 
     if in1.ndim == in2.ndim == 0:  # scalar inputs
         return in1 * in2
@@ -931,7 +932,7 @@ def oaconvolve(in1, in2, mode="full", axes=None):
 
     if not axes:
         ret = in1 * in2
-        return _apply_conv_mode(ret, s1, s2, mode, axes)
+        return _apply_conv_mode(ret, s1, s2, mode, axes, xp)
 
     # Calculate this now since in1 is changed later
     shape_final = [None if i not in axes else
@@ -990,9 +991,11 @@ def oaconvolve(in1, in2, mode="full", axes=None):
     # if necessary.
     if not all(curpad == (0, 0) for curpad in pad_size1):
         in1 = np.pad(in1, pad_size1, mode='constant', constant_values=0)
+        in1 = xp.asarray(in1)   # FIXME: xp.pad
 
     if not all(curpad == (0, 0) for curpad in pad_size2):
         in2 = np.pad(in2, pad_size2, mode='constant', constant_values=0)
+        in2 = xp.asarray(in2)   # FIXME: xp.pad
 
     # Reshape the overlap-add parts to input block sizes.
     split_axes = [iax+i for i, iax in enumerate(axes)]
@@ -1006,12 +1009,12 @@ def oaconvolve(in1, in2, mode="full", axes=None):
         reshape_size1.insert(iax, nsteps1[i])
         reshape_size2.insert(iax, nsteps2[i])
 
-    in1 = in1.reshape(*reshape_size1)
-    in2 = in2.reshape(*reshape_size2)
+    in1 = xp.reshape(in1, tuple(reshape_size1))
+    in2 = xp.reshape(in2, tuple(reshape_size2))
 
     # Do the convolution.
     fft_shape = [block_size[i] for i in axes]
-    ret = _freq_domain_conv(in1, in2, fft_axes, fft_shape, calc_fast_len=False)
+    ret = _freq_domain_conv(in1, in2, fft_axes, fft_shape, calc_fast_len=False, xp=xp)
 
     # Do the overlap-add.
     for ax, ax_fft, ax_split in zip(axes, fft_axes, split_axes):
@@ -1036,7 +1039,7 @@ def oaconvolve(in1, in2, mode="full", axes=None):
     slice_final = tuple([slice(islice) for islice in shape_final])
     ret = ret[slice_final]
 
-    return _apply_conv_mode(ret, s1, s2, mode, axes)
+    return _apply_conv_mode(ret, s1, s2, mode, axes, xp)
 
 
 def _numeric_arrays(arrays, kinds='buifc', xp=None):
@@ -1161,7 +1164,7 @@ def _reverse_and_conj(x, xp):
         # NB: is a copy, not a view
         x_rev = xp.flip(x)
 
-    if is_complex(x, xp):
+    if xp.isdtype(x.dtype, 'complex floating'):
         return xp.conj(x_rev)
     else:
         return x_rev

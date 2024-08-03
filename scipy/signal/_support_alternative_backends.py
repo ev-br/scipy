@@ -3,7 +3,7 @@ import functools
 from scipy._lib._array_api import (
     array_namespace, is_cupy, is_jax, scipy_namespace_for, SCIPY_ARRAY_API
 )
-from ._signaltools import convolve, fftconvolve, convolve2d
+from ._signaltools import convolve, fftconvolve, convolve2d, oaconvolve
 
 
 MODULE_NAME = 'signal'
@@ -46,6 +46,10 @@ def fftconvolve_dispatcher(in1, in2, mode="full", axes=None):
     xp = array_namespace(in1, in2)
     return xp
 
+def oaconvolve_dispatcher(in1, in2, mode="full", axes=None):
+    xp = array_namespace(in1, in2)
+    return xp
+
 
 def convolve2d_dispatcher(in1, in2, mode='full', boundary='fill', fillvalue=0):
     xp = array_namespace(in1, in2)
@@ -56,6 +60,7 @@ def convolve2d_dispatcher(in1, in2, mode='full', boundary='fill', fillvalue=0):
 _FUNC_MAP = {
     convolve: convolve_dispatcher,
     fftconvolve: fftconvolve_dispatcher,
+    oaconvolve: oaconvolve_dispatcher,
     convolve2d: convolve2d_dispatcher,
 }
 

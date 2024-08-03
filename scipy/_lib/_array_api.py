@@ -462,11 +462,11 @@ def is_bool_dtype(dtyp, xp: ModuleType) -> bool:
         return dtyp == xp.bool
 
 
-def xp_astype(x: Array, dtyp, xp: ModuleType) -> Array:
-    try:
-        return xp.astype(x, dtyp)
-    except AttributeError:
-        return x.astype(dtyp)
+#def xp_astype(x: Array, dtyp, xp: ModuleType) -> Array:
+#    try:
+#        return xp.astype(x, dtyp)
+#    except AttributeError:
+#        return x.astype(dtyp)
 
 
 def get_xp_devices(xp: ModuleType) -> list[str] | list[None]:
