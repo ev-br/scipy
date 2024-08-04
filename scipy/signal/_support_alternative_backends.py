@@ -3,7 +3,7 @@ import functools
 from scipy._lib._array_api import (
     array_namespace, is_cupy, is_jax, scipy_namespace_for, SCIPY_ARRAY_API
 )
-from ._signaltools import convolve, fftconvolve, convolve2d, oaconvolve
+from ._signaltools import convolve, fftconvolve, convolve2d, oaconvolve, medfilt, wiener, correlate
 
 
 MODULE_NAME = 'signal'
@@ -51,8 +51,22 @@ def oaconvolve_dispatcher(in1, in2, mode="full", axes=None):
     return xp
 
 
+def correlate_dispatcher(in1, in2, mode='full', method='auto'):
+    xp = array_namespace(in1, in2)
+    return xp
+
+
 def convolve2d_dispatcher(in1, in2, mode='full', boundary='fill', fillvalue=0):
     xp = array_namespace(in1, in2)
+    return xp
+
+
+def medfilt_dispatcher(volume, kernel_size=None):
+    xp = array_namespace(volume)
+    return xp
+
+def wiener_dispatcher(im, mysize=None, noise=None):
+    xp = array_namespace(im)
     return xp
 
 
@@ -62,6 +76,8 @@ _FUNC_MAP = {
     fftconvolve: fftconvolve_dispatcher,
     oaconvolve: oaconvolve_dispatcher,
     convolve2d: convolve2d_dispatcher,
+    medfilt: medfilt_dispatcher,
+    wiener: wiener_dispatcher,
 }
 
 

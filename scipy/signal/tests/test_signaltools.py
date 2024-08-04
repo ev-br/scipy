@@ -855,7 +855,7 @@ class TestFFTConvolve:
                                       [-1, -4]])
     def test_random_data_multidim_axes(self, axes, xp):
         if xp != np:
-            pytest.xfail("XXX: moveaxis new in 2023.12 standard")
+            pytest.xfail("FIXME: swapaxis")
 
         a_shape, b_shape = (123, 22), (132, 11)
         np.random.seed(1234)
@@ -1200,25 +1200,32 @@ class TestMedFilt:
 
     KERNEL_SIZE = [7,3]
 
-    def test_basic(self):
-        d = signal.medfilt(self.IN, self.KERNEL_SIZE)
-        e = signal.medfilt2d(np.array(self.IN, float), self.KERNEL_SIZE)
-        xp_assert_equal(d, self.OUT)
+    def test_basic(self, xp):
+
+        in_ = xp.asarray(self.IN)
+        out_ = xp.asarray(self.OUT)
+        kernel_size = xp.asarray(self.KERNEL_SIZE)
+
+        d = signal.medfilt(in_, kernel_size)
+        e = signal.medfilt2d(xp.asarray(in_, dtype=xp.float64), kernel_size)
+        xp_assert_equal(d, out_)
         xp_assert_equal(d, e, check_dtype=False)
 
     @pytest.mark.parametrize('dtype', [np.ubyte, np.byte, np.ushort, np.short,
                                        np_ulong, np_long, np.ulonglong, np.ulonglong,
                                        np.float32, np.float64])
-    def test_types(self, dtype):
+    def test_types(self, dtype, xp):
         # volume input and output types match
-        in_typed = np.array(self.IN, dtype=dtype)
+        in_typed = xp.asarray(self.IN, dtype=dtype)
         assert signal.medfilt(in_typed).dtype == dtype
         assert signal.medfilt2d(in_typed).dtype == dtype
 
+
+    @skip_xp_backends(np_only=True, reasons=["assertions may differ"])
     @pytest.mark.parametrize('dtype', [np.bool_, np.complex64, np.complex128,
                                        np.clongdouble, np.float16, np.object_,
                                        "float96", "float128"])
-    def test_invalid_dtypes(self, dtype):
+    def test_invalid_dtypes(self, dtype, xp):
         # We can only test this on platforms that support a native type of float96 or
         # float128; comparing to np.longdouble allows us to filter out non-native types
         if (dtype in ["float96", "float128"]
@@ -1232,23 +1239,25 @@ class TestMedFilt:
         with pytest.raises(ValueError, match="not supported"):
             signal.medfilt2d(in_typed)
 
-    def test_none(self):
+    @skip_xp_backends(np_only=True, reasons=["object arrays"])
+    def test_none(self, xp):
         # gh-1651, trac #1124. Ensure this does not segfault.
         msg = "dtype=object is not supported by medfilt"
         with assert_raises(ValueError, match=msg):
             signal.medfilt(None)
 
-    def test_odd_strides(self):
+    def test_odd_strides(self, xp):
         # Avoid a regression with possible contiguous
         # numpy arrays that have odd strides. The stride value below gets
         # us into wrong memory if used (but it does not need to be used)
-        dummy = np.arange(10, dtype=np.float64)
+        dummy = xp.arange(10, dtype=xp.float64)
         a = dummy[5:6]
         a.strides = 16
         assert signal.medfilt(a, 1) == 5.
 
+    @skip_xp_backends(np_only=True, reasons=["XXX skip for now"])
     @pytest.mark.parametrize("dtype", [np.ubyte, np.float32, np.float64])
-    def test_medfilt2d_parallel(self, dtype):
+    def test_medfilt2d_parallel(self, dtype, xp):
         in_typed = np.array(self.IN, dtype=dtype)
         expected = np.array(self.OUT, dtype=dtype)
 
@@ -1306,15 +1315,15 @@ class TestMedFilt:
 
 class TestWiener:
 
-    def test_basic(self):
-        g = np.array([[5, 6, 4, 3],
-                   [3, 5, 6, 2],
-                   [2, 3, 5, 6],
-                   [1, 6, 9, 7]], 'd')
-        h = np.array([[2.16374269, 3.2222222222, 2.8888888889, 1.6666666667],
-                   [2.666666667, 4.33333333333, 4.44444444444, 2.8888888888],
-                   [2.222222222, 4.4444444444, 5.4444444444, 4.801066874837],
-                   [1.33333333333, 3.92735042735, 6.0712560386, 5.0404040404]])
+    def test_basic(self, xp):
+        g = xp.asarray([[5, 6, 4, 3],
+                        [3, 5, 6, 2],
+                        [2, 3, 5, 6],
+                        [1, 6, 9, 7]], dtype=xp.float64)
+        h = xp.asarray([[2.16374269, 3.2222222222, 2.8888888889, 1.6666666667],
+                        [2.666666667, 4.33333333333, 4.44444444444, 2.8888888888],
+                        [2.222222222, 4.4444444444, 5.4444444444, 4.801066874837],
+                        [1.33333333333, 3.92735042735, 6.0712560386, 5.0404040404]])
         assert_array_almost_equal(signal.wiener(g), h, decimal=6)
         assert_array_almost_equal(signal.wiener(g, mysize=3), h, decimal=6)
 
@@ -2041,11 +2050,11 @@ class _TestCorrelateReal:
         else:
             return assert_array_almost_equal
 
-    def _setup_rank1(self, dt):
-        a = np.linspace(0, 3, 4).astype(dt)
-        b = np.linspace(1, 2, 2).astype(dt)
+    def _setup_rank1(self, dt, xp):
+        a = xp.linspace(0, 3, 4, dtype=dt)
+        b = xp.linspace(1, 2, 2, dtype=dt)
 
-        y_r = np.array([0, 2, 5, 8, 3]).astype(dt)
+        y_r = xp.asarray([0, 2, 5, 8, 3], dtype=dt)
         return a, b, y_r
 
     def equal_tolerance(self, res_dt):
@@ -2067,12 +2076,15 @@ class _TestCorrelateReal:
         else:
             return self.equal_tolerance(res_dt)
 
-    def test_method(self, dt):
+    @skip_xp_backends(np_only=True, reasons=["order='F'"])
+    def test_method(self, dt, xp):
         if dt == Decimal:
             method = choose_conv_method([Decimal(4)], [Decimal(3)])
             assert method == 'direct'
         else:
-            a, b, y_r = self._setup_rank3(dt)
+            dt = getattr(xp, dt)
+
+            a, b, y_r = self._setup_rank3(dt, xp)
             y_fft = correlate(a, b, method='fft')
             y_direct = correlate(a, b, method='direct')
 
@@ -2085,10 +2097,11 @@ class _TestCorrelateReal:
             assert y_fft.dtype == dt
             assert y_direct.dtype == dt
 
-    def test_rank1_valid(self, dt):
+    def test_rank1_valid(self, dt, xp):
+        dt = getattr(xp, dt) if isinstance(dt, str) else dt
         _assert_almost_equal = self._get_assertion(dt)
 
-        a, b, y_r = self._setup_rank1(dt)
+        a, b, y_r = self._setup_rank1(dt, xp)
         y = correlate(a, b, 'valid')
         _assert_almost_equal(y, y_r[1:4])
         assert y.dtype == dt
@@ -2098,21 +2111,25 @@ class _TestCorrelateReal:
         _assert_almost_equal(y, y_r[1:4][::-1])
         assert y.dtype == dt
 
-    def test_rank1_same(self, dt):
-        a, b, y_r = self._setup_rank1(dt)
+    def test_rank1_same(self, dt, xp):
+        dt = getattr(xp, dt) if isinstance(dt, str) else dt
+
+        a, b, y_r = self._setup_rank1(dt, xp)
         y = correlate(a, b, 'same')
         _assert_almost_equal = self._get_assertion(dt)
         _assert_almost_equal(y, y_r[:-1])
         assert y.dtype == dt
 
-    def test_rank1_full(self, dt):
-        a, b, y_r = self._setup_rank1(dt)
+    def test_rank1_full(self, dt, xp):
+        dt = getattr(xp, dt) if isinstance(dt, str) else dt
+
+        a, b, y_r = self._setup_rank1(dt, xp)
         y = correlate(a, b, 'full')
         _assert_almost_equal = self._get_assertion(dt)
         _assert_almost_equal(y, y_r)
         assert y.dtype == dt
 
-    def _setup_rank3(self, dt):
+    def _setup_rank3(self, dt, xp):
         a = np.linspace(0, 39, 40).reshape((2, 4, 5), order='F').astype(
             dt)
         b = np.linspace(0, 23, 24).reshape((2, 3, 4), order='F').astype(
@@ -2142,8 +2159,10 @@ class _TestCorrelateReal:
 
         return a, b, y_r
 
-    def test_rank3_valid(self, dt):
-        a, b, y_r = self._setup_rank3(dt)
+    @skip_xp_backends(np_only=True, reasons=["order='F'"])
+    def test_rank3_valid(self, dt, xp):
+        dt = getattr(xp, dt) if isinstance(dt, str) else dt
+        a, b, y_r = self._setup_rank3(dt, xp)
         y = correlate(a, b, "valid")
         _assert_almost_equal = self._get_assertion(dt)
         _assert_almost_equal(y, y_r[1:2, 2:4, 3:5])
@@ -2155,29 +2174,36 @@ class _TestCorrelateReal:
         _assert_almost_equal(y, y_r[1:2, 2:4, 3:5][::-1, ::-1, ::-1])
         assert y.dtype == dt
 
-    def test_rank3_same(self, dt):
-        a, b, y_r = self._setup_rank3(dt)
+    @skip_xp_backends(np_only=True, reasons=["order='F'"])
+    def test_rank3_same(self, dt, xp):
+        dt = getattr(xp, dt) if isinstance(dt, str) else dt
+        a, b, y_r = self._setup_rank3(dt, xp)
         y = correlate(a, b, "same")
         _assert_almost_equal = self._get_assertion(dt)
         _assert_almost_equal(y, y_r[0:-1, 1:-1, 1:-2])
         assert y.dtype == dt
 
-    def test_rank3_all(self, dt):
-        a, b, y_r = self._setup_rank3(dt)
+    @skip_xp_backends(np_only=True, reasons=["order='F'"])
+    def test_rank3_all(self, dt, xp):
+        dt = getattr(xp, dt) if isinstance(dt, str) else dt
+        a, b, y_r = self._setup_rank3(dt, xp)
         y = correlate(a, b)
         _assert_almost_equal = self._get_assertion(dt)
         _assert_almost_equal(y, y_r)
         assert y.dtype == dt
 
 
-@pytest.mark.parametrize('dt', [np.ubyte, np.byte, np.ushort, np.short,
-                                np_ulong, np_long, np.ulonglong, np.ulonglong,
-                                np.float32, np.float64, np.longdouble,
+@pytest.mark.parametrize('dt', ["uint8", "int8", "uint16", "int16",
+                                "uint32", "int32", # np_ulong, np_long,   # FIXME: np 1.x & 2.x / backends?
+                                "uint64", "int64", # FIXME: is this correct? Was np.ulonglong, np.ulonglong,
+                                "float32", "float64",
+                                # np.longdouble, # FIXME: what to do w/ longdouble?
                                ])
 class TestCorrelateReal(_TestCorrelateReal):
     pass
 
 
+@skip_xp_backends(np_only=True, reasons=["object arrays"])
 @pytest.mark.parametrize('dt', [Decimal])
 class TestCorrelateRealDecimal(_TestCorrelateReal):
     pass
@@ -2262,7 +2288,9 @@ def test_correlation_lags(mode, behind, input_size):
     assert lags.shape == correlation.shape
 
 
-@pytest.mark.parametrize('dt', [np.csingle, np.cdouble, np.clongdouble])
+@pytest.mark.parametrize('dt', ["complex64", "complex128",
+                               # np.clongdouble  # FIXME
+])
 class TestCorrelateComplex:
     # The decimal precision to be used for comparing results.
     # This value will be passed as the 'decimal' keyword argument of
@@ -2271,12 +2299,15 @@ class TestCorrelateComplex:
     # longdoubles to doubles internally don't expect better precision
     # for longdouble than for double (see gh-9520).
 
-    def decimal(self, dt):
-        if dt == np.clongdouble:
+    def decimal(self, dt, xp):
+        if is_numpy(xp) and dt == np.clongdouble:
             dt = np.cdouble
-        return int(2 * np.finfo(dt).precision / 3)
 
-    def _setup_rank1(self, dt, mode):
+        # emulate np.finfo(dt).precision for complex64 and complex128
+        prec = {64: 15, 32: 6}[xp.finfo(dt).bits]
+        return int(2 * prec / 3)
+
+    def _setup_rank1(self, dt, mode, xp):
         np.random.seed(9)
         a = np.random.randn(10).astype(dt)
         a += 1j * np.random.randn(10).astype(dt)
@@ -2287,44 +2318,54 @@ class TestCorrelateComplex:
                correlate(a.imag, b.imag, mode=mode)).astype(dt)
         y_r += 1j * (-correlate(a.real, b.imag, mode=mode) +
                      correlate(a.imag, b.real, mode=mode))
+
+        a, b, y_r = xp.asarray(a), xp.asarray(b), xp.asarray(y_r)
         return a, b, y_r
 
-    def test_rank1_valid(self, dt):
-        a, b, y_r = self._setup_rank1(dt, 'valid')
+    def test_rank1_valid(self, dt, xp):
+        a, b, y_r = self._setup_rank1(dt, 'valid', xp)
+        dt = getattr(xp, dt) if isinstance(dt, str) else dt
+
         y = correlate(a, b, 'valid')
-        assert_array_almost_equal(y, y_r, decimal=self.decimal(dt))
+        assert_array_almost_equal(y, y_r, decimal=self.decimal(dt, xp))
         assert y.dtype == dt
 
         # See gh-5897
         y = correlate(b, a, 'valid')
-        assert_array_almost_equal(y, y_r[::-1].conj(), decimal=self.decimal(dt))
+        assert_array_almost_equal(y, xp.conj(y_r[::-1]), decimal=self.decimal(dt, xp))
         assert y.dtype == dt
 
-    def test_rank1_same(self, dt):
-        a, b, y_r = self._setup_rank1(dt, 'same')
+    def test_rank1_same(self, dt, xp):
+        a, b, y_r = self._setup_rank1(dt, 'same', xp)
+        dt = getattr(xp, dt) if isinstance(dt, str) else dt
+
         y = correlate(a, b, 'same')
-        assert_array_almost_equal(y, y_r, decimal=self.decimal(dt))
+        assert_array_almost_equal(y, y_r, decimal=self.decimal(dt, xp))
         assert y.dtype == dt
 
-    def test_rank1_full(self, dt):
-        a, b, y_r = self._setup_rank1(dt, 'full')
+    def test_rank1_full(self, dt, xp):
+        a, b, y_r = self._setup_rank1(dt, 'full', xp)
+        dt = getattr(xp, dt) if isinstance(dt, str) else dt
+
         y = correlate(a, b, 'full')
-        assert_array_almost_equal(y, y_r, decimal=self.decimal(dt))
+        assert_array_almost_equal(y, y_r, decimal=self.decimal(dt, xp))
         assert y.dtype == dt
 
-    def test_swap_full(self, dt):
-        d = np.array([0.+0.j, 1.+1.j, 2.+2.j], dtype=dt)
-        k = np.array([1.+3.j, 2.+4.j, 3.+5.j, 4.+6.j], dtype=dt)
+    def test_swap_full(self, dt, xp):
+        dt = getattr(xp, dt) if isinstance(dt, str) else dt
+
+        d = xp.asarray([0.+0.j, 1.+1.j, 2.+2.j], dtype=dt)
+        k = xp.asarray([1.+3.j, 2.+4.j, 3.+5.j, 4.+6.j], dtype=dt)
         y = correlate(d, k)
-        xp_assert_equal(y, [0.+0.j, 10.-2.j, 28.-6.j, 22.-6.j, 16.-6.j, 8.-4.j], check_dtype=False)
+        xp_assert_equal(y, xp.asarray([0.+0.j, 10.-2.j, 28.-6.j, 22.-6.j, 16.-6.j, 8.-4.j]), check_dtype=False)
 
-    def test_swap_same(self, dt):
-        d = [0.+0.j, 1.+1.j, 2.+2.j]
-        k = [1.+3.j, 2.+4.j, 3.+5.j, 4.+6.j]
+    def test_swap_same(self, dt, xp):
+        d = xp.asarray([0.+0.j, 1.+1.j, 2.+2.j])
+        k = xp.asarray([1.+3.j, 2.+4.j, 3.+5.j, 4.+6.j])
         y = correlate(d, k, mode="same")
-        xp_assert_equal(y, [10.-2.j, 28.-6.j, 22.-6.j])
+        xp_assert_equal(y, xp.asarray([10.-2.j, 28.-6.j, 22.-6.j]))
 
-    def test_rank3(self, dt):
+    def test_rank3(self, dt, xp):
         a = np.random.randn(10, 8, 6).astype(dt)
         a += 1j * np.random.randn(10, 8, 6).astype(dt)
         b = np.random.randn(8, 6, 4).astype(dt)
@@ -2334,11 +2375,15 @@ class TestCorrelateComplex:
                + correlate(a.imag, b.imag)).astype(dt)
         y_r += 1j * (-correlate(a.real, b.imag) + correlate(a.imag, b.real))
 
+        a, b, y_r = xp.asarray(a), xp.asarray(b), xp.asarray(y_r)
+        dt = getattr(xp, dt) if isinstance(dt, str) else dt
+
         y = correlate(a, b, 'full')
-        assert_array_almost_equal(y, y_r, decimal=self.decimal(dt) - 1)
+        assert_array_almost_equal(y, y_r, decimal=self.decimal(dt, xp) - 1)
         assert y.dtype == dt
 
-    def test_rank0(self, dt):
+    @skip_xp_backends(np_only=True)  # XXX: check 0D/scalars on backends.
+    def test_rank0(self, dt, xp):
         a = np.array(np.random.randn()).astype(dt)
         a += 1j * np.array(np.random.randn()).astype(dt)
         b = np.array(np.random.randn()).astype(dt)
@@ -2349,8 +2394,11 @@ class TestCorrelateComplex:
         y_r += 1j * np.array(-correlate(a.real, b.imag) +
                              correlate(a.imag, b.real))
 
+        a, b = xp.asarray(a), xp.asarray(b)
+        dt = getattr(xp, dt) if isinstance(dt, str) else dt
+
         y = correlate(a, b, 'full')
-        assert_array_almost_equal(y, y_r, decimal=self.decimal(dt) - 1)
+        assert_array_almost_equal(y, y_r, decimal=self.decimal(dt, xp) - 1)
         assert y.dtype == dt
 
         xp_assert_equal(correlate([1], [2j]), correlate(1, 2j), check_shape=False)

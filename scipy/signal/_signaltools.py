@@ -242,7 +242,10 @@ def correlate(in1, in2, mode='full', method='auto'):
     in2 = xp.asarray(in2)
 
     if in1.ndim == in2.ndim == 0:
-        return in1 * in2.conj()
+        in2_conj = (xp.conj(in2)
+                    if xp.isdtype(in2.dtype, 'complex floating')
+                    else in2)
+        return in1 * in2_conj
     elif in1.ndim != in2.ndim:
         raise ValueError("in1 and in2 should have the same dimensionality")
 
