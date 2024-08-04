@@ -30,6 +30,7 @@ from scipy._lib._array_api import (
     array_namespace, is_torch, is_numpy, copy, size as xp_size,
     is_integer, is_integer_dtype
 )
+import scipy._lib.array_api_compat.numpy as np_compat
 
 __all__ = ['correlate', 'correlation_lags', 'correlate2d',
            'convolve', 'convolve2d', 'fftconvolve', 'oaconvolve',
@@ -39,20 +40,6 @@ __all__ = ['correlate', 'correlation_lags', 'correlate2d',
            'residuez', 'resample', 'resample_poly', 'detrend',
            'lfilter_zi', 'sosfilt_zi', 'sosfiltfilt', 'choose_conv_method',
            'filtfilt', 'decimate', 'vectorstrength']
-
-
-def _array_namespace_or_object(*args):
-    """Fall back to numpy for object arrays."""
-    try:
-        xp = array_namespace(*args)
-    except TypeError:
-        np_args = [np.asarray(a) for a in args]
-        if any(a.dtype.kind == 'O' for a in np_args):
-            xp = np
-        else:
-            # no idea what happened, just propagate the error
-            raise
-    return xp
 
 
 _modedict = {'valid': 0, 'same': 1, 'full': 2}
@@ -245,7 +232,11 @@ def correlate(in1, in2, mode='full', method='auto'):
     >>> plt.show()
 
     """
-    xp = _array_namespace_or_object(in1, in2)
+    try:
+        xp = array_namespace(in1, in2)
+    except TypeError:
+        # either in1 or in2 are object arrays
+        xp = np_compat
 
     in1 = xp.asarray(in1)
     in2 = xp.asarray(in2)
@@ -1330,7 +1321,12 @@ def choose_conv_method(in1, in2, mode='full', measure=False):
     `convolve`.
 
     """
-    xp = _array_namespace_or_object(in1, in2)
+#    xp = array_namespace(in1, in2)
+    try:
+        xp = array_namespace(in1, in2)
+    except TypeError:
+        # either in1 or in2 are object arrays
+        xp = np_compat
 
     volume = xp.asarray(in1)
     kernel = xp.asarray(in2)
@@ -1461,7 +1457,13 @@ def convolve(in1, in2, mode='full', method='auto'):
     >>> fig.show()
 
     """
-    xp = _array_namespace_or_object(in1, in2)
+#    xp = array_namespace(in1, in2)
+
+    try:
+        xp = array_namespace(in1, in2)
+    except TypeError:
+        # either in1 or in2 are object arrays
+        xp = np_compat
 
     volume = xp.asarray(in1)
     kernel = xp.asarray(in2)

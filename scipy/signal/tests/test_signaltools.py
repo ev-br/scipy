@@ -1569,6 +1569,16 @@ class TestOrderFilt:
 
 class _TestLinearFilter:
 
+    def setup_method(self):
+        if self.dtype == object:
+            self.assert_close = np.testing.assert_allclose
+            self.assert_equal = np.testing.assert_equal
+            self.assert_array_almost_equal = np.testing.assert_array_almost_equal
+        else:
+            self.assert_close = xp_assert_close
+            self.assert_equal = xp_assert_equal
+            self.assert_array_almost_equal = assert_array_almost_equal
+
     def generate(self, shape):
         x = np.linspace(0, np.prod(shape) - 1, np.prod(shape)).reshape(shape)
         return self.convert_dtype(x)
@@ -1590,14 +1600,14 @@ class _TestLinearFilter:
         b = self.convert_dtype([1, -1])
         a = self.convert_dtype([0.5, -0.5])
         y_r = self.convert_dtype([0, 2, 4, 6, 8, 10.])
-        assert_array_almost_equal(lfilter(b, a, x), y_r)
+        self.assert_array_almost_equal(lfilter(b, a, x), y_r)
 
     def test_rank_1_FIR(self):
         x = self.generate((6,))
         b = self.convert_dtype([1, 1])
         a = self.convert_dtype([1])
         y_r = self.convert_dtype([0, 1, 3, 5, 7, 9.])
-        assert_array_almost_equal(lfilter(b, a, x), y_r)
+        self.assert_array_almost_equal(lfilter(b, a, x), y_r)
 
     def test_rank_1_IIR_init_cond(self):
         x = self.generate((6,))
@@ -1607,8 +1617,8 @@ class _TestLinearFilter:
         y_r = self.convert_dtype([1, 5, 9, 13, 17, 21])
         zf_r = self.convert_dtype([13, -10])
         y, zf = lfilter(b, a, x, zi=zi)
-        assert_array_almost_equal(y, y_r)
-        assert_array_almost_equal(zf, zf_r)
+        self.assert_array_almost_equal(y, y_r)
+        self.assert_array_almost_equal(zf, zf_r)
 
     def test_rank_1_FIR_init_cond(self):
         x = self.generate((6,))
@@ -1618,8 +1628,8 @@ class _TestLinearFilter:
         y_r = self.convert_dtype([1, 2, 3, 6, 9, 12.])
         zf_r = self.convert_dtype([9, 5])
         y, zf = lfilter(b, a, x, zi=zi)
-        assert_array_almost_equal(y, y_r)
-        assert_array_almost_equal(zf, zf_r)
+        self.assert_array_almost_equal(y, y_r)
+        self.assert_array_almost_equal(zf, zf_r)
 
     def test_rank_2_IIR_axis_0(self):
         x = self.generate((4, 3))
@@ -1628,7 +1638,7 @@ class _TestLinearFilter:
         y_r2_a0 = self.convert_dtype([[0, 2, 4], [6, 4, 2], [0, 2, 4],
                                       [6, 4, 2]])
         y = lfilter(b, a, x, axis=0)
-        assert_array_almost_equal(y_r2_a0, y)
+        self.assert_array_almost_equal(y_r2_a0, y)
 
     def test_rank_2_IIR_axis_1(self):
         x = self.generate((4, 3))
@@ -1637,7 +1647,7 @@ class _TestLinearFilter:
         y_r2_a1 = self.convert_dtype([[0, 2, 0], [6, -4, 6], [12, -10, 12],
                             [18, -16, 18]])
         y = lfilter(b, a, x, axis=1)
-        assert_array_almost_equal(y_r2_a1, y)
+        self.assert_array_almost_equal(y_r2_a1, y)
 
     def test_rank_2_IIR_axis_0_init_cond(self):
         x = self.generate((4, 3))
@@ -1649,8 +1659,8 @@ class _TestLinearFilter:
                               [19, -17, 19]])
         zf_r = self.convert_dtype([-5, -17, -29, -41])[:, np.newaxis]
         y, zf = lfilter(b, a, x, axis=1, zi=zi)
-        assert_array_almost_equal(y_r2_a0_1, y)
-        assert_array_almost_equal(zf, zf_r)
+        self.assert_array_almost_equal(y_r2_a0_1, y)
+        self.assert_array_almost_equal(zf, zf_r)
 
     def test_rank_2_IIR_axis_1_init_cond(self):
         x = self.generate((4,3))
@@ -1662,8 +1672,8 @@ class _TestLinearFilter:
                                         [1, 3, 5], [5, 3, 1]])
         zf_r = self.convert_dtype([[-23, -23, -23]])
         y, zf = lfilter(b, a, x, axis=0, zi=zi)
-        assert_array_almost_equal(y_r2_a0_0, y)
-        assert_array_almost_equal(zf, zf_r)
+        self.assert_array_almost_equal(y_r2_a0_0, y)
+        self.assert_array_almost_equal(zf, zf_r)
 
     def test_rank_3_IIR(self):
         x = self.generate((4, 3, 2))
@@ -1673,7 +1683,7 @@ class _TestLinearFilter:
         for axis in range(x.ndim):
             y = lfilter(b, a, x, axis)
             y_r = np.apply_along_axis(lambda w: lfilter(b, a, w), axis, x)
-            assert_array_almost_equal(y, y_r)
+            self.assert_array_almost_equal(y, y_r)
 
     def test_rank_3_IIR_init_cond(self):
         x = self.generate((4, 3, 2))
@@ -1692,8 +1702,8 @@ class _TestLinearFilter:
                 return lfilter(b, a, w, zi=zi1)[1]
             y_r = np.apply_along_axis(lf0, axis, x)
             zf_r = np.apply_along_axis(lf1, axis, x)
-            assert_array_almost_equal(y, y_r)
-            assert_array_almost_equal(zf, zf_r)
+            self.assert_array_almost_equal(y, y_r)
+            self.assert_array_almost_equal(zf, zf_r)
 
     def test_rank_3_FIR(self):
         x = self.generate((4, 3, 2))
@@ -1703,7 +1713,7 @@ class _TestLinearFilter:
         for axis in range(x.ndim):
             y = lfilter(b, a, x, axis)
             y_r = np.apply_along_axis(lambda w: lfilter(b, a, w), axis, x)
-            assert_array_almost_equal(y, y_r)
+            self.assert_array_almost_equal(y, y_r)
 
     def test_rank_3_FIR_init_cond(self):
         x = self.generate((4, 3, 2))
@@ -1722,8 +1732,8 @@ class _TestLinearFilter:
                 return lfilter(b, a, w, zi=zi1)[1]
             y_r = np.apply_along_axis(lf0, axis, x)
             zf_r = np.apply_along_axis(lf1, axis, x)
-            assert_array_almost_equal(y, y_r)
-            assert_array_almost_equal(zf, zf_r)
+            self.assert_array_almost_equal(y, y_r)
+            self.assert_array_almost_equal(zf, zf_r)
 
     def test_zi_pseudobroadcast(self):
         x = self.generate((4, 5, 20))
@@ -1740,8 +1750,8 @@ class _TestLinearFilter:
         y_full, zf_full = lfilter(b, a, x, zi=zi_full)
         y_sing, zf_sing = lfilter(b, a, x, zi=zi_sing)
 
-        assert_array_almost_equal(y_sing, y_full)
-        assert_array_almost_equal(zf_full, zf_sing)
+        self.assert_array_almost_equal(y_sing, y_full)
+        self.assert_array_almost_equal(zf_full, zf_sing)
 
         # lfilter does not prepend ones
         assert_raises(ValueError, lfilter, b, a, x, -1, np.ones(zi_size))
@@ -1754,7 +1764,7 @@ class _TestLinearFilter:
         y_r = self.convert_dtype([0, 1, 2, 2, 2, 2])
 
         y = lfilter(b, a[0], x)
-        assert_array_almost_equal(y, y_r)
+        self.assert_array_almost_equal(y, y_r)
 
     def test_zi_some_singleton_dims(self):
         # lfilter doesn't really broadcast (no prepending of 1's).  But does
@@ -1775,13 +1785,13 @@ class _TestLinearFilter:
 
         # IIR
         y_iir, zf_iir = lfilter(b, a, x, -1, zi)
-        assert_array_almost_equal(y_iir, y_expected)
-        assert_array_almost_equal(zf_iir, zf_expected)
+        self.assert_array_almost_equal(y_iir, y_expected)
+        self.assert_array_almost_equal(zf_iir, zf_expected)
 
         # FIR
         y_fir, zf_fir = lfilter(b, a[0], x, -1, zi)
-        assert_array_almost_equal(y_fir, y_expected)
-        assert_array_almost_equal(zf_fir, zf_expected)
+        self.assert_array_almost_equal(y_fir, y_expected)
+        self.assert_array_almost_equal(zf_fir, zf_expected)
 
     def base_bad_size_zi(self, b, a, x, axis, zi):
         b = self.convert_dtype(b)
@@ -1893,7 +1903,7 @@ class _TestLinearFilter:
         b = self.convert_dtype([1])
         zi = self.convert_dtype([])
         y, zf = lfilter(b, a, x, zi=zi)
-        assert_array_almost_equal(y, x)
+        self.assert_array_almost_equal(y, x)
         assert zf.dtype == self.dtype
         assert zf.size == 0
 
@@ -1905,8 +1915,10 @@ class _TestLinearFilter:
         zi = lfiltic(b, a, [1., 0])
         zi_1 = lfiltic(b, a, [1, 0])
         zi_2 = lfiltic(b, a, [True, False])
-        xp_assert_equal(zi, zi_1)
-        xp_assert_equal(zi, zi_2, check_dtype=False)
+        self.assert_equal(zi, zi_1)
+
+        check_dtype_arg = {} if self.dtype == object else {'check_dtype': False}
+        self.assert_equal(zi, zi_2, **check_dtype_arg)
 
     def test_short_x_FIR(self):
         # regression test for #5116
@@ -1918,8 +1930,8 @@ class _TestLinearFilter:
         ye = self.convert_dtype([74])
         zfe = self.convert_dtype([7, -72])
         y, zf = lfilter(b, a, x, zi=zi)
-        assert_array_almost_equal(y, ye)
-        assert_array_almost_equal(zf, zfe)
+        self.assert_array_almost_equal(y, ye)
+        self.assert_array_almost_equal(zf, zfe)
 
     def test_short_x_IIR(self):
         # regression test for #5116
@@ -1931,8 +1943,8 @@ class _TestLinearFilter:
         ye = self.convert_dtype([74])
         zfe = self.convert_dtype([-67, -72])
         y, zf = lfilter(b, a, x, zi=zi)
-        assert_array_almost_equal(y, ye)
-        assert_array_almost_equal(zf, zfe)
+        self.assert_array_almost_equal(y, ye)
+        self.assert_array_almost_equal(zf, zfe)
 
     def test_do_not_modify_a_b_IIR(self):
         x = self.generate((6,))
@@ -1942,9 +1954,9 @@ class _TestLinearFilter:
         a0 = a.copy()
         y_r = self.convert_dtype([0, 2, 4, 6, 8, 10.])
         y_f = lfilter(b, a, x)
-        assert_array_almost_equal(y_f, y_r)
-        xp_assert_equal(b, b0)
-        xp_assert_equal(a, a0)
+        self.assert_array_almost_equal(y_f, y_r)
+        self.assert_equal(b, b0)
+        self.assert_equal(a, a0)
 
     def test_do_not_modify_a_b_FIR(self):
         x = self.generate((6,))
@@ -1954,15 +1966,15 @@ class _TestLinearFilter:
         a0 = a.copy()
         y_r = self.convert_dtype([0, 0.5, 1, 2, 3, 4.])
         y_f = lfilter(b, a, x)
-        assert_array_almost_equal(y_f, y_r)
-        xp_assert_equal(b, b0)
-        xp_assert_equal(a, a0)
+        self.assert_array_almost_equal(y_f, y_r)
+        self.assert_equal(b, b0)
+        self.assert_equal(a, a0)
 
     @pytest.mark.parametrize("a", [1.0, [1.0], np.array(1.0)])
     @pytest.mark.parametrize("b", [1.0, [1.0], np.array(1.0)])
     def test_scalar_input(self, a, b):
         data = np.random.randn(10)
-        xp_assert_close(
+        self.assert_close(
             lfilter(np.array([1.0]), np.array([1.0]), data),
             lfilter(b, a, data))
 
@@ -1989,6 +2001,7 @@ class TestLinearFilterComplex128(_TestLinearFilter):
 
 class TestLinearFilterComplexExtended(_TestLinearFilter):
     dtype = np.dtype('G')
+
 
 @skip_xp_backends(np_only=True, reasons=["object arrays"])
 class TestLinearFilterDecimal(_TestLinearFilter):
@@ -2019,11 +2032,15 @@ def test_lfilter_notimplemented_input():
     assert_raises(NotImplementedError, lfilter, [2,3], [4,5], [1,2,3,4,5])
 
 
-@pytest.mark.parametrize('dt', [np.ubyte, np.byte, np.ushort, np.short,
-                                np_ulong, np_long, np.ulonglong, np.ulonglong,
-                                np.float32, np.float64, np.longdouble,
-                                Decimal])
-class TestCorrelateReal:
+class _TestCorrelateReal:
+
+    def _get_assertion(self, dt):
+        """Use np.testing while object arrays are a thing."""
+        if dt == Decimal:
+            return np.testing.assert_array_almost_equal
+        else:
+            return assert_array_almost_equal
+
     def _setup_rank1(self, dt):
         a = np.linspace(0, 3, 4).astype(dt)
         b = np.linspace(1, 2, 2).astype(dt)
@@ -2069,26 +2086,30 @@ class TestCorrelateReal:
             assert y_direct.dtype == dt
 
     def test_rank1_valid(self, dt):
+        _assert_almost_equal = self._get_assertion(dt)
+
         a, b, y_r = self._setup_rank1(dt)
         y = correlate(a, b, 'valid')
-        assert_array_almost_equal(y, y_r[1:4])
+        _assert_almost_equal(y, y_r[1:4])
         assert y.dtype == dt
 
         # See gh-5897
         y = correlate(b, a, 'valid')
-        assert_array_almost_equal(y, y_r[1:4][::-1])
+        _assert_almost_equal(y, y_r[1:4][::-1])
         assert y.dtype == dt
 
     def test_rank1_same(self, dt):
         a, b, y_r = self._setup_rank1(dt)
         y = correlate(a, b, 'same')
-        assert_array_almost_equal(y, y_r[:-1])
+        _assert_almost_equal = self._get_assertion(dt)
+        _assert_almost_equal(y, y_r[:-1])
         assert y.dtype == dt
 
     def test_rank1_full(self, dt):
         a, b, y_r = self._setup_rank1(dt)
         y = correlate(a, b, 'full')
-        assert_array_almost_equal(y, y_r)
+        _assert_almost_equal = self._get_assertion(dt)
+        _assert_almost_equal(y, y_r)
         assert y.dtype == dt
 
     def _setup_rank3(self, dt):
@@ -2124,25 +2145,42 @@ class TestCorrelateReal:
     def test_rank3_valid(self, dt):
         a, b, y_r = self._setup_rank3(dt)
         y = correlate(a, b, "valid")
-        assert_array_almost_equal(y, y_r[1:2, 2:4, 3:5])
+        _assert_almost_equal = self._get_assertion(dt)
+        _assert_almost_equal(y, y_r[1:2, 2:4, 3:5])
         assert y.dtype == dt
 
         # See gh-5897
         y = correlate(b, a, "valid")
-        assert_array_almost_equal(y, y_r[1:2, 2:4, 3:5][::-1, ::-1, ::-1])
+        _assert_almost_equal = self._get_assertion(dt)
+        _assert_almost_equal(y, y_r[1:2, 2:4, 3:5][::-1, ::-1, ::-1])
         assert y.dtype == dt
 
     def test_rank3_same(self, dt):
         a, b, y_r = self._setup_rank3(dt)
         y = correlate(a, b, "same")
-        assert_array_almost_equal(y, y_r[0:-1, 1:-1, 1:-2])
+        _assert_almost_equal = self._get_assertion(dt)
+        _assert_almost_equal(y, y_r[0:-1, 1:-1, 1:-2])
         assert y.dtype == dt
 
     def test_rank3_all(self, dt):
         a, b, y_r = self._setup_rank3(dt)
         y = correlate(a, b)
-        assert_array_almost_equal(y, y_r)
+        _assert_almost_equal = self._get_assertion(dt)
+        _assert_almost_equal(y, y_r)
         assert y.dtype == dt
+
+
+@pytest.mark.parametrize('dt', [np.ubyte, np.byte, np.ushort, np.short,
+                                np_ulong, np_long, np.ulonglong, np.ulonglong,
+                                np.float32, np.float64, np.longdouble,
+                               ])
+class TestCorrelateReal(_TestCorrelateReal):
+    pass
+
+
+@pytest.mark.parametrize('dt', [Decimal])
+class TestCorrelateRealDecimal(_TestCorrelateReal):
+    pass
 
 
 class TestCorrelate:
