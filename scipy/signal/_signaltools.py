@@ -1623,16 +1623,20 @@ def medfilt(volume, kernel_size=None):
     the specialised function `scipy.signal.medfilt2d` may be faster.
 
     """
-    volume = np.atleast_1d(volume)
-    if not (np.issubdtype(volume.dtype, np.integer) 
-            or volume.dtype in [np.float32, np.float64]):
+    xp = array_namespace(volume)
+    volume = xp.asarray(volume)
+    if volume.ndim == 0:
+        volume = xp.expand_dims(volume)   # np.atleast_1d
+
+    if not (xp.isdtype(volume.dtype, "integral") or
+            volume.dtype in [xp.float32, xp.float64]):
         raise ValueError(f"dtype={volume.dtype} is not supported by medfilt")
 
     if kernel_size is None:
         kernel_size = [3] * volume.ndim
-    kernel_size = np.asarray(kernel_size)
+    kernel_size = xp.asarray(kernel_size)
     if kernel_size.shape == ():
-        kernel_size = np.repeat(kernel_size.item(), volume.ndim)
+        kernel_size = xp.repeat(kernel_size, volume.ndim)   # XXX: kernel_size.item() -> kernel_size
 
     for k in range(volume.ndim):
         if (kernel_size[k] % 2) != 1:
@@ -1698,28 +1702,32 @@ def wiener(im, mysize=None, noise=None):
     >>> plt.show()
 
     """
-    im = np.asarray(im)
+    xp = array_namespace(im)
+
+    im = xp.asarray(im)
     if mysize is None:
         mysize = [3] * im.ndim
-    mysize = np.asarray(mysize)
+    mysize = xp.asarray(mysize)
     if mysize.shape == ():
-        mysize = np.repeat(mysize.item(), im.ndim)
+        mysize = xp.repeat(mysize, im.ndim)
 
     # Estimate the local mean
     size = math.prod(mysize)
-    lMean = correlate(im, np.ones(mysize), 'same') / size
+    lMean = correlate(im, xp.ones(mysize), 'same')
+    lsize = xp.asarray(size, dtype=lMean.dtype)   # annoying: float / int
+    lMean = lMean / lsize
 
     # Estimate the local variance
-    lVar = (correlate(im ** 2, np.ones(mysize), 'same') / size - lMean ** 2)
+    lVar = (correlate(im ** 2, xp.ones(mysize), 'same') / lsize - lMean ** 2)
 
     # Estimate the noise power if needed.
     if noise is None:
-        noise = np.mean(np.ravel(lVar), axis=0)
+        noise = xp.mean(xp.reshape(lVar, (-1,)), axis=0)
 
     res = (im - lMean)
     res *= (1 - noise / lVar)
     res += lMean
-    out = np.where(lVar < noise, lMean, res)
+    out = xp.where(lVar < noise, lMean, res)
 
     return out
 
@@ -2008,12 +2016,14 @@ def medfilt2d(input, kernel_size=3):
     # kernel numbers must be odd and not exceed original array dim
 
     """
+    xp = array_namespace(input)
+
     image = np.asarray(input)
 
     # checking dtype.type, rather than just dtype, is necessary for
     # excluding np.longdouble with MS Visual C.
     if image.dtype.type not in (np.ubyte, np.float32, np.float64):
-        return medfilt(image, kernel_size)
+        return xp.asarray(medfilt(image, kernel_size))
 
     if kernel_size is None:
         kernel_size = [3] * 2
@@ -2025,7 +2035,8 @@ def medfilt2d(input, kernel_size=3):
         if (size % 2) != 1:
             raise ValueError("Each element of kernel_size should be odd.")
 
-    return _sigtools._medfilt2d(image, kernel_size)
+    result_np = _sigtools._medfilt2d(image, kernel_size)
+    return xp.asarray(result_np)
 
 
 def lfilter(b, a, x, axis=-1, zi=None):
