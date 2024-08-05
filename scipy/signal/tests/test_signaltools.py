@@ -2123,8 +2123,11 @@ class _TestCorrelateReal:
 
         # See gh-5897
         y = correlate(b, a, 'valid')
-        flip = array_namespace(y_r).flip
-        _assert_almost_equal(y, flip(y_r[1:4]))
+        if  y_r.dtype != object:
+            flip = array_namespace(y_r).flip
+            _assert_almost_equal(y, flip(y_r[1:4]))
+        else:
+            _assert_almost_equal(y, y_r[1:4][::-1])
         assert y.dtype == dt
 
     def test_rank1_same(self, dt, xp):

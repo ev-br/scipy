@@ -14,7 +14,12 @@ def dispatch_xp(dispatcher, module_name):
     def inner(func):
         @functools.wraps(func)
         def wrapper(*args, **kwds):
-            xp = dispatcher(*args, **kwds)
+            try:
+                xp = dispatcher(*args, **kwds)
+            except TypeError:
+                # object arrays
+                import numpy
+                xp = numpy
 
             # try delegating to a cupyx/jax namesake
             if is_cupy(xp):
