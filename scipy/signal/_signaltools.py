@@ -1707,9 +1707,9 @@ def wiener(im, mysize=None, noise=None):
     im = xp.asarray(im)
     if mysize is None:
         mysize = [3] * im.ndim
-    mysize = xp.asarray(mysize)
-    if mysize.shape == ():
-        mysize = xp.repeat(mysize, im.ndim)
+    mysize_arr = xp.asarray(mysize)
+    if mysize_arr.shape == ():
+        mysize = [mysize] * im.ndim
 
     # Estimate the local mean
     size = math.prod(mysize)

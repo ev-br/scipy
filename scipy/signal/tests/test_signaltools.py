@@ -31,7 +31,8 @@ from scipy._lib import _testutils
 from scipy._lib._util import ComplexWarning, np_long, np_ulong
 
 from scipy._lib._array_api import (
-    xp_assert_close, xp_assert_equal, is_numpy,
+    xp_assert_close, xp_assert_equal, is_numpy, is_torch,
+    array_namespace,
     assert_array_almost_equal, assert_almost_equal,
 )
 from scipy.conftest import array_api_compatible
@@ -1221,6 +1222,9 @@ class TestMedFilt:
                                        "float32", "float64"])
     def test_types(self, dtype, xp):
         # volume input and output types match
+        if is_torch(xp) and dtype in ["uint16", "uint32", "uint64"]:
+            pytest.skip("torch does not support unisigned ints")
+
         dtype = getattr(xp, dtype)
 
         in_typed = xp.asarray(self.IN, dtype=dtype)
@@ -2107,6 +2111,9 @@ class _TestCorrelateReal:
             assert y_direct.dtype == dt
 
     def test_rank1_valid(self, dt, xp):
+        if is_torch(xp) and dt in ["uint16", "uint32", "uint64"]:
+           pytest.skip("torch does not support unsigned ints")
+
         dt = getattr(xp, dt) if isinstance(dt, str) else dt
         _assert_almost_equal = self._get_assertion(dt)
         a, b, y_r = self._setup_rank1(dt, xp)
@@ -2116,10 +2123,14 @@ class _TestCorrelateReal:
 
         # See gh-5897
         y = correlate(b, a, 'valid')
-        _assert_almost_equal(y, y_r[1:4][::-1])
+        flip = array_namespace(y_r).flip
+        _assert_almost_equal(y, flip(y_r[1:4]))
         assert y.dtype == dt
 
     def test_rank1_same(self, dt, xp):
+        if is_torch(xp) and dt in ["uint16", "uint32", "uint64"]:
+           pytest.skip("torch does not support unsigned ints")
+
         dt = getattr(xp, dt) if isinstance(dt, str) else dt
 
         a, b, y_r = self._setup_rank1(dt, xp)
@@ -2129,6 +2140,9 @@ class _TestCorrelateReal:
         assert y.dtype == dt
 
     def test_rank1_full(self, dt, xp):
+        if is_torch(xp) and dt in ["uint16", "uint32", "uint64"]:
+           pytest.skip("torch does not support unsigned ints")
+
         dt = getattr(xp, dt) if isinstance(dt, str) else dt
 
         a, b, y_r = self._setup_rank1(dt, xp)
@@ -2333,14 +2347,14 @@ class TestCorrelateComplex:
     def test_rank1_valid(self, dt, xp):
         a, b, y_r = self._setup_rank1(dt, 'valid', xp)
         dt = getattr(xp, dt) if isinstance(dt, str) else dt
-
         y = correlate(a, b, 'valid')
         assert_array_almost_equal(y, y_r, decimal=self.decimal(dt, xp))
         assert y.dtype == dt
 
         # See gh-5897
         y = correlate(b, a, 'valid')
-        assert_array_almost_equal(y, xp.conj(y_r[::-1]), decimal=self.decimal(dt, xp))
+        conj = array_namespace(y_r).conj
+        assert_array_almost_equal(y, conj(y_r[::-1]), decimal=self.decimal(dt, xp))
         assert y.dtype == dt
 
     def test_rank1_same(self, dt, xp):
