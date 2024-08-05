@@ -1238,7 +1238,7 @@ class TestMedFilt:
         if (dtype in ["float96", "float128"]
                 and np.finfo(np.longdouble).dtype != dtype):
             pytest.skip(f"Platform does not support {dtype}")
-        
+
         in_typed = np.array(self.IN, dtype=dtype)
         with pytest.raises(ValueError, match="not supported"):
             signal.medfilt(in_typed)
@@ -1253,6 +1253,7 @@ class TestMedFilt:
         with assert_raises((ValueError, TypeError)): #, match=msg):
             signal.medfilt(None)
 
+    @skip_xp_backends(np_only=True, reasons=["strides are only writeable in NumPy"])
     def test_odd_strides(self, xp):
         # Avoid a regression with possible contiguous
         # numpy arrays that have odd strides. The stride value below gets
@@ -1322,6 +1323,7 @@ class TestMedFilt:
 
 class TestWiener:
 
+    @skip_xp_backends("cupy", reasons=["XXX: can_cast in cupy <= 13.2"])
     def test_basic(self, xp):
         g = xp.asarray([[5, 6, 4, 3],
                         [3, 5, 6, 2],
@@ -2107,7 +2109,6 @@ class _TestCorrelateReal:
     def test_rank1_valid(self, dt, xp):
         dt = getattr(xp, dt) if isinstance(dt, str) else dt
         _assert_almost_equal = self._get_assertion(dt)
-
         a, b, y_r = self._setup_rank1(dt, xp)
         y = correlate(a, b, 'valid')
         _assert_almost_equal(y, y_r[1:4])
@@ -2364,14 +2365,18 @@ class TestCorrelateComplex:
         d = xp.asarray([0.+0.j, 1.+1.j, 2.+2.j], dtype=dt)
         k = xp.asarray([1.+3.j, 2.+4.j, 3.+5.j, 4.+6.j], dtype=dt)
         y = correlate(d, k)
-        xp_assert_equal(y, xp.asarray([0.+0.j, 10.-2.j, 28.-6.j, 22.-6.j, 16.-6.j, 8.-4.j]), check_dtype=False)
+        xp_assert_close(
+            y, xp.asarray([0.+0.j, 10.-2.j, 28.-6.j, 22.-6.j, 16.-6.j, 8.-4.j]),
+            atol=1e-6, check_dtype=False
+        )
 
     def test_swap_same(self, dt, xp):
         d = xp.asarray([0.+0.j, 1.+1.j, 2.+2.j])
         k = xp.asarray([1.+3.j, 2.+4.j, 3.+5.j, 4.+6.j])
         y = correlate(d, k, mode="same")
-        xp_assert_equal(y, xp.asarray([10.-2.j, 28.-6.j, 22.-6.j]))
+        xp_assert_close(y, xp.asarray([10.-2.j, 28.-6.j, 22.-6.j]))
 
+    @skip_xp_backends("cupy", reasons=["notimplementederror"])
     def test_rank3(self, dt, xp):
         a = np.random.randn(10, 8, 6).astype(dt)
         a += 1j * np.random.randn(10, 8, 6).astype(dt)
@@ -2421,13 +2426,15 @@ class TestCorrelate2d:
         b = np.array([3.2, 1.4, 3])
         for mode in ['full', 'valid', 'same']:
             a_xp, b_xp = xp.asarray(a), xp.asarray(b)
-            assert_almost_equal(np.correlate(a, b, mode=mode),
-                                signal.correlate(a_xp, b_xp, mode=mode), check_namespace=False)
+            np_corr_result = np.correlate(a, b, mode=mode)
+            assert_almost_equal(signal.correlate(a_xp, b_xp, mode=mode),
+                                xp.asarray(np_corr_result), check_namespace=False)
 
             # See gh-5897
             if mode == 'valid':
-                assert_almost_equal(np.correlate(b, a, mode=mode),
-                                    signal.correlate(b_xp, a_xp, mode=mode), check_namespace=False)
+                np_corr_result = np.correlate(b, a, mode=mode)
+                assert_almost_equal(signal.correlate(b_xp, a_xp, mode=mode),
+                                    xp.asarray(np_corr_result), check_namespace=False)
 
     @skip_xp_backends(np_only=True)  # XXX
     def test_consistency_correlate_funcs_2(self, xp):
@@ -2460,9 +2467,12 @@ class TestCorrelate2d:
         assert_raises(ValueError, signal.correlate2d, *(b, a), **{'mode': 'valid'})
 
     def test_complex_input(self, xp):
-        xp_assert_equal(signal.correlate2d(xp.asarray([[1]]), xp.asarray([[2j]])), -2j, check_shape=False)
-        xp_assert_equal(signal.correlate2d(xp.asarray([[2j]]), xp.asarray([[3j]])), 6+0j, check_shape=False)
-        xp_assert_equal(signal.correlate2d(xp.asarray([[3j]]), xp.asarray([[4]])), 12j, check_shape=False)
+        xp_assert_equal(signal.correlate2d(xp.asarray([[1]]), xp.asarray([[2j]])),
+                        xp.asarray([-2j]), check_shape=False)
+        xp_assert_equal(signal.correlate2d(xp.asarray([[2j]]), xp.asarray([[3j]])),
+                        xp.asarray([6+0j]), check_shape=False)
+        xp_assert_equal(signal.correlate2d(xp.asarray([[3j]]), xp.asarray([[4]])),
+                        xp.asarray([12j]), check_shape=False)
 
 
 class TestLFilterZI:

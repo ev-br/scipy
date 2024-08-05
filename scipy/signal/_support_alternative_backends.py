@@ -3,7 +3,8 @@ import functools
 from scipy._lib._array_api import (
     array_namespace, is_cupy, is_jax, scipy_namespace_for, SCIPY_ARRAY_API
 )
-from ._signaltools import convolve, fftconvolve, convolve2d, oaconvolve, medfilt, medfilt2d, wiener, correlate
+from ._signaltools import (convolve, fftconvolve, convolve2d, oaconvolve,
+                           medfilt, medfilt2d, wiener, correlate, correlate2d)
 
 
 MODULE_NAME = 'signal'
@@ -83,7 +84,9 @@ _FUNC_MAP = {
     convolve: convolve_dispatcher,
     fftconvolve: fftconvolve_dispatcher,
     oaconvolve: oaconvolve_dispatcher,
+    correlate: correlate_dispatcher,
     convolve2d: convolve2d_dispatcher,
+    correlate2d: correlate2d_dispatcher,
     medfilt: medfilt_dispatcher,
     medfilt2d: medfilt2d_dispatcher,
     wiener: wiener_dispatcher,
