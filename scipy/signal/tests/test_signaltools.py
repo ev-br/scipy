@@ -1065,6 +1065,7 @@ class TestOAConvolve:
         a = xp.asarray(a)
         b = xp.asarray(b)
 
+        axes = tuple(axes)   # XXX for CuPy
         expected = fftconvolve(a, b, mode=mode, axes=axes)
 
         monkeypatch.setattr(signal._signaltools, 'fftconvolve',
