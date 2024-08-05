@@ -1908,6 +1908,7 @@ def correlate2d(in1, in2, mode='full', boundary='fill', fillvalue=0):
     >>> fig.show()
 
     """
+    xp = array_namespace(in1, in2)
     in1 = np.asarray(in1)
     in2 = np.asarray(in2)
 
@@ -1925,7 +1926,7 @@ def correlate2d(in1, in2, mode='full', boundary='fill', fillvalue=0):
     if swapped_inputs:
         out = out[::-1, ::-1]
 
-    return out
+    return xp.asarray(out)
 
 
 def medfilt2d(input, kernel_size=3):
