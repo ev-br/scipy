@@ -9,6 +9,11 @@ from ._signaltools import (convolve, fftconvolve, convolve2d, oaconvolve,
 
 MODULE_NAME = 'signal'
 
+# https://jax.readthedocs.io/en/latest/jax.scipy.html
+JAX_SIGNAL_FUNCS = [
+    'fftconvolve', 'convolve', 'convolve2d', 'correlate', 'correlate2d',
+    'csd', 'detrend', 'istft', 'welch'
+]
 
 def dispatch_xp(dispatcher, module_name):
     def inner(func):
@@ -28,7 +33,7 @@ def dispatch_xp(dispatcher, module_name):
                 cupyx_module = importlib.import_module(f"cupyx.scipy.{module_name}")
                 cupyx_func = getattr(cupyx_module, func.__name__)
                 return cupyx_func(*args, **kwds)
-            elif is_jax(xp):
+            elif is_jax(xp) and func.__name__ in JAX_SIGNAL_FUNCS:
                 spx = scipy_namespace_for(xp)
                 jax_module = getattr(spx, module_name)
                 jax_func = getattr(jax_module, func.__name__)

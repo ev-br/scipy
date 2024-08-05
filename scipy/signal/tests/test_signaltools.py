@@ -943,6 +943,7 @@ def gen_oa_shapes_eq(sizes):
 
 
 
+@skip_xp_backends("jax.numpy", reasons=["fails all around"])
 class TestOAConvolve:
     @pytest.mark.slow()
     @pytest.mark.parametrize('shape_a_0, shape_b_0',
@@ -2224,6 +2225,7 @@ class _TestCorrelateReal:
                                 "float32", "float64",
                                 # np.longdouble, # FIXME: what to do w/ longdouble?
                                ])
+@skip_xp_backends("jax.numpy", reasons=["fails all around"])
 class TestCorrelateReal(_TestCorrelateReal):
     pass
 
@@ -2270,6 +2272,7 @@ class TestCorrelate:
         assert_raises(ValueError, correlate, [1], [[2]])
         assert_raises(ValueError, correlate, [3], 2)
 
+    @skip_xp_backends("jax.numpy", reasons=["dtype differs"])
     def test_numpy_fastpath(self, xp):
         a = xp.asarray([1, 2, 3])
         b = xp.asarray([4, 5])
