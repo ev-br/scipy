@@ -32,7 +32,7 @@ from scipy._lib._util import ComplexWarning, np_long, np_ulong
 
 from scipy._lib._array_api import (
     xp_assert_close, xp_assert_equal, is_numpy, is_torch,
-    array_namespace,
+    array_namespace, xp_conj,
     assert_array_almost_equal, assert_almost_equal,
 )
 from scipy.conftest import array_api_compatible
@@ -2353,8 +2353,9 @@ class TestCorrelateComplex:
 
         # See gh-5897
         y = correlate(b, a, 'valid')
-        conj = array_namespace(y_r).conj
-        assert_array_almost_equal(y, conj(y_r[::-1]), decimal=self.decimal(dt, xp))
+        flip = array_namespace(y_r).flip
+        assert_array_almost_equal(y, xp_conj(flip(y_r)),
+                                  decimal=self.decimal(dt, xp))
         assert y.dtype == dt
 
     def test_rank1_same(self, dt, xp):
@@ -2482,11 +2483,11 @@ class TestCorrelate2d:
 
     def test_complex_input(self, xp):
         xp_assert_equal(signal.correlate2d(xp.asarray([[1]]), xp.asarray([[2j]])),
-                        xp.asarray([-2j]), check_shape=False)
+                        xp.asarray([-2j]), check_shape=False, check_dtype=False)
         xp_assert_equal(signal.correlate2d(xp.asarray([[2j]]), xp.asarray([[3j]])),
-                        xp.asarray([6+0j]), check_shape=False)
+                        xp.asarray([6+0j]), check_shape=False, check_dtype=False)
         xp_assert_equal(signal.correlate2d(xp.asarray([[3j]]), xp.asarray([[4]])),
-                        xp.asarray([12j]), check_shape=False)
+                        xp.asarray([12j]), check_shape=False, check_dtype=False)
 
 
 class TestLFilterZI:

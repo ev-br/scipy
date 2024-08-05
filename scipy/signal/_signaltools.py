@@ -28,7 +28,8 @@ from ._sosfilt import _sosfilt
 
 from scipy._lib._array_api import (
     array_namespace, is_torch, is_numpy, copy, size as xp_size,
-    is_integer, is_integer_dtype
+    is_integer, is_integer_dtype,
+    xp_conj
 )
 import scipy._lib.array_api_compat.numpy as np_compat
 
@@ -1159,7 +1160,7 @@ def _reverse_and_conj(x, xp):
         x_rev = xp.flip(x)
 
     if xp.isdtype(x.dtype, 'complex floating'):
-        return xp.conj(x_rev)
+        return xp_conj(x_rev, xp)
     else:
         return x_rev
 
