@@ -3837,16 +3837,16 @@ class TestDeconvolve:
             quotient, remainder = signal.deconvolve(recorded, impulse_response)
 
 
-@skip_xp_backends(np_only=True)
 class TestDetrend:
 
     def test_basic(self, xp):
-        detrended = detrend(np.array([1, 2, 3]))
-        detrended_exact = np.array([0, 0, 0])
+        detrended = detrend(xp.asarray([1, 2, 3]))
+        detrended_exact = xp.asarray([0, 0, 0])
         assert_array_almost_equal(detrended, detrended_exact)
 
+    @skip_xp_backends("jax.numpy", reasons=["overwrite_data not implemented"])
     def test_copy(self, xp):
-        x = np.array([1, 1.2, 1.5, 1.6, 2.4])
+        x = xp.asarray([1, 1.2, 1.5, 1.6, 2.4])
         copy_array = detrend(x, overwrite_data=False)
         inplace = detrend(x, overwrite_data=True)
         assert_array_almost_equal(copy_array, inplace)
@@ -3854,20 +3854,21 @@ class TestDetrend:
     @pytest.mark.parametrize('kind', ['linear', 'constant'])
     @pytest.mark.parametrize('axis', [0, 1, 2])
     def test_axis(self, axis, kind, xp):
-        data = np.arange(5*6*7).reshape(5, 6, 7)
+        data = xp.reshape(xp.arange(5*6*7), (5, 6, 7))
         detrended = detrend(data, type=kind, axis=axis)
         assert detrended.shape == data.shape
 
     def test_bp(self, xp):
         data = [0, 1, 2] + [5, 0, -5, -10]
+        data = xp.asarray(data)
         detrended = detrend(data, type='linear', bp=3)
-        xp_assert_close(detrended, np.zeros_like(detrended), atol=1e-14)
+        xp_assert_close(detrended, xp.zeros_like(detrended), atol=1e-14)
 
         # repeat with ndim > 1 and axis
-        data = np.asarray(data)[None, :, None]
+        data = xp.asarray(data)[None, :, None]
 
         detrended = detrend(data, type="linear", bp=3, axis=1)
-        xp_assert_close(detrended, np.zeros_like(detrended), atol=1e-14)
+        xp_assert_close(detrended, xp.zeros_like(detrended), atol=1e-14)
 
         # breakpoint index > shape[axis]: raises
         with assert_raises(ValueError):
@@ -3878,14 +3879,21 @@ class TestDetrend:
         # regression test for https://github.com/scipy/scipy/issues/18675
         rng = np.random.RandomState(12345)
         x = rng.rand(10)
-       # bp = np.array([0, 2])
+        x = xp.asarray(x)
+        if isinstance(bp, np.ndarray):
+            bp = xp.asarray(bp)
+        else:
+            if not is_numpy(xp):
+                pytest.xfail("list bp is numpy-only")
 
         res = detrend(x, bp=bp)
-        res_scipy_191 = np.array([-4.44089210e-16, -2.22044605e-16,
+        res_scipy_191 = xp.asarray([-4.44089210e-16, -2.22044605e-16,
             -1.11128506e-01, -1.69470553e-01,  1.14710683e-01,  6.35468419e-02,
             3.53533144e-01, -3.67877935e-02, -2.00417675e-02, -1.94362049e-01])
 
-        xp_assert_close(res, res_scipy_191, atol=1e-14)
+        # torch default float if f32
+        dtype_arg = {"check_dtype": False} if is_torch(xp) else {}
+        xp_assert_close(res, res_scipy_191, atol=1e-14, **dtype_arg)
 
 
 @skip_xp_backends(np_only=True)

@@ -3686,13 +3686,19 @@ def detrend(data: np.ndarray, axis: int = -1,
     """
     if type not in ['linear', 'l', 'constant', 'c']:
         raise ValueError("Trend type must be 'linear' or 'constant'.")
+
+    if isinstance(bp, int):
+       xp = array_namespace(data)
+    else:
+       xp = array_namespace(data, bp)
+
     data = np.asarray(data)
     dtype = data.dtype.char
     if dtype not in 'dfDF':
         dtype = 'd'
     if type in ['constant', 'c']:
         ret = data - np.mean(data, axis, keepdims=True)
-        return ret
+        return xp.asarray(ret)
     else:
         dshape = data.shape
         N = dshape[axis]
@@ -3728,7 +3734,7 @@ def detrend(data: np.ndarray, axis: int = -1,
         # Put data back in original shape.
         newdata = newdata.reshape(newdata_shape)
         ret = np.moveaxis(newdata, 0, axis)
-        return ret
+        return xp.asarray(ret)
 
 
 def lfilter_zi(b, a):

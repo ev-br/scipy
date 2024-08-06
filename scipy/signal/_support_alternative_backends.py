@@ -4,7 +4,8 @@ from scipy._lib._array_api import (
     array_namespace, is_cupy, is_jax, scipy_namespace_for, SCIPY_ARRAY_API
 )
 from ._signaltools import (convolve, fftconvolve, convolve2d, oaconvolve,
-                           medfilt, medfilt2d, wiener, correlate, correlate2d)
+                           medfilt, medfilt2d, wiener, correlate, correlate2d,
+                           detrend)
 
 
 MODULE_NAME = 'signal'
@@ -88,6 +89,10 @@ def wiener_dispatcher(im, mysize=None, noise=None):
     xp = array_namespace(im)
     return xp
 
+def detrend_dispatcher(data, axis=-1, type='linear', bp=0, overwrite_data=False):
+    xp = array_namespace(data, None if isinstance(bp, int) else bp)
+    return xp
+
 
 # functions we patch for dispatch
 _FUNC_MAP = {
@@ -100,6 +105,7 @@ _FUNC_MAP = {
     medfilt: medfilt_dispatcher,
     medfilt2d: medfilt2d_dispatcher,
     wiener: wiener_dispatcher,
+    detrend: detrend_dispatcher,
 }
 
 
