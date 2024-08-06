@@ -28,7 +28,6 @@ from ._sosfilt import _sosfilt
 
 from scipy._lib._array_api import (
     array_namespace, is_torch, is_numpy, copy, size as xp_size,
-    is_integer, is_integer_dtype,
     xp_conj
 )
 import scipy._lib.array_api_compat.numpy as np_compat
@@ -522,7 +521,6 @@ def _freq_domain_conv(in1, in2, axes, shape, calc_fast_len=False, xp=None):
     if not len(axes):
         return in1 * in2
 
-    # complex_result = is_complex(in1, xp) or is_complex(in2, xp)
     complex_result = (xp.isdtype(in1.dtype, 'complex floating') or
                       xp.isdtype(in2.dtype, 'complex floating'))
 
@@ -538,10 +536,10 @@ def _freq_domain_conv(in1, in2, axes, shape, calc_fast_len=False, xp=None):
     else:
         fft, ifft = sp_fft.fftn, sp_fft.ifftn
 
-    if is_integer(in1, xp):
+    if xp.isdtype(in1.dtype, 'integral'):
         # XXX: xp-dependent default fp dtype?
         in1 = xp.astype(in1, xp.float64)
-    if is_integer(in2, xp):
+    if xp.isdtype(in2.dtype, 'integral'):
         in2 = xp.astype(in2, xp.float64)
 
     sp1 = fft(in1, fshape, axes=axes)
@@ -1488,7 +1486,7 @@ def convolve(in1, in2, mode='full', method='auto'):
     if method == 'fft':
         out = fftconvolve(volume, kernel, mode=mode)
         result_type = xp.result_type(volume, kernel)
-        if is_integer_dtype(result_type, xp):
+        if xp.isdtype(result_type, 'integral'):
             out = xp.round(out)
 
         if xp.isnan(xp.reshape(out, (-1,))[0]) or xp.isinf(xp.reshape(out, (-1,))[0]):

@@ -2297,6 +2297,7 @@ class TestCorrelate:
         xp_assert_close(correlate(a, b, mode='valid'), xp.asarray([32]))
 
 
+@skip_xp_backends(np_only=True, reasons=["accepts ints, return numpy array"])
 @pytest.mark.parametrize("mode", ["valid", "same", "full"])
 @pytest.mark.parametrize("behind", [True, False])
 @pytest.mark.parametrize("input_size", [100, 101, 1000, 1001,
