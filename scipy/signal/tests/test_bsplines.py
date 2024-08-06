@@ -28,7 +28,9 @@ class TestBSplines:
         np.random.seed(12457)
         data_array_real = np.random.rand(12, 12)
         # make the magnitude exceed 1, and make some negative
-        data_array_real = 10*(1-2*data_array_real)
+        data_array_real = 10 * (1 - 2*data_array_real)
+        data_array_real = xp.asarray(data_array_real)
+
         result_array_real = xp.asarray(
             [[-.463312621, 8.33391222, .697290949, 5.28390836,
               5.92066474, 6.59452137, 9.84406950, -8.78324188,
@@ -67,9 +69,6 @@ class TestBSplines:
               7.81848957, -9.02270373, 3.73399754, -4.71962549,
               -7.71144306, 3.78263161, 6.46034818, -4.43444731]])
 
-        data_array_real = xp.asarray(data_array_real)
-        result_array_real = xp.asarray(result_array_real)
-
         xp_assert_close(bsp.spline_filter(data_array_real, 0),
                         result_array_real)
 
@@ -77,7 +76,9 @@ class TestBSplines:
         np.random.seed(12457)
         data_array_complex = np.random.rand(7, 7) + np.random.rand(7, 7)*1j
         # make the magnitude exceed 1, and make some negative
-        data_array_complex = 10*(1+1j-2*data_array_complex)
+        data_array_complex = 10 * (1+1j - 2*data_array_complex)
+        data_array_complex = xp.asarray(data_array_complex)
+
         result_array_complex = xp.asarray(
             [[-4.61489230e-01-1.92994022j, 8.33332443+6.25519943j,
               6.96300745e-01-9.05576038j, 5.28294849+3.97541356j,
@@ -107,9 +108,6 @@ class TestBSplines:
               -9.66586399+0.70250005j, -9.87717438-2.0262239j,
               9.93160629+1.5630846j, 4.71948051-2.22050714j,
               9.49550819+7.8995142j]])
-
-        data_array_complex = xp.asarray(data_array_complex)
-        result_array_complex = xp.asarray(result_array_complex)
 
         # FIXME: for complex types, the computations are done in
         # single precision (reason unclear). When this is changed,

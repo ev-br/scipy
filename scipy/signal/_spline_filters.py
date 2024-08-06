@@ -1,3 +1,5 @@
+import math
+
 from numpy import (asarray, pi, zeros_like,
                    array, arctan2, tan, ones, arange, floor,
                    r_, atleast_1d, sqrt, exp, greater, cos, add, sin,
@@ -58,6 +60,9 @@ def spline_filter(Iin, lmbda=5.0):
     >>> plt.show()
 
     """
+    xp = array_namespace(Iin)
+    Iin = np.asarray(Iin)
+
     if Iin.dtype not in [np.float32, np.float64, np.complex64, np.complex128]:
         raise TypeError(f"Invalid data type for Iin: {Iin.dtype = }")
 
@@ -74,7 +79,7 @@ def spline_filter(Iin, lmbda=5.0):
     ck = cspline2d(Iin, lmbda)
     out = sepfir2d(ck, hcol, hcol)
     out = out.astype(intype)
-    return out
+    return xp.asarray(out)
 
 
 _splinefunc_cache = {}
@@ -125,9 +130,10 @@ def gauss_spline(x, n):
     array([0.15418033, 0.6909883, 0.15418033])  # may vary
 
     """
-    x = asarray(x)
+    xp = array_namespace(x)
+    x = xp.asarray(x)
     signsq = (n + 1) / 12.0
-    return 1 / sqrt(2 * pi * signsq) * exp(-x ** 2 / 2 / signsq)
+    return 1 / math.sqrt(2 * math.pi * signsq) * xp.exp(-x ** 2 / 2 / signsq)
 
 
 def _cubic(x):
