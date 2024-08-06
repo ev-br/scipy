@@ -5,7 +5,9 @@ from scipy._lib._array_api import (
 )
 from ._signaltools import (convolve, fftconvolve, convolve2d, oaconvolve,
                            medfilt, medfilt2d, wiener, correlate, correlate2d,
-                           detrend)
+                           detrend,)
+
+from scipy.signal._spline_filters import (spline_filter, symiirorder1, symiirorder2)
 
 
 MODULE_NAME = 'signal'
@@ -89,9 +91,22 @@ def wiener_dispatcher(im, mysize=None, noise=None):
     xp = array_namespace(im)
     return xp
 
+
 def detrend_dispatcher(data, axis=-1, type='linear', bp=0, overwrite_data=False):
     xp = array_namespace(data, None if isinstance(bp, int) else bp)
     return xp
+
+
+def spline_filter_dispatcher(Iin, lmbda=5.0):
+    xp = array_namespace(Iin)
+    return xp
+
+
+def symiirorder1_dispatcher(signal, *args, **kwds):
+    xp = array_namespace(signal)
+    return xp
+
+symiirorder2_dispatcher = symiirorder1_dispatcher
 
 
 # functions we patch for dispatch
@@ -106,6 +121,9 @@ _FUNC_MAP = {
     medfilt2d: medfilt2d_dispatcher,
     wiener: wiener_dispatcher,
     detrend: detrend_dispatcher,
+    spline_filter: spline_filter_dispatcher,
+    symiirorder1: symiirorder1_dispatcher,
+    symiirorder2: symiirorder2_dispatcher,
 }
 
 

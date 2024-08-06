@@ -5,6 +5,7 @@ from numpy import (asarray, pi, zeros_like,
 import numpy as np
 
 from scipy._lib._util import normalize_axis_index
+from scipy._lib._array_api import array_namespace
 
 # From splinemodule.c
 from ._spline import sepfir2d, symiirorder1_ic, symiirorder2_ic_fwd, symiirorder2_ic_bwd
@@ -680,6 +681,10 @@ def symiirorder1(signal, c0, z1, precision=-1.0):
     output : ndarray
         The filtered signal.
     """
+    xp = array_namespace(signal)
+
+    signal = np.asarray(signal)
+
     if np.abs(z1) >= 1:
         raise ValueError('|z1| must be less than 1.0')
 
@@ -722,7 +727,7 @@ def symiirorder1(signal, c0, z1, precision=-1.0):
     if squeeze_dim:
         out = out[0]
 
-    return out
+    return xp.asarray(out)
 
 
 def symiirorder2(input, r, omega, precision=-1.0):
@@ -763,6 +768,9 @@ def symiirorder2(input, r, omega, precision=-1.0):
 
     if input.ndim > 2:
         raise ValueError('Input must be 1D or 2D')
+
+    xp = array_namespace(input)
+    input = np.asarray(input)
 
     if not input.flags.c_contiguous:
         input = input.copy()
@@ -805,4 +813,4 @@ def symiirorder2(input, r, omega, precision=-1.0):
     if squeeze_dim:
         out = out[0]
 
-    return out
+    return xp.asarray(out)
