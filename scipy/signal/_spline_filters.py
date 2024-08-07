@@ -1,9 +1,5 @@
 import math
 
-from numpy import (asarray, pi, zeros_like,
-                   array, arctan2, tan, ones, arange, floor,
-                   r_, atleast_1d, sqrt, exp, greater, cos, add, sin,
-                   moveaxis, abs, arctan, complex64, float32)
 import numpy as np
 
 from scipy._lib._util import normalize_axis_index
@@ -72,7 +68,7 @@ def spline_filter(Iin, lmbda=5.0):
     # Attempting to work in complex double precision leads to symiirorder1
     # failing to converge for the boundary conditions.
     intype = Iin.dtype
-    hcol = array([1.0, 4.0, 1.0], np.float32) / 6.0
+    hcol = np.array([1.0, 4.0, 1.0], np.float32) / 6.0
     if intype == np.complex128:
         Iin = Iin.astype(np.complex64)
 
@@ -137,7 +133,7 @@ def gauss_spline(x, n):
 
 
 def _cubic(x):
-    x = asarray(x, dtype=float)
+    x = np.asarray(x, dtype=float)
     b = BSpline.basis_element([-2, -1, 0, 1, 2], extrapolate=False)
     out = b(x)
     out[(x < -2) | (x > 2)] = 0
@@ -145,7 +141,7 @@ def _cubic(x):
 
 
 def _quadratic(x):
-    x = abs(asarray(x, dtype=float))
+    x = abs(np.asarray(x, dtype=float))
     b = BSpline.basis_element([-1.5, -0.5, 0.5, 1.5], extrapolate=False)
     out = b(x)
     out[(x < -1.5) | (x > 1.5)] = 0
@@ -153,6 +149,8 @@ def _quadratic(x):
 
 
 def _coeff_smooth(lam):
+    sqrt, arctan2,  = np.sqrt, np.arctan2
+
     xi = 1 - 96 * lam + 24 * lam * sqrt(3 + 144 * lam)
     omeg = arctan2(sqrt(144 * lam - 1), sqrt(xi))
     rho = (24 * lam - 1 - sqrt(xi)) / (24 * lam)
@@ -161,79 +159,79 @@ def _coeff_smooth(lam):
 
 
 def _hc(k, cs, rho, omega):
-    return (cs / sin(omega) * (rho ** k) * sin(omega * (k + 1)) *
-            greater(k, -1))
+    return (cs / np.sin(omega) * (rho ** k) * np.sin(omega * (k + 1)) *
+            np.greater(k, -1))
 
 
 def _hs(k, cs, rho, omega):
     c0 = (cs * cs * (1 + rho * rho) / (1 - rho * rho) /
-          (1 - 2 * rho * rho * cos(2 * omega) + rho ** 4))
-    gamma = (1 - rho * rho) / (1 + rho * rho) / tan(omega)
-    ak = abs(k)
-    return c0 * rho ** ak * (cos(omega * ak) + gamma * sin(omega * ak))
+          (1 - 2 * rho * rho * np.cos(2 * omega) + rho ** 4))
+    gamma = (1 - rho * rho) / (1 + rho * rho) / np.tan(omega)
+    ak = np.abs(k)
+    return c0 * rho ** ak * (np.cos(omega * ak) + gamma * np.sin(omega * ak))
 
 
 def _cubic_smooth_coeff(signal, lamb):
     rho, omega = _coeff_smooth(lamb)
-    cs = 1 - 2 * rho * cos(omega) + rho * rho
+    cs = 1 - 2 * rho * np.cos(omega) + rho * rho
     K = len(signal)
-    k = arange(K)
+    k = np.arange(K)
 
     zi_2 = (_hc(0, cs, rho, omega) * signal[0] +
-            add.reduce(_hc(k + 1, cs, rho, omega) * signal))
+            np.add.reduce(_hc(k + 1, cs, rho, omega) * signal))
     zi_1 = (_hc(0, cs, rho, omega) * signal[0] +
             _hc(1, cs, rho, omega) * signal[1] +
-            add.reduce(_hc(k + 2, cs, rho, omega) * signal))
+            np.add.reduce(_hc(k + 2, cs, rho, omega) * signal))
 
     # Forward filter:
     # for n in range(2, K):
     #     yp[n] = (cs * signal[n] + 2 * rho * cos(omega) * yp[n - 1] -
     #              rho * rho * yp[n - 2])
-    zi = lfiltic(cs, r_[1, -2 * rho * cos(omega), rho * rho], r_[zi_1, zi_2])
+    zi = lfiltic(cs, np.r_[1, -2 * rho * np.cos(omega), rho * rho], np.r_[zi_1, zi_2])
     zi = zi.reshape(1, -1)
 
-    sos = r_[cs, 0, 0, 1, -2 * rho * cos(omega), rho * rho]
+    sos = np.r_[cs, 0, 0, 1, -2 * rho * np.cos(omega), rho * rho]
     sos = sos.reshape(1, -1)
 
     yp, _ = sosfilt(sos, signal[2:], zi=zi)
-    yp = r_[zi_2, zi_1, yp]
+    yp = np.r_[zi_2, zi_1, yp]
 
     # Reverse filter:
     # for n in range(K - 3, -1, -1):
     #     y[n] = (cs * yp[n] + 2 * rho * cos(omega) * y[n + 1] -
     #             rho * rho * y[n + 2])
 
-    zi_2 = add.reduce((_hs(k, cs, rho, omega) +
+    zi_2 = np.add.reduce((_hs(k, cs, rho, omega) +
                        _hs(k + 1, cs, rho, omega)) * signal[::-1])
-    zi_1 = add.reduce((_hs(k - 1, cs, rho, omega) +
+    zi_1 = np.add.reduce((_hs(k - 1, cs, rho, omega) +
                        _hs(k + 2, cs, rho, omega)) * signal[::-1])
 
-    zi = lfiltic(cs, r_[1, -2 * rho * cos(omega), rho * rho], r_[zi_1, zi_2])
+    zi = lfiltic(cs, np.r_[1, -2 * rho * np.cos(omega), rho * rho], np.r_[zi_1, zi_2])
     zi = zi.reshape(1, -1)
     y, _ = sosfilt(sos, yp[-3::-1], zi=zi)
-    y = r_[y[::-1], zi_1, zi_2]
+    y = np.r_[y[::-1], zi_1, zi_2]
     return y
 
 
 def _cubic_coeff(signal):
-    zi = -2 + sqrt(3)
+    zi = -2 + math.sqrt(3)
     K = len(signal)
-    powers = zi ** arange(K)
+    powers = zi ** np.arange(K)
 
     if K == 1:
-        yplus = signal[0] + zi * add.reduce(powers * signal)
+        yplus = signal[0] + zi * np.add.reduce(powers * signal)
         output = zi / (zi - 1) * yplus
-        return atleast_1d(output)
+        return np.atleast_1d(output)
 
     # Forward filter:
     # yplus[0] = signal[0] + zi * add.reduce(powers * signal)
     # for k in range(1, K):
     #     yplus[k] = signal[k] + zi * yplus[k - 1]
 
-    state = lfiltic(1, r_[1, -zi], atleast_1d(add.reduce(powers * signal)))
+    state = lfiltic(1, np.r_[1, -zi], np.atleast_1d(np.add.reduce(powers * signal)))
 
-    b = ones(1)
-    a = r_[1, -zi]
+    b = np.ones(1)
+    a = np.r_[1, -zi]
     yplus, _ = lfilter(b, a, signal, zi=state)
 
     # Reverse filter:
@@ -241,33 +239,33 @@ def _cubic_coeff(signal):
     # for k in range(K - 2, -1, -1):
     #     output[k] = zi * (output[k + 1] - yplus[k])
     out_last = zi / (zi - 1) * yplus[K - 1]
-    state = lfiltic(-zi, r_[1, -zi], atleast_1d(out_last))
+    state = lfiltic(-zi, np.r_[1, -zi], np.atleast_1d(out_last))
 
-    b = asarray([-zi])
+    b = np.asarray([-zi])
     output, _ = lfilter(b, a, yplus[-2::-1], zi=state)
-    output = r_[output[::-1], out_last]
+    output = np.r_[output[::-1], out_last]
     return output * 6.0
 
 
 def _quadratic_coeff(signal):
-    zi = -3 + 2 * sqrt(2.0)
+    zi = -3 + 2 * math.sqrt(2.0)
     K = len(signal)
-    powers = zi ** arange(K)
+    powers = zi ** np.arange(K)
 
     if K == 1:
-        yplus = signal[0] + zi * add.reduce(powers * signal)
+        yplus = signal[0] + zi * np.add.reduce(powers * signal)
         output = zi / (zi - 1) * yplus
-        return atleast_1d(output)
+        return np.atleast_1d(output)
 
     # Forward filter:
     # yplus[0] = signal[0] + zi * add.reduce(powers * signal)
     # for k in range(1, K):
     #     yplus[k] = signal[k] + zi * yplus[k - 1]
 
-    state = lfiltic(1, r_[1, -zi], atleast_1d(add.reduce(powers * signal)))
+    state = lfiltic(1, np.r_[1, -zi], np.atleast_1d(np.add.reduce(powers * signal)))
 
-    b = ones(1)
-    a = r_[1, -zi]
+    b = np.ones(1)
+    a = np.r_[1, -zi]
     yplus, _ = lfilter(b, a, signal, zi=state)
 
     # Reverse filter:
@@ -275,15 +273,17 @@ def _quadratic_coeff(signal):
     # for k in range(K - 2, -1, -1):
     #     output[k] = zi * (output[k + 1] - yplus[k])
     out_last = zi / (zi - 1) * yplus[K - 1]
-    state = lfiltic(-zi, r_[1, -zi], atleast_1d(out_last))
+    state = lfiltic(-zi, np.r_[1, -zi], np.atleast_1d(out_last))
 
-    b = asarray([-zi])
+    b = np.asarray([-zi])
     output, _ = lfilter(b, a, yplus[-2::-1], zi=state)
-    output = r_[output[::-1], out_last]
+    output = np.r_[output[::-1], out_last]
     return output * 8.0
 
 
 def compute_root_from_lambda(lamb):
+    sqrt, arctan = np.sqrt, np.arctan
+
     tmp = sqrt(3 + 144 * lamb)
     xi = 1 - 96 * lamb + 24 * lamb * tmp
     omega = arctan(sqrt((144 * lamb - 1.0) / xi))
@@ -395,7 +395,7 @@ def qspline1d(signal, lamb=0.0):
 
 
 def collapse_2d(x, axis):
-    x = moveaxis(x, axis, -1)
+    x = np.moveaxis(x, axis, -1)
     x_shape = x.shape
     x = x.reshape(-1, x.shape[-1])
     if not x.flags.c_contiguous:
@@ -414,7 +414,7 @@ def symiirorder_nd(func, input, *args, axis=-1, **kwargs):
 
     if input_ndim > 1:
         out = out.reshape(input_shape)
-        out = moveaxis(out, -1, axis)
+        out = np.moveaxis(out, -1, axis)
         if not out.flags.c_contiguous:
             out = out.copy()
     return out
@@ -443,7 +443,7 @@ def qspline2d(signal, lamb=0.0, precision=-1.0):
         The filtered signal.
     """
     if precision < 0.0 or precision >= 1.0:
-        if signal.dtype in [float32, complex64]:
+        if signal.dtype in [np.float32, np.complex64]:
             precision = 1e-3
         else:
             precision = 1e-6
@@ -452,7 +452,7 @@ def qspline2d(signal, lamb=0.0, precision=-1.0):
         raise ValueError('lambda must be negative or zero')
 
     # normal quadratic spline
-    r = -3 + 2 * sqrt(2.0)
+    r = -3 + 2 * math.sqrt(2.0)
     c0 = -r * 8.0
     z1 = r
 
@@ -484,14 +484,14 @@ def cspline2d(signal, lamb=0.0, precision=-1.0):
         The filtered signal.
     """
     if precision < 0.0 or precision >= 1.0:
-        if signal.dtype in [float32, complex64]:
+        if signal.dtype in [np.float32, np.complex64]:
             precision = 1e-3
         else:
             precision = 1e-6
 
     if lamb <= 1 / 144.0:
         # Normal cubic spline
-        r = -2 + sqrt(3.0)
+        r = -2 + math.sqrt(3.0)
         out = symiirorder_nd(
             symiirorder1, signal, -r * 6.0, r, precision=precision, axis=-1)
         out = symiirorder_nd(
@@ -556,8 +556,8 @@ def cspline1d_eval(cj, newx, dx=1.0, x0=0):
     >>> plt.show()
 
     """
-    newx = (asarray(newx) - x0) / float(dx)
-    res = zeros_like(newx, dtype=cj.dtype)
+    newx = (np.asarray(newx) - x0) / float(dx)
+    res = np.zeros_like(newx, dtype=cj.dtype)
     if res.size == 0:
         return res
     N = len(cj)
@@ -570,8 +570,8 @@ def cspline1d_eval(cj, newx, dx=1.0, x0=0):
     newx = newx[cond3]
     if newx.size == 0:
         return res
-    result = zeros_like(newx, dtype=cj.dtype)
-    jlower = floor(newx - 2).astype(int) + 1
+    result = np.zeros_like(newx, dtype=cj.dtype)
+    jlower = np.floor(newx - 2).astype(int) + 1
     for i in range(4):
         thisj = jlower + i
         indj = thisj.clip(0, N - 1)  # handle edge cases
@@ -632,8 +632,8 @@ def qspline1d_eval(cj, newx, dx=1.0, x0=0):
     >>> plt.show()
 
     """
-    newx = (asarray(newx) - x0) / dx
-    res = zeros_like(newx)
+    newx = (np.asarray(newx) - x0) / dx
+    res = np.zeros_like(newx)
     if res.size == 0:
         return res
     N = len(cj)
@@ -646,8 +646,8 @@ def qspline1d_eval(cj, newx, dx=1.0, x0=0):
     newx = newx[cond3]
     if newx.size == 0:
         return res
-    result = zeros_like(newx)
-    jlower = floor(newx - 1.5).astype(int) + 1
+    result = np.zeros_like(newx)
+    jlower = np.floor(newx - 1.5).astype(int) + 1
     for i in range(3):
         thisj = jlower + i
         indj = thisj.clip(0, N - 1)  # handle edge cases
