@@ -66,6 +66,9 @@ c     *iopt=1 we start with the knots found at the last call of the    c
 c      routine, except for the case that s > fp0; then we can compute  c
 c      the least-squares polynomial directly.                          c
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+      print*, '1: enter fpregr'
+
 c  determine the number of knots for polynomial approximation.
       nminx = 2*kx1
       nminy = 2*ky1
@@ -205,6 +208,11 @@ c  b-spline representation of s(x,y).
           ty(i) = ye
           i = i-1
  140    continue
+
+        print*, '3: c=', ANY(c /= c), 'ier = ', ier, nx, nmaxx, ny, 
+     *     nmaxy, 'nxe, nye = ', nxe, nye
+
+
 c  find the least-squares spline sinf(x,y) and calculate for each knot
 c  interval tx(j+kx)<=x<=tx(j+kx+1) (ty(j+ky)<=y<=ty(j+ky+1)) the sum
 c  of squared residuals fpintx(j),j=1,2,...,nx-2*kx-1 (fpinty(j),j=1,2,
@@ -215,6 +223,12 @@ c  fp gives the total sum of squared residuals.
      *  ny,p,c,nc,fp,fpintx,fpinty,mm,mynx,kx1,kx2,ky1,ky2,wrk(lsx),
      *  wrk(lsy),wrk(lri),wrk(lq),wrk(lax),wrk(lay),wrk(lbx),wrk(lby),
      *  nrx,nry)
+
+        print*, '3.1: c=', ANY(c /= c), 'ier = ', ier, nx, nmaxx, ny, 
+     *     nmaxy, 'nxe, nye = ', nxe, nye
+
+        if(any(c/=c)) stop
+
         if(ier.eq.(-2)) fp0 = fp
 c  test whether the least-squares spline is an acceptable solution.
         if(iopt.lt.0) go to 440
@@ -304,6 +318,9 @@ c  with corresponding values of f(p) (f1=f(p1)-s,f2=f(p2)-s,f3=f(p3)-s)c
 c  are used to calculate the new value of p such that r(p)=s.          c
 c  convergence is guaranteed by taking f1 > 0 and f3 < 0.              c
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+
+      print*, '2: c = ', c
+
 c  initial value for p.
       p1 = 0.
       f1 = fp0-s

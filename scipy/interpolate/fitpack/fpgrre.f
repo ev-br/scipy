@@ -48,6 +48,10 @@ c                derivatives of the b-splines in the x- and y-direction.
       half = 0.5
       nk1x = nx-kx1
       nk1y = ny-ky1
+
+      print*, '4: ', any(c /= c)
+
+
       if(p.gt.0.) pinv = one/p
 c  it depends on the value of the flags ifsx,ifsy,ifbx and ifby and on
 c  the value of p whether the matrices (spx),(spy),(bx) and (by) still
@@ -246,11 +250,18 @@ c  apply that transformation to the columns of matrix (ay).
 c  backward substitution to obtain the b-spline coefficients as the
 c  solution of the linear system    (ry) c (rx)' = h.
 c  first step: solve the system  (ry) (c1) = h.
+
+      print*, '5.0: ', any(c /= c)
+
       k = 1
       do 450 i=1,nk1x
         call fpback(ay,c(k),nk1y,ibandy,c(k),ny)
         k = k+nk1y
  450  continue
+
+      print*, '5.1: ', any(c /= c)
+
+
 c  second step: solve the system  c (rx)' = (c1).
       k = 0
       do 480 j=1,nk1y
@@ -260,6 +271,10 @@ c  second step: solve the system  c (rx)' = (c1).
           right(i) = c(l)
           l = l+nk1y
  460    continue
+
+      print*, '5.11: ', any(c /= c), any(right /= right), nk1x, nk1y
+
+
         call fpback(ax,right,nk1x,ibandx,right,nx)
         l = k
         do 470 i=1,nk1x
@@ -267,6 +282,10 @@ c  second step: solve the system  c (rx)' = (c1).
           l = l+nk1y
  470    continue
  480  continue
+
+      print*, '5.2: ', any(c /= c)
+
+
 c  calculate the quantities
 c    res(i,j) = (z(i,j) - s(x(i),y(j)))**2 , i=1,2,..,mx;j=1,2,..,my
 c    fp = sumi=1,mx(sumj=1,my(res(i,j)))
