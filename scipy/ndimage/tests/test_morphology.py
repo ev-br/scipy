@@ -15,16 +15,17 @@ skip_xp_backends = pytest.mark.skip_xp_backends
 xfail_xp_backends = pytest.mark.xfail_xp_backends
 pytestmark = [array_api_compatible, pytest.mark.usefixtures("skip_xp_backends"),
               pytest.mark.usefixtures("xfail_xp_backends"),
-              skip_xp_backends(cpu_only=True, exceptions=['cupy', 'jax.numpy'],)]
+]
 
 
 class TestNdimageMorphology:
 
+    @skip_xp_backends('cupy',
+                      reasons=['CuPy does not have distance_transform_bf.']
+    )
     @pytest.mark.parametrize('dtype', types)
     def test_distance_transform_bf01(self, dtype, xp):
         dtype = getattr(xp, dtype)
-        if is_cupy(xp):
-            pytest.xfail("CuPy does not have distance_transform_bf.")
 
         # brute force (bf) distance transform
         data = xp.asarray([[0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -71,11 +72,12 @@ class TestNdimageMorphology:
         expected = xp.asarray(expected)
         assert_array_almost_equal(ft, expected)
 
+    @skip_xp_backends('cupy',
+                      reasons=['CuPy does not have distance_transform_bf.']
+    )
     @pytest.mark.parametrize('dtype', types)
     def test_distance_transform_bf02(self, dtype, xp):
         dtype = getattr(xp, dtype)
-        if is_cupy(xp):
-            pytest.xfail("CuPy does not have distance_transform_bf.")
 
         data = xp.asarray([[0, 0, 0, 0, 0, 0, 0, 0, 0],
                            [0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -122,11 +124,12 @@ class TestNdimageMorphology:
         expected = xp.asarray(expected)
         assert_array_almost_equal(expected, ft)
 
+    @skip_xp_backends('cupy',
+                      reasons=['CuPy does not have distance_transform_bf.']
+    )
     @pytest.mark.parametrize('dtype', types)
     def test_distance_transform_bf03(self, dtype, xp):
         dtype = getattr(xp, dtype)
-        if is_cupy(xp):
-            pytest.xfail("CuPy does not have distance_transform_bf.")
 
         data = xp.asarray([[0, 0, 0, 0, 0, 0, 0, 0, 0],
                            [0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -227,11 +230,12 @@ class TestNdimageMorphology:
         for ft in fts:
             assert_array_almost_equal(tft, ft)
 
+    @skip_xp_backends('cupy',
+                      reasons=['CuPy does not have distance_transform_bf.']
+    )
     @pytest.mark.parametrize('dtype', types)
     def test_distance_transform_bf05(self, dtype, xp):
         dtype = getattr(xp, dtype)
-        if is_cupy(xp):
-            pytest.xfail("CuPy does not have distance_transform_bf.")
 
         data = xp.asarray([[0, 0, 0, 0, 0, 0, 0, 0, 0],
                            [0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -277,11 +281,12 @@ class TestNdimageMorphology:
         expected = xp.asarray(expected)
         assert_array_almost_equal(ft, expected)
 
+    @skip_xp_backends('cupy',
+                      reasons=['CuPy does not have distance_transform_bf.']
+    )
     @pytest.mark.parametrize('dtype', types)
     def test_distance_transform_bf06(self, dtype, xp):
         dtype = getattr(xp, dtype)
-        if is_cupy(xp):
-            pytest.xfail("CuPy does not have distance_transform_bf.")
 
         data = xp.asarray([[0, 0, 0, 0, 0, 0, 0, 0, 0],
                            [0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1805,6 +1810,7 @@ class TestNdimageMorphology:
         out = ndimage.binary_dilation(data, border_value=1)
         assert_array_almost_equal(out, expected)
 
+    @skip_xp_backends('cupy', reasons=['output= arrays are numpy-specific'])
     def test_binary_dilation29(self, xp):
         if is_cupy(xp):
             pytest.xfail("CuPy: NotImplementedError: only brute_force iteration")
@@ -2268,11 +2274,9 @@ class TestNdimageMorphology:
                                               [2, 3, 1, 3, 1],
                                               [5, 5, 3, 3, 1]]))
 
-    @skip_xp_backends("jax.numpy", reasons=["output array is read-only."],
-                      cpu_only=True, exceptions=['cupy', 'jax.numpy'],)
+    @skip_xp_backends("jax.numpy", reasons=["output array is read-only."])
+    @skip_xp_backends("cupy", reasons=["https://github.com/cupy/cupy/issues/8398"])
     def test_grey_erosion01_overlap(self, xp):
-        if is_cupy(xp):
-            pytest.xfail("https://github.com/cupy/cupy/issues/8398")
 
         array = xp.asarray([[3, 2, 5, 1, 4],
                             [7, 6, 9, 3, 5],
