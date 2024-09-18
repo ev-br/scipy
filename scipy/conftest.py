@@ -186,9 +186,26 @@ def skip_xp_backends(xp, request):
     if "skip_xp_backends" not in request.keywords:
         return
 
-    import itertools
-    backends = [x.args for x in request.node.iter_markers('skip_xp_backends')]
-    backends = list(itertools.chain(*backends))
+ #   breakpoint()
+
+    markers = list(request.node.iter_markers('skip_xp_backends'))
+    backends = []
+    kwargs = {}
+    for marker in markers:
+        if marker.kwargs.get('np_only'):
+            kwargs['np_only'] = True
+        elif marker.kwargs.get('cpu_only'):
+            kwargs['cpu_only'] = True
+        else:
+            backend = marker.args[0]  # was ('numpy',)
+            backends.append(backend)
+            kwargs.update(**{backend: marker.kwargs})
+
+
+   # import itertools
+  #  backends = [x.args for x in request.node.iter_markers('skip_xp_backends')]
+  #  assert len(backends) == 1
+   # backends = list(itertools.chain(*backends))
 
     # TODO: DONE 1. flatten [('numpy',), ('array_api_strict',)] into a single tuple
     #       2. kwargs, too
@@ -196,7 +213,10 @@ def skip_xp_backends(xp, request):
     #       4. API: reasons= as a list; require either string_backend, reason=string, or
     #          tuple of backend stings, list/tuple of reasons?
 
-    kwargs = request.keywords["skip_xp_backends"].kwargs
+  ##  breakpoint()
+
+   # kwargs = request.keywords["skip_xp_backends"].kwargs
+
 
     skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail='skip')
 
@@ -250,6 +270,7 @@ def skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail='skip'):
     
     # input validation
     if np_only and cpu_only:
+        breakpoint()
         raise ValueError("at most one of `np_only` and `cpu_only` should be provided")
     if exceptions and not (cpu_only or np_only):
         raise ValueError("`exceptions` is only valid alongside `cpu_only` or `np_only`")
@@ -279,13 +300,24 @@ def skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail='skip'):
                         skip_or_xfail(reason=reason)
 
     if backends is not None:
-        reasons = kwargs.get("reasons", False)
+#        reasons = kwargs.get("reasons", False)
+#        breakpoint()
+#        for i, backend in enumerate(backends):
+#            if xp.__name__ == backend:
+#                if not reasons:
+#                    reason = f"do not run with array API backend: {backend}"
+#                else:
+#                    reason = reasons[i]
+      #  breakpoint()
+
         for i, backend in enumerate(backends):
             if xp.__name__ == backend:
-                if not reasons:
-                    reason = f"do not run with array API backend: {backend}"
+                reasons = kwargs[backend].get('reasons')
+                if reasons:
+                    reason = reasons[0]    # XXX
                 else:
-                    reason = reasons[i]
+                    reason = f"do not run with array API backend: {backend}"
+
                 skip_or_xfail(reason=reason)
 
 
