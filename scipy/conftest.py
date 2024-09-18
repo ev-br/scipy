@@ -185,8 +185,19 @@ def skip_xp_backends(xp, request):
     """See the `skip_or_xfail_xp_backends` docstring."""
     if "skip_xp_backends" not in request.keywords:
         return
-    backends = request.keywords["skip_xp_backends"].args
+
+    import itertools
+    backends = [x.args for x in request.node.iter_markers('skip_xp_backends')]
+    backends = list(itertools.chain(*backends))
+
+    # TODO: DONE 1. flatten [('numpy',), ('array_api_strict',)] into a single tuple
+    #       2. kwargs, too
+    #       3. document
+    #       4. API: reasons= as a list; require either string_backend, reason=string, or
+    #          tuple of backend stings, list/tuple of reasons?
+
     kwargs = request.keywords["skip_xp_backends"].kwargs
+
     skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail='skip')
 
 @pytest.fixture
@@ -233,7 +244,6 @@ def skip_or_xfail_xp_backends(xp, backends, kwargs, skip_or_xfail='skip'):
         but not all, non-CPU/non-NumPy backends.
     """
     skip_or_xfail = getattr(pytest, skip_or_xfail)
-
     np_only = kwargs.get("np_only", False)
     cpu_only = kwargs.get("cpu_only", False)
     exceptions = kwargs.get("exceptions", [])
