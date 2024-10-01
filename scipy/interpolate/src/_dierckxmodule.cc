@@ -728,6 +728,44 @@ py_find_interval(PyObject *self, PyObject *args)
 }
 
 
+/**********************/
+/* NdBSpline routines */
+/**********************/
+
+
+/*
+ * def evaluate_ndbspline(const double[:, ::1] xi,
+ *                      const double[:, ::1] t,
+ *                      const npy_int32[::1] len_t,
+ *                      const npy_int32[::1] k,
+ *                      int[::1] nu,
+ *                      bint extrapolate,
+ *                      const double[::1] c1r,
+ *                      npy_intp num_c_tr,
+ *                      const npy_intp[::1] strides_c1,
+ *                      const npy_intp[:, ::] indices_k1d,
+ *                      double[:, ::1] out,
+ *                     ):
+ */
+static PyObject*
+py_evaluate_ndbspline(PyObject *self, PyObject *args)
+{
+
+    PyObject *py_xi = NULL, *py_t = NULL, *py_lent = NULL, *py_k = NULL, *py_nu = NULL;
+    PyObject *py_c1r = NULL, *py_strides_c1 = NULL, *py_indices_k1d = NULL, *py_out = NULL;
+    int num_c_tr; // FIXME on the py side: npy_intp -> int
+    int i_extrap;
+
+    if(!PyArg_ParseTuple(args, "OOOOOpOiOOO", &py_xi, &py_t, &py_lent, &py_k, &py_nu,
+                                             &i_extrap, &py_c1r, &num_c_tr, &py_strides_c1,
+                                             &py_indices_k1d, &py_out)) {
+        return NULL;
+    }
+
+    throw std::runtime_error("TODO");
+}
+
+
 /////////////////////////////////////
 
 static PyMethodDef DierckxMethods[] = {
