@@ -751,16 +751,39 @@ static PyObject*
 py_evaluate_ndbspline(PyObject *self, PyObject *args)
 {
 
-    PyObject *py_xi = NULL, *py_t = NULL, *py_lent = NULL, *py_k = NULL, *py_nu = NULL;
+    PyObject *py_xi = NULL, *py_t = NULL, *py_len_t = NULL, *py_k = NULL, *py_nu = NULL;
     PyObject *py_c1r = NULL, *py_strides_c1 = NULL, *py_indices_k1d = NULL, *py_out = NULL;
     int num_c_tr; // FIXME on the py side: npy_intp -> int
     int i_extrap;
 
-    if(!PyArg_ParseTuple(args, "OOOOOpOiOOO", &py_xi, &py_t, &py_lent, &py_k, &py_nu,
+    if(!PyArg_ParseTuple(args, "OOOOOpOiOOO", &py_xi, &py_t, &py_len_t, &py_k, &py_nu,
                                              &i_extrap, &py_c1r, &num_c_tr, &py_strides_c1,
                                              &py_indices_k1d, &py_out)) {
         return NULL;
     }
+
+    if (!(check_array(py_xi, 2, NPY_DOUBLE) &&
+          check_array(py_t, 2, NPY_DOUBLE) &&
+          check_array(py_len_t, 1, NPY_INT64) && // XXX
+          check_array(py_k, 2, NPY_INT32) &&    // XXX
+          check_array(py_c1r, 1, NPY_DOUBLE) &&
+          check_array(py_strides_c1, 1, NPY_INT64) &&   // XXX
+          check_array(py_indices_k1d, 2, NPY_INT64) &&  // XXX
+          check_array(py_indices_out, 2, NPY_DOUBLE)   // XXX
+        )) {
+        return NULL;
+    }
+
+    PyArrayObject *a_xi = (PyArrayObject *)py_xi;
+    PyArrayObject *a_t = (PyArrayObject *)py_t;
+    PyArrayObject *a_len_t = (PyArrayObject *)py_len_t;
+    PyArrayObject *a_k = (PyArrayObject *)py_k;
+    PyArrayObject *a_c1r = (PyArrayObject *)py_c1r;
+    PyArrayObject *a_strides_c1 = (PyArrayObject *)py_strides_c1;
+    PyArrayObject *a_indices_k1d = (PyArrayObject *)py_indices_k1d;
+    PyArrayObject *a_out = (PyArrayObject *)py_out;
+
+
 
     throw std::runtime_error("TODO");
 }
