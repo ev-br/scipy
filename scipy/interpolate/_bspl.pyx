@@ -125,7 +125,7 @@ def evaluate_ndbspline(const double[:, ::1] xi,
             # container for non-zero b-splines at each point in xi
             double[:, ::1] b = np.empty((ndim, max(k) + 1), dtype=float)
 
-            const double[::1] xv     # an ndim-dimensional input point
+     ##       const double[::1] xv     # an ndim-dimensional input point
             double xd               # d-th component of x
 
      ##       const double[::1] td    # knots in dimension d
@@ -135,7 +135,9 @@ def evaluate_ndbspline(const double[:, ::1] xi,
             npy_intp i_c      # index to loop over range(num_c_tr)
             npy_intp iflat    # index to loop over (k+1)**ndim non-zero terms
             npy_intp volume   # the number of non-zero terms
-            const npy_intp[:] idx_b   # ndim-dimensional index corresponding to iflat
+     ##       const npy_intp[:] idx_b   # ndim-dimensional index corresponding to iflat
+            npy_intp idx_d     # d-th component of the ndim-dimensional index corresponding to iflat
+
 
             int out_of_bounds
             npy_intp idx_cflat_base, idx
@@ -163,13 +165,14 @@ def evaluate_ndbspline(const double[:, ::1] xi,
 
             ### Iterate over the data points
             for j in range(xi.shape[0]):
-                xv = xi[j, :]
+          ##      xv = xi[j, :]
 
                 # For each point, iterate over the dimensions
                 out_of_bounds = 0
                 for d in range(ndim):
            ##         td = t[d, :len_t[d]]
-                    xd = xv[d]
+           ##         xd = xv[d]
+                    xd = xi[j, d]
                     kd = k[d]
 
                     # get the location of x[d] in t[d, :len_t[d]]
@@ -195,9 +198,13 @@ def evaluate_ndbspline(const double[:, ::1] xi,
 
                 # iterate over the direct products of non-zero b-splines
                 for iflat in range(volume):
-                    idx_b = indices_k1d[iflat, :]
-                    # The line above is equivalent to
+            ##        idx_b = indices_k1d[iflat, :]
+            ##        # The line above is equivalent to
+            ##        # idx_b = np.unravel_index(iflat, (k+1,)*ndim)
+
+                    # indices_k1d are pre-tabulated so that `idx_d` is equivalent to
                     # idx_b = np.unravel_index(iflat, (k+1,)*ndim)
+                    # idx_d = idx_b[d]
 
                     # From the indices in ``idx_b``, we prepare to index into
                     # c1.ravel() : for each dimension d, need to shift the index
@@ -214,8 +221,12 @@ def evaluate_ndbspline(const double[:, ::1] xi,
                     idx_cflat_base = 0
                     factor = 1.0
                     for d in range(ndim):
-                        factor *= b[d, idx_b[d]]
-                        idx = idx_b[d] + i[d] - k[d]
+                        idx_d = indices_k1d[iflat, d]
+
+                ##        factor *= b[d, idx_b[d]]
+                ##        idx = idx_b[d] + i[d] - k[d]
+                        factor *= b[d, idx_d]
+                        idx = idx_d + i[d] - k[d]
                         idx_cflat_base += idx * strides_c1[d]
 
                     ### collect linear combinations of coef * factor
