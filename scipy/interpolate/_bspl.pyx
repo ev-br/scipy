@@ -29,7 +29,7 @@ cdef extern from "src/__fitpack.h" namespace "fitpack":
 #------------------------------------------------------------------------------
 
 @cython.wraparound(False)
-@cython.boundscheck(False)
+@cython.boundscheck(True)
 @cython.nonecheck(False)
 def evaluate_ndbspline(const double[:, ::1] xi,
                        const double[:, ::1] t,
@@ -128,7 +128,7 @@ def evaluate_ndbspline(const double[:, ::1] xi,
             const double[::1] xv     # an ndim-dimensional input point
             double xd               # d-th component of x
 
-            const double[::1] td    # knots in dimension d
+     ##       const double[::1] td    # knots in dimension d
 
             npy_intp kd             # d-th component of k
 
@@ -168,19 +168,19 @@ def evaluate_ndbspline(const double[:, ::1] xi,
                 # For each point, iterate over the dimensions
                 out_of_bounds = 0
                 for d in range(ndim):
-                    td = t[d, :len_t[d]]
+           ##         td = t[d, :len_t[d]]
                     xd = xv[d]
                     kd = k[d]
 
-                    # get the location of x[d] in t[d]
-                    i[d] = _find_interval(&td[0], td.shape[0], kd, xd, kd, extrapolate)
+                    # get the location of x[d] in t[d, :len_t[d]]
+                    i[d] = _find_interval(&t[d, 0], len_t[d], kd, xd, kd, extrapolate)
 
                     if i[d] < 0:
                         out_of_bounds = 1
                         break
 
                     # compute non-zero b-splines at this value of xd in dimension d
-                    _deBoor_D(&td[0], xd, kd, i[d], nu[d], &wrk[0])
+                    _deBoor_D(&t[d, 0], xd, kd, i[d], nu[d], &wrk[0])
                     b[d, :kd+1] = wrk[:kd+1]
 
                 if out_of_bounds:
