@@ -191,7 +191,6 @@ class NdBSpline:
                                  self._indices_k1d,
                                  out,)
 
-
         _bspl.evaluate_ndbspline(xi,
                                  self._t,
                                  self._len_t,
@@ -249,7 +248,7 @@ class NdBSpline:
         # The strides of the coeffs array: the computation is equivalent to
         # >>> cstrides = [s // 8 for s in np.empty(c_shape).strides]
         cs = c_shape[1:] + (1,)
-        cstrides = np.cumprod(cs[::-1], dtype=np.intp)[::-1].copy()
+        cstrides = np.cumprod(cs[::-1], dtype=np.int64)[::-1].copy()
 
         # heavy lifting happens here
         data, indices, indptr = _bspl._colloc_nd(xvals,

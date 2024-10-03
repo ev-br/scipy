@@ -784,8 +784,12 @@ py_evaluate_ndbspline(PyObject *self, PyObject *args)
     PyArrayObject *a_out = (PyArrayObject *)py_out;
 
 
+    std::cout << "num_c_tr = "<< num_c_tr << "\n";
 
-    throw std::runtime_error("TODO");
+    PyErr_SetString(PyExc_RuntimeError, "FIXME");
+    return NULL;
+
+    //throw std::runtime_error("TODO");
 }
 
 
