@@ -757,19 +757,19 @@ py_evaluate_ndbspline(PyObject *self, PyObject *args)
     int i_extrap;
 
     if(!PyArg_ParseTuple(args, "OOOOOpOiOOO", &py_xi, &py_t, &py_len_t, &py_k, &py_nu,
-                                             &i_extrap, &py_c1r, &num_c_tr, &py_strides_c1,
-                                             &py_indices_k1d, &py_out)) {
+                                              &i_extrap, &py_c1r, &num_c_tr, &py_strides_c1,
+                                              &py_indices_k1d, &py_out)) {
         return NULL;
     }
 
     if (!(check_array(py_xi, 2, NPY_DOUBLE) &&
           check_array(py_t, 2, NPY_DOUBLE) &&
-          check_array(py_len_t, 1, NPY_INT64) && // XXX
-          check_array(py_k, 2, NPY_INT32) &&    // XXX
+          check_array(py_len_t, 1, NPY_INT64) &&
+          check_array(py_k, 1, NPY_INT32) &&
           check_array(py_c1r, 1, NPY_DOUBLE) &&
-          check_array(py_strides_c1, 1, NPY_INT64) &&   // XXX
-          check_array(py_indices_k1d, 2, NPY_INT64) &&  // XXX
-          check_array(py_indices_out, 2, NPY_DOUBLE)   // XXX
+          check_array(py_strides_c1, 1, NPY_INT64) &&
+          check_array(py_indices_k1d, 2, NPY_INT64) &&
+          check_array(py_out, 2, NPY_DOUBLE)
         )) {
         return NULL;
     }
@@ -811,6 +811,8 @@ static PyMethodDef DierckxMethods[] = {
      doc_evaluate_all_bspl},
     {"find_interval", py_find_interval, METH_VARARGS,
      doc_find_interval},
+    {"evaluate_ndbspline", py_evaluate_ndbspline, METH_VARARGS,
+     "evaluate ndbspline workhorse"},
     //...
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
