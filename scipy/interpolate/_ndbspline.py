@@ -6,6 +6,7 @@ import numpy as np
 from math import prod
 
 from . import _bspl   # type: ignore[attr-defined]
+from . import _dierckx
 
 import scipy.sparse.linalg as ssl
 from scipy.sparse import csr_array
@@ -173,10 +174,23 @@ class NdBSpline:
 
         # replacement for np.ravel_multi_index for indexing of `c1`:
         _strides_c1 = np.asarray([s // c1.dtype.itemsize
-                                  for s in c1.strides], dtype=np.intp)
+                                  for s in c1.strides], dtype=np.int64)
 
         num_c_tr = c1.shape[-1]  # # of trailing coefficients
         out = np.empty(xi.shape[:-1] + (num_c_tr,), dtype=c1.dtype)
+
+        _dierckx.evaluate_ndbspline(xi,
+                                 self._t,
+                                 self._len_t,
+                                 self._k,
+                                 nu,
+                                 extrapolate,
+                                 c1r,
+                                 num_c_tr,
+                                 _strides_c1,
+                                 self._indices_k1d,
+                                 out,)
+
 
         _bspl.evaluate_ndbspline(xi,
                                  self._t,
@@ -305,7 +319,7 @@ def _preprocess_inputs(k, t_tpl):
     # non-zero b-spline elements
     shape = tuple(kd + 1 for kd in k)
     indices = np.unravel_index(np.arange(prod(shape)), shape)
-    _indices_k1d = np.asarray(indices, dtype=np.intp).T.copy()
+    _indices_k1d = np.asarray(indices, dtype=np.int64).T.copy()
 
     # 5. pack the knots into a single array:
     #    ([1, 2, 3, 4], [5, 6], (7, 8, 9)) -->
@@ -318,7 +332,7 @@ def _preprocess_inputs(k, t_tpl):
     _t.fill(np.nan)
     for d in range(ndim):
         _t[d, :len(t_tpl[d])] = t_tpl[d]
-    len_t = np.asarray(len_t, dtype=np.int32)
+    len_t = np.asarray(len_t, dtype=np.int64)
 
     return k, _indices_k1d, (_t, len_t)
 
