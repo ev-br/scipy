@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <memory>
+#include <algorithm>
 #include "numpy/arrayobject.h"
 #include "__fitpack.h"
 
@@ -783,8 +784,69 @@ py_evaluate_ndbspline(PyObject *self, PyObject *args)
     PyArrayObject *a_indices_k1d = (PyArrayObject *)py_indices_k1d;
     PyArrayObject *a_out = (PyArrayObject *)py_out;
 
+    // sanity checks
+    npy_int64 ndim = PyArray_DIM(a_t, 0);
 
-    std::cout << "num_c_tr = "<< num_c_tr << "\n";
+    if (PyArray_DIM(a_xi, 1) != ndim) {
+        std::string msg = "Expected data points in " + std::to_string(ndim) + "-D space, ";
+        msg += "got "  + std::to_string(PyArray_DIM(a_xi, 1)) + "-D points.";
+        PyErr_SetString(PyExc_ValueError, msg.c_str());
+        return NULL;
+    }
+
+    if (PyArray_DIM(a_out, 0) != PyArray_DIM(a_xi, 0)) {
+        std::string msg = "out and xi are inconsistent: expected ";
+        msg += std::to_string(PyArray_DIM(a_xi, 0)) + "output values, got ";
+        msg += std::to_string(PyArray_DIM(a_out, 0)) + ".\n";
+        PyErr_SetString(PyExc_ValueError, msg.c_str());
+        return NULL;
+    }
+
+    if (PyArray_DIM(a_out, 1) != num_c_tr) {
+        std::string msg = "out and c are inconsistent: num_c = " + std::to_string(num_c_tr);
+        msg += " and out.shape[1] = " + std::to_string(PyArray_DIM(a_out, 1));
+        PyErr_SetString(PyExc_ValueError, msg.c_str());
+        return NULL;
+    }
+
+    // allocate temp and work arrays
+
+    // scratch space for de_BoorD
+    int kmax = *std::max_element((npy_int32*)PyArray_DATA(a_k),
+                                 (npy_int32*)PyArray_DATA(a_k) + PyArray_DIM(a_k, 0) );
+    unique_fptr<double> wrk( (double*)malloc((2*kmax+2)*sizeof(double)) );
+
+    // container for non-zero b-splines, np.empty((ndim, max(k) + 1))
+    unique_fptr<double> b( (double*)malloc(ndim*(kmax+1)*sizeof(double)) );
+
+    // `intervals1: indices for a point in xi into the knot arrays t
+    unique_fptr<npy_int32> intervals( (npy_int32*)malloc(ndim*sizeof(npy_int32)) );
+
+
+    std::cout << "num_c_tr = "<< num_c_tr << "  max(k) = " << kmax << "\n";
+
+    // heavy lifting happens here
+    try {
+////        fitpack::_evaluate_ndbspline(
+//            static_cast<const double*>(PyArray_DATA(a_t)), PyArray_DIM(a_t, 0),
+//            static_cast<const double*>(PyArray_DATA(a_c)), PyArray_DIM(a_c, 0), PyArray_DIM(a_c, 1),
+//            k,
+//            static_cast<const double*>(PyArray_DATA(a_xp)), PyArray_DIM(a_xp, 0),
+//            nu,
+//            i_extrap,
+//            static_cast<double*>(PyArray_DATA(a_out)),
+//            wrk.get()
+////        );
+
+        Py_RETURN_NONE;
+    }
+    catch (std::exception& e) {
+        PyErr_SetString(PyExc_RuntimeError, e.what());
+        return NULL;
+    }
+
+
+    std::cout << "num_c_tr = "<< num_c_tr << "  max(k) = " << kmax << "\n";
 
     PyErr_SetString(PyExc_RuntimeError, "FIXME");
     return NULL;
