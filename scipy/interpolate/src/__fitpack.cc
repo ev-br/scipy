@@ -654,10 +654,6 @@ _evaluate_ndbspline(
             continue;
         }
 
-        for(int64_t i_c=0; i_c < num_c_tr; i_c++) {
-            out(j, i_c) = 0.0;
-        }
-
         // iterate over the direct products of non-zero b-splines
         int64_t idx_cflat_base = 0;
         double factor = 1.0;

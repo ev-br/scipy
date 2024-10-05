@@ -193,6 +193,7 @@ class NdBSpline:
                                  out,)
 
         out2 = out.copy()
+        out = np.zeros(xi.shape[:-1] + (num_c_tr,), dtype=c1.dtype)
 
         _bspl.evaluate_ndbspline(xi,
                                  self._t,
