@@ -766,7 +766,8 @@ py_evaluate_ndbspline(PyObject *self, PyObject *args)
     if (!(check_array(py_xi, 2, NPY_DOUBLE) &&
           check_array(py_t, 2, NPY_DOUBLE) &&
           check_array(py_len_t, 1, NPY_INT64) &&
-          check_array(py_k, 1, NPY_INT32) &&
+          check_array(py_k, 1, NPY_INT64) &&
+          check_array(py_nu, 1, NPY_INT64) &&
           check_array(py_c1r, 1, NPY_DOUBLE) &&
           check_array(py_strides_c1, 1, NPY_INT64) &&
           check_array(py_indices_k1d, 2, NPY_INT64) &&
@@ -779,6 +780,7 @@ py_evaluate_ndbspline(PyObject *self, PyObject *args)
     PyArrayObject *a_t = (PyArrayObject *)py_t;
     PyArrayObject *a_len_t = (PyArrayObject *)py_len_t;
     PyArrayObject *a_k = (PyArrayObject *)py_k;
+    PyArrayObject *a_nu = (PyArrayObject *)py_nu;
     PyArrayObject *a_c1r = (PyArrayObject *)py_c1r;
     PyArrayObject *a_strides_c1 = (PyArrayObject *)py_strides_c1;
     PyArrayObject *a_indices_k1d = (PyArrayObject *)py_indices_k1d;
@@ -820,7 +822,7 @@ py_evaluate_ndbspline(PyObject *self, PyObject *args)
     unique_fptr<double> b( (double*)malloc(ndim*(kmax+1)*sizeof(double)) );
 
     // `intervals1: indices for a point in xi into the knot arrays t
-    unique_fptr<npy_int32> intervals( (npy_int32*)malloc(ndim*sizeof(npy_int32)) );
+    unique_fptr<npy_int64> intervals( (npy_int64*)malloc(ndim*sizeof(npy_int64)) );
 
 
     std::cout << "num_c_tr = "<< num_c_tr << "  max(k) = " << kmax << "\n";

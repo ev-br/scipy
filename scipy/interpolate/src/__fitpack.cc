@@ -568,4 +568,102 @@ norm_eq_lsq(const double *xptr, int64_t m,            // x, shape (m,)
     }
 }
 
+
+
+/*************************************/
+/* N-D tensor product spline helpers */
+/*************************************/
+
+/*
+ * Evaluate an nd tensor product spline function
+ */
+
+void
+_evaluate_ndbspline(
+    const double *xi_ptr, int64_t npts, int64_t ndim, // xi, shape(npts, ndim)
+    const double *t_ptr, int64_t max_len_t,           // t, shape(ndim, max_len_t)
+    const int64_t *len_t_ptr,                         // len_t, shape(ndim,)
+    const int64_t *k_ptr,                             // k, shape(ndim,)
+    const int64_t *nu_ptr,                                // nu, shape(ndim,)
+    int extrapolate,
+    // precomputed helpers
+    const double *c1r_ptr, int num_c_tr,          // c1, shape(num_c_tr,) FIXME shape
+    const int64_t *strides_c1_ptr,                    // strides_c1, shape(ndim,)
+    const int64_t *indices_k1d_ptr,                   // indices_k1, shape((max(k)+1)**ndim, ndim)
+    // output
+    double *out_ptr,                                  // out, shape(npts, num_c_tr)
+    // work buffers
+    double *wrk,
+    int64_t *i_ptr,                                    // i, shape(ndim,)
+    double *b_ptr                                      // b, shape(ndim, max(k)+1)
+)
+{
+    auto xi = ConstRealArray2D(xi_ptr, npts, ndim);
+    auto t = ConstRealArray2D(t_ptr, ndim, max_len_t);
+    auto c1r = ConstRealArray1D(c1r_ptr, num_c_tr);
+    auto out = RealArray2D(out_ptr, npts, num_c_tr);
+    auto len_t = IndexArray1D(len_t_ptr, ndim);
+    auto k = IndexArray1D(k_ptr, ndim);
+    auto nu = IndexArray1D(nu_ptr, ndim);
+    // max(k[i] for i in range(ndim))
+    int64_t max_k = k(0);
+    for(int64_t d=0; d< ndim; d++) {
+        if (k(d) > max_k){
+            max_k = k(d);
+        }
+    }
+
+    // number of non-zero b-splines per data point
+    int64_t volume = 1;
+    for (int d=0; d < ndim; d++){
+        volume *= k(d) + 1;
+    }
+
+    auto strides_c1 = IndexArray1D(strides_c1_ptr, ndim);
+    auto indices_k1d = IndexArray2D(indices_k1d_ptr, max_k, ndim);
+    auto i = MutableIndexArray1D(i_ptr, ndim);
+    auto b = RealArray2D(b_ptr, ndim, max_k);
+
+    // iterate over the data points    
+    for (int64_t j=0; j<npts; j++){
+        auto xv = ConstRealArray1D(xi_ptr + j*ndim, ndim); // XXX: subarrays
+
+        // for each data point, iterate over the dimensions
+        int out_of_bounds = 0;
+        for (int64_t d=0; d < ndim; d++) {
+            auto td = ConstRealArray1D(t_ptr + d*ndim, len_t(d)); // subarrays
+            double xd = xv(d);
+            int64_t kd = k(d);
+            // get the location of x[d] in t[d]
+//                   _find_interval(t.data, len_t, k, xval, k, 0);
+            i(d) = _find_interval(td.data,len_t(d), kd, xd, kd, extrapolate);
+            if (i(d) < 0) {
+                out_of_bounds = 1;
+                break;
+            }
+            // compute non-zero b-splines at this value of xd in dimension d
+            _deBoor_D(td.data, xd, kd, i(d), nu(d), wrk);
+            for(j=0; j < k(d)+1; j++) {
+                b(d, j) = wrk[j];
+            }
+        } // for d
+        if (out_of_bounds) {
+            // xd was nan or extrapolate=False: Fill the output array
+            // *for this xv value* and continue to the next `xv` in `xi`
+            for(int64_t i_c=0; i_c < num_c_tr; i_c++) {
+                out(j, i_c) = std::numeric_limits<double>::quiet_NaN();
+            }
+            continue;
+        }
+        for(int64_t i_c=0; i_c < num_c_tr; i_c++) {
+            out(j, i_c) = 0.0;
+        }
+        //iterate over the direct products of non-zero b-splines
+        for(int64_t iflat=0; iflat < volume; iflat++) {
+            //idx_b = 42;   FIXME
+        }
+    } // for (j < npts...
+}
+
+
 } // namespace fitpack
