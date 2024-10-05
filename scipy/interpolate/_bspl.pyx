@@ -193,9 +193,6 @@ def evaluate_ndbspline(const double[:, ::1] xi,
                         out[j, i_c] = NAN
                     continue
 
-                for i_c in range(num_c_tr):
-                    out[j, i_c] = 0.0
-
                 # iterate over the direct products of non-zero b-splines
                 for iflat in range(volume):
             ##        idx_b = indices_k1d[iflat, :]

@@ -177,7 +177,8 @@ class NdBSpline:
                                   for s in c1.strides], dtype=np.int64)
 
         num_c_tr = c1.shape[-1]  # # of trailing coefficients
-        out = np.empty(xi.shape[:-1] + (num_c_tr,), dtype=c1.dtype)
+        out = np.zeros(xi.shape[:-1] + (num_c_tr,), dtype=c1.dtype)
+
 
         _dierckx.evaluate_ndbspline(xi,
                                  self._t,
