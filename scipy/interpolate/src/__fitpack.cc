@@ -626,27 +626,25 @@ _evaluate_ndbspline(
 
     // iterate over the data points    
     for (int64_t j=0; j<npts; j++){
-        auto xv = ConstRealArray1D(xi_ptr + j*ndim, ndim); // XXX: subarrays
-
         // for each data point, iterate over the dimensions
         int out_of_bounds = 0;
         for (int64_t d=0; d < ndim; d++) {
-            auto td = ConstRealArray1D(t_ptr + d*ndim, len_t(d)); // subarrays
-            double xd = xv(d);
+            double xd = xi(j, d);
             int64_t kd = k(d);
+
             // get the location of x[d] in t[d]
-//                   _find_interval(t.data, len_t, k, xval, k, 0);
-            i(d) = _find_interval(td.data,len_t(d), kd, xd, kd, extrapolate);
+            i(d) = _find_interval(t.data + d*ndim, len_t(d), kd, xd, kd, extrapolate);
             if (i(d) < 0) {
                 out_of_bounds = 1;
                 break;
             }
             // compute non-zero b-splines at this value of xd in dimension d
-            _deBoor_D(td.data, xd, kd, i(d), nu(d), wrk);
-            for(j=0; j < k(d)+1; j++) {
-                b(d, j) = wrk[j];
+            _deBoor_D(t.data + d*ndim, xd, kd, i(d), nu(d), wrk);
+            for(int ii=0; ii < k(d) + 1; ii++) {
+                b(d, ii) = wrk[ii];
             }
         } // for d
+
         if (out_of_bounds) {
             // xd was nan or extrapolate=False: Fill the output array
             // *for this xv value* and continue to the next `xv` in `xi`
@@ -655,13 +653,28 @@ _evaluate_ndbspline(
             }
             continue;
         }
+
         for(int64_t i_c=0; i_c < num_c_tr; i_c++) {
             out(j, i_c) = 0.0;
         }
-        //iterate over the direct products of non-zero b-splines
+
+        // iterate over the direct products of non-zero b-splines
+        int64_t idx_cflat_base = 0;
+        double factor = 1.0;
         for(int64_t iflat=0; iflat < volume; iflat++) {
-            //idx_b = 42;   FIXME
-        }
+
+            // XXX: copy over the comments
+            for (int d=0; d < ndim; d++){
+                int64_t idx_d = indices_k1d(iflat, d);
+                factor *= b(d, idx_d);
+                idx_cflat_base += (idx_d + i(d) - k(d)) * strides_c1(d);
+            }
+
+            // collect linear combinations of coef * factor
+            for(int64_t i_c=0; i_c < num_c_tr; i_c++) {
+                out(j, i_c) += c1r(idx_cflat_base + i_c) * factor;
+            }
+        } // for (iflat=0...
     } // for (j < npts...
 }
 
