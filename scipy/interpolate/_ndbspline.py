@@ -191,6 +191,8 @@ class NdBSpline:
                                  self._indices_k1d,
                                  out,)
 
+        out2 = out.copy()
+
         _bspl.evaluate_ndbspline(xi,
                                  self._t,
                                  self._len_t,
@@ -202,6 +204,9 @@ class NdBSpline:
                                  _strides_c1,
                                  self._indices_k1d,
                                  out,)
+
+        print("o2 - o = ", (out2 - out).max())
+
         out = out.view(self.c.dtype)
         return out.reshape(xi_shape[:-1] + self.c.shape[ndim:])
 
