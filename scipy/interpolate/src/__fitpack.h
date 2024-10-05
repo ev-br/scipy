@@ -101,7 +101,10 @@ typedef Array1D<double, BOUNDS_CHECK> RealArray1D;
 typedef Array1D<const double, BOUNDS_CHECK> ConstRealArray1D;
 typedef Array2D<const double, BOUNDS_CHECK> ConstRealArray2D;
 
+typedef Array1D<const int64_t, BOUNDS_CHECK> IndexArray1D;
+typedef Array2D<const int64_t, BOUNDS_CHECK> IndexArray2D;
 
+typedef Array1D<int64_t, BOUNDS_CHECK> MutableIndexArray1D;
 
 /*
  * B-spline evaluation routine.
@@ -229,6 +232,31 @@ norm_eq_lsq(const double *xptr, int64_t m,      // x, shape (m,)
               double *abT_ptr,                    // ab, shape (k+1, m) IN FORTRAN ORDER
               double *rhs_ptr,                    // rhs, shape (m, ydim2)
               double *wrk
+);
+
+
+/*
+ * Evaluate an nd tensor product spline function
+ */
+
+void
+_evaluate_ndbspline(
+    const double *xi_ptr, int64_t npts, int64_t ndim, // xi, shape(npts, ndim)
+    const double *t_ptr, int64_t max_len_t,           // t, shape(ndim, max_len_t)
+    const int64_t *len_t_ptr,                         // len_t, shape(ndim,)
+    const int64_t *k_ptr,                             // k, shape(ndim,)
+    const int64_t *nu_ptr,                                // nu, shape(ndim,)
+    int extrapolate,
+    // precomputed helpers
+    const double *c1r_ptr, int num_c_tr,          // c1, shape(num_c_tr,) FIXME shape
+    const int64_t *strides_c1_ptr,                    // strides_c1, shape(ndim,)
+    const int64_t *indices_k1d_ptr,                   // indices_k1, shape((max(k)+1)**ndim, ndim)
+    // output
+    double *out_ptr,                                  // out, shape(npts, num_c_tr)
+    // work buffers
+    double *wrk,
+    int64_t *i_ptr,                                    // i, shape(ndim,)
+    double *b_ptr                                      // b, shape(ndim, max(k)+1)
 );
 
 } // namespace fitpack

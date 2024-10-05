@@ -140,9 +140,9 @@ class NdBSpline:
         extrapolate = bool(extrapolate)
 
         if nu is None:
-            nu = np.zeros((ndim,), dtype=np.intc)
+            nu = np.zeros((ndim,), dtype=np.int64)
         else:
-            nu = np.asarray(nu, dtype=np.intc)
+            nu = np.asarray(nu, dtype=np.int64)
             if nu.ndim != 1 or nu.shape[0] != ndim:
                 raise ValueError(
                     f"invalid number of derivative orders {nu = } for "
@@ -284,7 +284,7 @@ def _preprocess_inputs(k, t_tpl):
         # make k a tuple
         k = (k,)*ndim
 
-    k = np.asarray([operator.index(ki) for ki in k], dtype=np.int32)
+    k = np.asarray([operator.index(ki) for ki in k], dtype=np.int64)
 
     if len(k) != ndim:
         raise ValueError(f"len(t) = {len(t_tpl)} != {len(k) = }.")
