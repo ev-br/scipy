@@ -829,6 +829,12 @@ py_evaluate_ndbspline(PyObject *self, PyObject *args)
 
     // heavy lifting happens here
     try {
+        fitpack::_evaluate_ndbspline(
+            static_cast<const double *>(PyArray_DATA(a_xi)), PyArray_DIM(a_xi, 0), PyArray_DIM(a_xi, 1),
+            static_cast<const double *>(PyArray_DATA(a_t)), //???
+        )
+
+
 ////        fitpack::_evaluate_ndbspline(
 //            static_cast<const double*>(PyArray_DATA(a_t)), PyArray_DIM(a_t, 0),
 //            static_cast<const double*>(PyArray_DATA(a_c)), PyArray_DIM(a_c, 0), PyArray_DIM(a_c, 1),
