@@ -124,20 +124,13 @@ def evaluate_ndbspline(const double[:, ::1] xi,
 
             # container for non-zero b-splines at each point in xi
             double[:, ::1] b = np.empty((ndim, max(k) + 1), dtype=float)
-
-     ##       const double[::1] xv     # an ndim-dimensional input point
             double xd               # d-th component of x
-
-     ##       const double[::1] td    # knots in dimension d
-
             npy_intp kd             # d-th component of k
 
             npy_intp i_c      # index to loop over range(num_c_tr)
             npy_intp iflat    # index to loop over (k+1)**ndim non-zero terms
             npy_intp volume   # the number of non-zero terms
-     ##       const npy_intp[:] idx_b   # ndim-dimensional index corresponding to iflat
             npy_intp idx_d     # d-th component of the ndim-dimensional index corresponding to iflat
-
 
             int out_of_bounds
             npy_intp idx_cflat_base, idx
@@ -165,13 +158,9 @@ def evaluate_ndbspline(const double[:, ::1] xi,
 
             ### Iterate over the data points
             for j in range(xi.shape[0]):
-          ##      xv = xi[j, :]
-
                 # For each point, iterate over the dimensions
                 out_of_bounds = 0
                 for d in range(ndim):
-           ##         td = t[d, :len_t[d]]
-           ##         xd = xv[d]
                     xd = xi[j, d]
                     kd = k[d]
 
@@ -225,6 +214,9 @@ def evaluate_ndbspline(const double[:, ::1] xi,
                         factor *= b[d, idx_d]
                         idx = idx_d + i[d] - k[d]
                         idx_cflat_base += idx * strides_c1[d]
+
+                   #     with gil:
+                   #         print(f" {iflat=} {d=} {idx_cflat_base=}")
 
                     ### collect linear combinations of coef * factor
                     for i_c in range(num_c_tr):

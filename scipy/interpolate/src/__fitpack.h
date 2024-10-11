@@ -248,7 +248,7 @@ _evaluate_ndbspline(
     const int64_t *nu_ptr,                                // nu, shape(ndim,)
     int extrapolate,
     // precomputed helpers
-    const double *c1r_ptr, int num_c_tr,          // c1, shape(num_c_tr,) FIXME shape
+    const double *c1r_ptr, int64_t num_c1, int num_c_tr,          // c1, shape(num_c1,) FIXME shape
     const int64_t *strides_c1_ptr,                    // strides_c1, shape(ndim,)
     const int64_t *indices_k1d_ptr,                   // indices_k1, shape((max(k)+1)**ndim, ndim)
     // output

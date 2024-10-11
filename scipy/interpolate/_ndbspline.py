@@ -172,6 +172,8 @@ class NdBSpline:
         c1 = cc.reshape(cc.shape[:ndim] + (-1,))
         c1r = c1.ravel()
 
+        print(f"{c1r.shape= }")
+
         # replacement for np.ravel_multi_index for indexing of `c1`:
         _strides_c1 = np.asarray([s // c1.dtype.itemsize
                                   for s in c1.strides], dtype=np.int64)
@@ -180,7 +182,7 @@ class NdBSpline:
         out = np.zeros(xi.shape[:-1] + (num_c_tr,), dtype=c1.dtype)
 
 
-        _dierckx.evaluate_ndbspline(xi,
+        _bspl.evaluate_ndbspline(xi,
                                  self._t,
                                  self._len_t,
                                  self._k,
@@ -195,7 +197,7 @@ class NdBSpline:
         out2 = out.copy()
         out = np.zeros(xi.shape[:-1] + (num_c_tr,), dtype=c1.dtype)
 
-        _bspl.evaluate_ndbspline(xi,
+        _dierckx.evaluate_ndbspline(xi,
                                  self._t,
                                  self._len_t,
                                  self._k,
@@ -206,6 +208,8 @@ class NdBSpline:
                                  _strides_c1,
                                  self._indices_k1d,
                                  out,)
+
+
 
         print("o2 - o = ", (out2 - out).max())
 
@@ -326,6 +330,9 @@ def _preprocess_inputs(k, t_tpl):
     shape = tuple(kd + 1 for kd in k)
     indices = np.unravel_index(np.arange(prod(shape)), shape)
     _indices_k1d = np.asarray(indices, dtype=np.int64).T.copy()
+
+    print(f"{_indices_k1d.shape = }")
+
 
     # 5. pack the knots into a single array:
     #    ([1, 2, 3, 4], [5, 6], (7, 8, 9)) -->

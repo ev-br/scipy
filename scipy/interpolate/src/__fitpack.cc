@@ -587,7 +587,7 @@ _evaluate_ndbspline(
     const int64_t *nu_ptr,                                // nu, shape(ndim,)
     int extrapolate,
     // precomputed helpers
-    const double *c1r_ptr, int num_c_tr,          // c1, shape(num_c_tr,) FIXME shape
+    const double *c1r_ptr, int64_t num_c1, int num_c_tr,       // c1, shape(num_c1,)
     const int64_t *strides_c1_ptr,                    // strides_c1, shape(ndim,)
     const int64_t *indices_k1d_ptr,                   // indices_k1, shape((max(k)+1)**ndim, ndim)
     // output
@@ -600,7 +600,7 @@ _evaluate_ndbspline(
 {
     auto xi = ConstRealArray2D(xi_ptr, npts, ndim);
     auto t = ConstRealArray2D(t_ptr, ndim, max_len_t);
-    auto c1r = ConstRealArray1D(c1r_ptr, num_c_tr);
+    auto c1r = ConstRealArray1D(c1r_ptr, num_c1);
     auto out = RealArray2D(out_ptr, npts, num_c_tr);
     auto len_t = IndexArray1D(len_t_ptr, ndim);
     auto k = IndexArray1D(k_ptr, ndim);
@@ -620,15 +620,23 @@ _evaluate_ndbspline(
     }
 
     auto strides_c1 = IndexArray1D(strides_c1_ptr, ndim);
-    auto indices_k1d = IndexArray2D(indices_k1d_ptr, max_k, ndim);
+    auto indices_k1d = IndexArray2D(indices_k1d_ptr, volume, ndim);
     auto i = MutableIndexArray1D(i_ptr, ndim);
-    auto b = RealArray2D(b_ptr, ndim, max_k);
+    auto b = RealArray2D(b_ptr, ndim, max_k + 1);
 
     // iterate over the data points    
     for (int64_t j=0; j<npts; j++){
+
+
+   //     std::cout <<" pt # " << j <<"\n";
+
         // for each data point, iterate over the dimensions
         int out_of_bounds = 0;
         for (int64_t d=0; d < ndim; d++) {
+
+     //       std::cout <<" \t d =  " << d <<"\n";
+
+
             double xd = xi(j, d);
             int64_t kd = k(d);
 
@@ -641,6 +649,9 @@ _evaluate_ndbspline(
             // compute non-zero b-splines at this value of xd in dimension d
             _deBoor_D(t.data + d*ndim, xd, kd, i(d), nu(d), wrk);
             for(int ii=0; ii < k(d) + 1; ii++) {
+
+       //         std::cout <<" \t ii =  " << ii <<"\n";
+
                 b(d, ii) = wrk[ii];
             }
         } // for d
@@ -655,9 +666,12 @@ _evaluate_ndbspline(
         }
 
         // iterate over the direct products of non-zero b-splines
-        int64_t idx_cflat_base = 0;
-        double factor = 1.0;
         for(int64_t iflat=0; iflat < volume; iflat++) {
+            int64_t idx_cflat_base = 0;
+            double factor = 1.0;
+
+
+         //   std::cout <<"\t iflat = " << iflat << "\n";
 
             // XXX: copy over the comments
             for (int d=0; d < ndim; d++){
@@ -665,6 +679,8 @@ _evaluate_ndbspline(
                 factor *= b(d, idx_d);
                 idx_cflat_base += (idx_d + i(d) - k(d)) * strides_c1(d);
             }
+
+        //    std::cout << "\t idx_cflat_base = " << idx_cflat_base <<"\n";
 
             // collect linear combinations of coef * factor
             for(int64_t i_c=0; i_c < num_c_tr; i_c++) {

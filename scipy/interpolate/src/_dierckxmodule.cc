@@ -831,21 +831,19 @@ py_evaluate_ndbspline(PyObject *self, PyObject *args)
     try {
         fitpack::_evaluate_ndbspline(
             static_cast<const double *>(PyArray_DATA(a_xi)), PyArray_DIM(a_xi, 0), PyArray_DIM(a_xi, 1),
-            static_cast<const double *>(PyArray_DATA(a_t)), //???
-        )
-
-
-////        fitpack::_evaluate_ndbspline(
-//            static_cast<const double*>(PyArray_DATA(a_t)), PyArray_DIM(a_t, 0),
-//            static_cast<const double*>(PyArray_DATA(a_c)), PyArray_DIM(a_c, 0), PyArray_DIM(a_c, 1),
-//            k,
-//            static_cast<const double*>(PyArray_DATA(a_xp)), PyArray_DIM(a_xp, 0),
-//            nu,
-//            i_extrap,
-//            static_cast<double*>(PyArray_DATA(a_out)),
-//            wrk.get()
-////        );
-
+            static_cast<const double *>(PyArray_DATA(a_t)), PyArray_DIM(a_t, 1),
+            static_cast<const int64_t*>(PyArray_DATA(a_len_t)),
+            static_cast<const int64_t*>(PyArray_DATA(a_k)),
+            static_cast<const int64_t*>(PyArray_DATA(a_nu)),
+            i_extrap,
+            static_cast<const double*>(PyArray_DATA(a_c1r)), PyArray_DIM(a_c1r, 0), num_c_tr,
+            static_cast<const int64_t*>(PyArray_DATA(a_strides_c1)),
+            static_cast<const int64_t*>(PyArray_DATA(a_indices_k1d)),
+            static_cast<double*>(PyArray_DATA(a_out)),
+            wrk.get(),
+            intervals.get(),
+            b.get()
+        );
         Py_RETURN_NONE;
     }
     catch (std::exception& e) {
