@@ -641,17 +641,14 @@ _evaluate_ndbspline(
             int64_t kd = k(d);
 
             // get the location of x[d] in t[d]
-            i(d) = _find_interval(t.data + d*ndim, len_t(d), kd, xd, kd, extrapolate);
+            i(d) = _find_interval(t.data + d*max_len_t, len_t(d), kd, xd, kd, extrapolate);
             if (i(d) < 0) {
                 out_of_bounds = 1;
                 break;
             }
             // compute non-zero b-splines at this value of xd in dimension d
-            _deBoor_D(t.data + d*ndim, xd, kd, i(d), nu(d), wrk);
-            for(int ii=0; ii < k(d) + 1; ii++) {
-
-       //         std::cout <<" \t ii =  " << ii <<"\n";
-
+            _deBoor_D(t.data + d*max_len_t, xd, kd, i(d), nu(d), wrk);
+            for(int ii=0; ii < kd + 1; ii++) {
                 b(d, ii) = wrk[ii];
             }
         } // for d

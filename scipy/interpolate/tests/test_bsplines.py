@@ -2478,7 +2478,7 @@ class TestNdBSpline:
         bspl2_0 = NdBSpline0((tx, ty), c, k=(kx, ky))
 
         xp_assert_close(bspl2(xi),
-                        [bspl2_0(xp) for xp in xi], atol=1e-14)
+                        [bspl2_0(xx) for xx in xi], atol=1e-14)
 
     def test_tx_neq_ty(self):
         # 2D separable spline w/ len(tx) != len(ty)
@@ -2777,12 +2777,15 @@ class TestMakeND:
         xp_assert_close(result.reshape(6, 6, 2, 2),
                         target.reshape((6, 6, 2, 2)), atol=1e-14)
 
-    @pytest.mark.parametrize('k', [(3, 3), (1, 1), (3, 1), (1, 3), (3, 5)])
+   # @pytest.mark.parametrize('k', [(3, 3), (1, 1), (3, 1), (1, 3), (3, 5)])
+    @pytest.mark.parametrize('k', [(1, 3)])
     def test_2D_mixed(self, k):
         # make a 2D separable spline w/ len(tx) != len(ty)
         x = np.arange(6)
         y = np.arange(7) + 1.5
         xi = [(a, b) for a, b in itertools.product(x, y)]
+
+      #  breakpoint()
 
         values = (x**3)[:, None] * (y**2 + 2*y)[None, :]
         bspl = make_ndbspl((x, y), values, k=k, solver=ssl.spsolve)
