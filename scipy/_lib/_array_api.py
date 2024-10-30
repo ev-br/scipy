@@ -233,6 +233,26 @@ def xp_copy(x: Array, *, xp: ModuleType | None = None) -> Array:
     return _asarray(x, copy=True, xp=xp)
 
 
+def xp_acosh(x: Array, *, xp: ModuleType | None = None):
+    """A shim for np.accosh on numpy < 2 and xp.acosh otherwise."""
+    if xp is None:
+        xp = array_namespace(x)
+    if xp == np and np.__version__ < '2':
+        return np.arccosh(x)
+    else:
+        return xp.acosh(x)
+
+
+def xp_acos(x: Array, *, xp: ModuleType | None = None):
+    """A shim for np.accos on numpy < 2 and xp.acos otherwise."""
+    if xp is None:
+        xp = array_namespace(x)
+    if xp == np and np.__version__ < '2':
+        return np.arccos(x)
+    else:
+        return xp.acos(x)
+
+
 def is_numpy(xp: ModuleType) -> bool:
     return xp.__name__ in ('numpy', 'scipy._lib.array_api_compat.numpy')
 
