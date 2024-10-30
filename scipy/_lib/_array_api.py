@@ -240,7 +240,7 @@ def xp_acosh(x: Array, *, xp: ModuleType | None = None):
     if xp == np and np.__version__ < '2':
         return np.arccosh(x)
     else:
-        return xp.acosh(x)
+        return xp.acosh(xp.asarray(x))
 
 
 def xp_acos(x: Array, *, xp: ModuleType | None = None):
@@ -250,7 +250,17 @@ def xp_acos(x: Array, *, xp: ModuleType | None = None):
     if xp == np and np.__version__ < '2':
         return np.arccos(x)
     else:
-        return xp.acos(x)
+        return xp.acos(xp.asarray(x))
+
+def xp_sinc(x: Array, *, xp=None):
+    """`xp.sinc` replacement. Looking at you, array_api_strict.
+    """
+    if xp is None:
+        xp = array_namespace(x)
+    try:
+        return xp.sinc(x)
+    except AttributeError:
+        return xp.asarray(np.sinc(np.asarray(x)))
 
 
 def is_numpy(xp: ModuleType) -> bool:
