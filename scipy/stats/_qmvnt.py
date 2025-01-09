@@ -250,6 +250,10 @@ def _qmvn(m, covar, low, high, rng, lattice='cbc', n_batches=10):
             # Tent periodization transform.
             x = abs(2 * z - 1)
             y[i - 1, :] = phinv(c + x * dc)
+
+#            if np.isinf(cho).any() or np.isinf(y).any():
+#                breakpoint()
+
             s = cho[i, :i] @ y[:i, :]
             ct = cho[i, i]
             c = phi((lo[i] - s) / ct)
