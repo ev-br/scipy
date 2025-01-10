@@ -378,9 +378,10 @@ def _qmvt(m, nu, covar, low, high, rng, lattice='cbc', n_batches=10):
     for j in range(n_batches):
         pv = np.ones(n_qmc_samples)
         s = np.zeros((n, n_qmc_samples))
+        rndm = rng.random(size=n)
         for i in range(n):
             # Pseudorandomly-shifted lattice coordinate.
-            z = q[i] * i_samples + rng.random()
+            z = q[i] * i_samples + rndm[i]
             # Fast remainder(z, 1.0)
             z -= z.astype(int)
             # Tent periodization transform.
