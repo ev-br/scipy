@@ -35,12 +35,10 @@
 import numpy as np
 
 from scipy.fft import fft, ifft
-from scipy.special import gammaincinv, ndtr, ndtri
+from scipy.special import ndtr as phi, ndtri as phinv
 from scipy.stats._qmc import primes_from_2_to
 
-
-phi = ndtr
-phinv = ndtri
+from ._qmvnt_pythran import _qmvt_inner
 
 
 def _factorize_int(n):
@@ -371,60 +369,11 @@ def _qmvt(m, nu, covar, low, high, rng, lattice='cbc', n_batches=10):
     high = np.asarray(high, dtype=np.float64)
     cho, lo, hi = _permuted_cholesky(covar, low / sn, high / sn)
     n = cho.shape[0]
-    prob = 0.0
-    error_var = 0.0
     q, n_qmc_samples = _cbc_lattice(n, max(m // n_batches, 1))
-    i_samples = np.arange(n_qmc_samples) + 1
-    for j in range(n_batches):
-        pv = np.ones(n_qmc_samples)
-        s = np.zeros((n, n_qmc_samples))
-        rndm = rng.random(size=n)
-
-        # i == 0 special actions: We'll use one of the QR variates to pull out the
-        # t-distribution scaling.
-        z = q[0]*i_samples + rndm[0]
-        z -= z.astype(int)
-        x = abs(2*z - 1)
-        r = np.sqrt(2 * gammaincinv(nu / 2, x)) if nu > 0 else np.ones_like(x)
-
-        for i in range(n):
-            # Pseudorandomly-shifted lattice coordinate.
-            z = q[i] * i_samples + rndm[i]
-            # Fast remainder(z, 1.0)
-            z -= z.astype(int)
-            # Tent periodization transform.
-            x = abs(2 * z - 1)
-            # FIXME: Lift the i==0 case out of the loop to make the logic
-            # easier to follow.
-            if i > 0:
-                y = phinv(c + x * dc)  # noqa: F821
-                with np.errstate(invalid='ignore'):
-                    s[i:, :] += cho[i:, i - 1][:, np.newaxis] * y
-
-            si = s[i, :]
-
-            c = np.ones(n_qmc_samples)
-            d = np.ones(n_qmc_samples)
-            with np.errstate(invalid='ignore'):
-                lois = lo[i] * r - si
-                hiis = hi[i] * r - si
-            c[lois < -9] = 0.0
-            d[hiis < -9] = 0.0
-            lo_mask = abs(lois) < 9
-            hi_mask = abs(hiis) < 9
-            c[lo_mask] = phi(lois[lo_mask])
-            d[hi_mask] = phi(hiis[hi_mask])
-
-            dc = d - c
-            pv *= dc
-
-        # Accumulate the mean and error variances with online formulations.
-        d = (pv.mean() - prob) / (j + 1)
-        prob += d
-        error_var = (j - 1) * error_var / (j + 1) + d * d
-    # Error bounds are 3 times the standard error of the estimates.
-    est_error = 3 * np.sqrt(error_var)
-    n_samples = n_qmc_samples * n_batches
+    rndm = rng.random(size=(n_batches, n))
+    prob, est_error, n_samples = _qmvt_inner(
+        q, rndm, n_qmc_samples, n_batches, cho, lo, hi, float(nu)
+    )
     return prob, est_error, n_samples
 
 
