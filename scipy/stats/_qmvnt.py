@@ -379,6 +379,14 @@ def _qmvt(m, nu, covar, low, high, rng, lattice='cbc', n_batches=10):
         pv = np.ones(n_qmc_samples)
         s = np.zeros((n, n_qmc_samples))
         rndm = rng.random(size=n)
+
+        # i == 0 special actions: We'll use one of the QR variates to pull out the
+        # t-distribution scaling.
+        z = q[0]*i_samples + rndm[0]
+        z -= z.astype(int)
+        x = abs(2*z - 1)
+        r = np.sqrt(2 * gammaincinv(nu / 2, x)) if nu > 0 else np.ones_like(x)
+
         for i in range(n):
             # Pseudorandomly-shifted lattice coordinate.
             z = q[i] * i_samples + rndm[i]
@@ -388,17 +396,11 @@ def _qmvt(m, nu, covar, low, high, rng, lattice='cbc', n_batches=10):
             x = abs(2 * z - 1)
             # FIXME: Lift the i==0 case out of the loop to make the logic
             # easier to follow.
-            if i == 0:
-                # We'll use one of the QR variates to pull out the
-                # t-distribution scaling.
-                if nu > 0:
-                    r = np.sqrt(2 * gammaincinv(nu / 2, x))
-                else:
-                    r = np.ones_like(x)
-            else:
+            if i > 0:
                 y = phinv(c + x * dc)  # noqa: F821
                 with np.errstate(invalid='ignore'):
                     s[i:, :] += cho[i:, i - 1][:, np.newaxis] * y
+
             si = s[i, :]
 
             c = np.ones(n_qmc_samples)
