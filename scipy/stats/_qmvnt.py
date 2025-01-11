@@ -38,7 +38,7 @@ from scipy.fft import fft, ifft
 from scipy.special import ndtr as phi, ndtri as phinv
 from scipy.stats._qmc import primes_from_2_to
 
-from ._qmvnt_pythran import _qmvt_inner
+from ._qmvnt_pythran import _qmvt_inner, _qmvn_inner
 
 
 def _factorize_int(n):
@@ -228,47 +228,12 @@ def _qmvn(m, covar, low, high, rng, lattice='cbc', n_batches=10):
     """
     cho, lo, hi = _permuted_cholesky(covar, low, high)
     n = cho.shape[0]
-    ct = cho[0, 0]
-    c = phi(lo[0] / ct)
-    d = phi(hi[0] / ct)
-    ci = c
-    dci = d - ci
-    prob = 0.0
-    error_var = 0.0
     q, n_qmc_samples = _cbc_lattice(n - 1, max(m // n_batches, 1))
-    y = np.zeros((n - 1, n_qmc_samples))
-    i_samples = np.arange(n_qmc_samples) + 1
-    for j in range(n_batches):
-        c = np.full(n_qmc_samples, ci)
-        dc = np.full(n_qmc_samples, dci)
-        pv = dc.copy()
-        for i in range(1, n):
-            # Pseudorandomly-shifted lattice coordinate.
-            z = q[i - 1] * i_samples + rng.random()
-            # Fast remainder(z, 1.0)
-            z -= z.astype(int)
-            # Tent periodization transform.
-            x = abs(2 * z - 1)
+    rndm = rng.random(size=(n_batches, n))
 
-            # work around inf - inf = nan in the matmul below
-            res =  phinv(c + x * dc)
-            res[res == -np.inf] = -1e100
-            res[res == np.inf] = 1e100
-            y[i - 1, :] = res
-
-            s = cho[i, :i] @ y[:i, :]
-            ct = cho[i, i]
-            c = phi((lo[i] - s) / ct)
-            d = phi((hi[i] - s) / ct)
-            dc = d - c
-            pv = pv * dc
-        # Accumulate the mean and error variances with online formulations.
-        d = (pv.mean() - prob) / (j + 1)
-        prob += d
-        error_var = (j - 1) * error_var / (j + 1) + d * d
-    # Error bounds are 3 times the standard error of the estimates.
-    est_error = 3 * np.sqrt(error_var)
-    n_samples = n_qmc_samples * n_batches
+    prob, est_error, n_samples = _qmvn_inner(
+        q, rndm, n_qmc_samples, n_batches, cho, lo, hi
+    )
     return prob, est_error, n_samples
 
 
