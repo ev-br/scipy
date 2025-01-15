@@ -3,7 +3,20 @@ Pythranized kernels of _qmnvt.py
 """
 import numpy as np
 
-from scipy.special import gammaincinv, ndtr as phi, ndtri as phinv
+from scipy.special import gammaincinv #, ndtr as phi, ndtri as phinv
+
+
+#pythran export phi(float64)
+def phi(x):
+    from scipy import special
+    return special.ndtr(x)
+
+
+#pythran export phinv(float64)
+def phinv(x):
+    from scipy import special
+    return special.ndtri(x)
+
 
 
 #pythran export _qmvt_inner(float[], float[:, :], int64, int64, float[:, :], float[], float[], float)  # noqa: E501
