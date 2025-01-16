@@ -1394,6 +1394,7 @@ class TestResample:
         signal.resample(sig2, num, axis=-1, window=win)
         assert win.shape == (160,)
 
+    @skip_xp_backends("jax.numpy", reason="XXX: immutable arrays")
     @pytest.mark.parametrize('window', (None, 'hamming'))
     @pytest.mark.parametrize('N', (20, 19))
     @pytest.mark.parametrize('num', (100, 101, 10, 11))
@@ -1415,6 +1416,7 @@ class TestResample:
             xp.real(resampled),
             atol=1e-9)
 
+    @skip_xp_backends("jax.numpy", reason="XXX: immutable arrays")
     def test_input_domain(self, xp):
         # Test if both input domain modes produce the same results.
         tsig = xp.astype(xp.arange(256), xp.complex128)
@@ -1425,6 +1427,7 @@ class TestResample:
             signal.resample(tsig, num, domain='time'),
             atol=1e-9)
 
+    @skip_xp_backends("jax.numpy", reason="XXX: immutable arrays")
     @pytest.mark.parametrize('nx', (1, 2, 3, 5, 8))
     @pytest.mark.parametrize('ny', (1, 2, 3, 5, 8))
     @pytest.mark.parametrize('dtype', ('float64', 'complex128'))
@@ -1464,6 +1467,7 @@ class TestResample:
         y = signal.resample_poly(x, 1, 2, padtype=padtype)
         assert y.dtype == x.dtype
 
+    @skip_xp_backends("jax.numpy", reason="XXX: immutable arrays")
     @skip_xp_backends(cpu_only=True, reason="XXX: blocked by firwin")
     @pytest.mark.parametrize(
         "method, ext, padtype",
@@ -1552,6 +1556,7 @@ class TestResample:
             y2_true = xp.asarray([1., 0.])
             xp_assert_close(y2_test, y2_true, atol=1e-12)
 
+    @skip_xp_backends("jax.numpy", reason="XXX: immutable arrays")
     @skip_xp_backends(
         cpu_only=True, exceptions=["cupy"], reason="filtfilt is CPU-only"
     )
@@ -3329,6 +3334,7 @@ class TestEnvelope:
             # noinspection PyTypeChecker
             envelope(xp.ones(4), residual='undefined')
 
+    @skip_xp_backends("jax.numpy", reason="XXX: immutable arrays")
     def test_envelope_verify_parameters(self, xp):
         """Ensure that the various parametrizations produce compatible results. """
         Z, Zr_a = xp.asarray([4.0, 2, 2, 3, 0]), xp.asarray([4.0, 0, 0, 6, 0, 0, 0, 0])
@@ -3381,6 +3387,7 @@ class TestEnvelope:
         self.assert_close(sp_fft.fft(zr_a), xp.asarray(Zr_a, dtype=xp.complex128),
                           msg="Complex residual calculation error")
 
+    @skip_xp_backends("jax.numpy", reason="XXX: immutable arrays")
     @pytest.mark.parametrize(
         "               Z,        bp_in,     Ze2_desired,      Zr_desired",
         [([1, 0, 2, 2, 0],    (1, None), [4, 2, 0, 0, 0], [1, 0, 0, 0, 0]),
@@ -3423,6 +3430,7 @@ class TestEnvelope:
         self.assert_close(Zr_lp, Zr_desired,
                           msg="Residual calculation error (residual='lowpass')")
 
+    @skip_xp_backends("jax.numpy", reason="XXX: immutable arrays")
     @pytest.mark.parametrize(
         "               Z,        bp_in,         Ze2_desired,         Zr_desired",
         [([0, 5, 0, 5, 0], (None, None),    [5, 0, 10, 0, 5],    [0, 0, 0, 0, 0]),
@@ -3448,6 +3456,7 @@ class TestEnvelope:
         self.assert_close(Zr, Zr_desired,
                           msg="Residual calculation error")
 
+    @skip_xp_backends("jax.numpy", reason="XXX: immutable arrays")
     def test_envelope_verify_axis_parameter(self, xp):
         """Test for multi-channel envelope calculations. """
         z = sp_fft.irfft(xp.asarray([[1.0, 0, 2, 2, 0], [7, 0, 4, 4, 0]]))
@@ -3464,6 +3473,7 @@ class TestEnvelope:
         self.assert_close(Ye2, Ze2_desired, msg="Transposed 2d envelope calc. error")
         self.assert_close(Yr, Zr_desired, msg="Transposed 2d residual calc. error")
 
+    @skip_xp_backends("jax.numpy", reason="XXX: immutable arrays")
     def test_envelope_verify_axis_parameter_complex(self, xp):
         """Test for multi-channel envelope calculations with complex values. """
         inp = xp.asarray([[1.0, 5, 0, 5, 2], [1, 10, 0, 10, 2]])
@@ -3483,6 +3493,7 @@ class TestEnvelope:
         self.assert_close(Ye2, Ze2_des,  msg="Transposed 2d envelope calc. error")
         self.assert_close(Yr, Zr_des,  msg="Transposed 2d residual calc. error")
 
+    @skip_xp_backends("jax.numpy", reason="XXX: immutable arrays")
     @pytest.mark.parametrize('X', [[4, 0, 0, 1, 2], [4, 0, 0, 2, 1, 2]])
     def test_compare_envelope_hilbert(self, X, xp):
         """Compare output of `envelope()` and `hilbert()`. """
