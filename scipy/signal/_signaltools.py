@@ -2645,7 +2645,7 @@ def hilbert2(x, N=None):
     return x
 
 
-def envelope(z: np.ndarray, bp_in: tuple[int | None, int | None] = (1, None), *,
+def envelope(z: 'array-like', bp_in: tuple[int | None, int | None] = (1, None), *,
              n_out: int | None = None, squared: bool = False,
              residual: Literal['lowpass', 'all', None] = 'lowpass',
              axis: int = -1) -> np.ndarray:
@@ -2863,6 +2863,10 @@ def envelope(z: np.ndarray, bp_in: tuple[int | None, int | None] = (1, None), *,
     >>> fg0.subplots_adjust(left=0.08, right=0.97, wspace=0.15)
     >>> plt.show()
     """
+    xp = array_namespace(z)
+
+    z = xp.asarray(z)
+
     if not (-z.ndim <= axis < z.ndim):
         raise ValueError(f"Invalid parameter {axis=} for {z.shape=}!")
     if not (z.shape[axis] > 0):
@@ -2885,12 +2889,13 @@ def envelope(z: np.ndarray, bp_in: tuple[int | None, int | None] = (1, None), *,
                          f"for n={z.shape[axis]=} and {bp_in=}!")
 
     # moving active axis to end allows to use `...` for indexing:
-    z = np.moveaxis(z, axis, -1)
+    z = xp.moveaxis(z, axis, -1)
 
-    if np.iscomplexobj(z):
+    if xp.isdtype(z.dtype, 'complex floating'):
         Z = sp_fft.fft(z)
     else:  # avoid calculating negative frequency bins for real signals:
-        Z = np.zeros_like(z, dtype=sp_fft.rfft(z.flat[:1]).dtype)
+        dt = sp_fft.rfft(xp.reshape(z, (-1,))[:1]).dtype
+        Z = xp.zeros_like(z, dtype=dt)
         Z[..., :n//2 + 1] = sp_fft.rfft(z)
         if bp.start > 0:  # make signal analytic within bp_in band:
             Z[..., bp] *= 2
@@ -2902,8 +2907,8 @@ def envelope(z: np.ndarray, bp_in: tuple[int | None, int | None] = (1, None), *,
         bp_shift = slice(bp.start + n//2, bp.stop + n//2)
         z_bb = sp_fft.ifft(sp_fft.fftshift(Z, axes=-1)[..., bp_shift], n=n_out) * fak
 
-    z_env = np.abs(z_bb) if not squared else z_bb.real ** 2 + z_bb.imag ** 2
-    z_env = np.moveaxis(z_env, -1, axis)
+    z_env = xp.abs(z_bb) if not squared else xp.real(z_bb) ** 2 + xp.imag(z_bb) ** 2
+    z_env = xp.moveaxis(z_env, -1, axis)
 
     # Calculate the residual from the input bandpass filter:
     if residual is None:
@@ -2918,9 +2923,12 @@ def envelope(z: np.ndarray, bp_in: tuple[int | None, int | None] = (1, None), *,
         else:
             Z[..., bp.start:], Z[..., 0:(n + 1) // 2] = 0, 0
 
-    z_res = fak * (sp_fft.ifft(Z, n=n_out) if np.iscomplexobj(z) else
-                   sp_fft.irfft(Z, n=n_out))
-    return np.stack((z_env, np.moveaxis(z_res, -1, axis)), axis=0)
+    z_res = fak * (sp_fft.ifft(Z, n=n_out) 
+                   if xp.isdtype(z.dtype, 'complex floating')
+                   else sp_fft.irfft(Z, n=n_out)
+    )
+    return xp.stack((z_env, xp.moveaxis(z_res, -1, axis)), axis=0)
+
 
 def _cmplx_sort(p):
     """Sort roots based on magnitude.
