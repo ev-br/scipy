@@ -34,7 +34,7 @@ from scipy._lib._util import ComplexWarning
 from scipy._lib._array_api import (
     xp_assert_close, xp_assert_equal, is_numpy, is_torch, is_jax, is_cupy,
     assert_array_almost_equal, assert_almost_equal,
-    xp_copy, xp_size, xp_default_dtype
+    xp_copy, xp_size, xp_default_dtype, array_namespace
 )
 skip_xp_backends = pytest.mark.skip_xp_backends
 xfail_xp_backends = pytest.mark.xfail_xp_backends
@@ -1369,14 +1369,13 @@ padtype_options = ["mean", "median", "minimum", "maximum", "line"]
 padtype_options += _upfirdn_modes
 
 
-@skip_xp_backends(np_only=True)
 class TestResample:
     def test_basic(self, xp):
         # Some basic tests
 
         # Regression test for issue #3603.
         # window.shape must equal to sig.shape[0]
-        sig = np.arange(128)
+        sig = xp.arange(128, dtype=xp.float64)
         num = 256
         win = signal.get_window(('kaiser', 8.0), 160)
         assert_raises(ValueError, signal.resample, sig, num, window=win)
@@ -1390,6 +1389,7 @@ class TestResample:
 
         # test for issue #6505 - should not modify window.shape when axis ≠ 0
         sig2 = np.tile(np.arange(160), (2, 1))
+        sig2 = xp.asarray(sig2, dtype=xp.float64)
         signal.resample(sig2, num, axis=-1, window=win)
         assert win.shape == (160,)
 
@@ -1399,21 +1399,24 @@ class TestResample:
     def test_rfft(self, N, num, window, xp):
         # Make sure the speed up using rfft gives the same result as the normal
         # way using fft
-        x = np.linspace(0, 10, N, endpoint=False)
-        y = np.cos(-x**2/6.0)
+        x = xp.linspace(0, 10, N, endpoint=False)
+        y = xp.cos(-x**2/6.0)
+        desired = signal.resample(xp.astype(y, xp.complex128), num, window=window)
         xp_assert_close(signal.resample(y, num, window=window),
-                        signal.resample(y + 0j, num, window=window).real)
+                        xp.real(desired))
 
-        y = np.array([np.cos(-x**2/6.0), np.sin(-x**2/6.0)])
-        y_complex = y + 0j
+        y = xp.stack([xp.cos(-x**2/6.0), xp.sin(-x**2/6.0)])
+        y_complex = xp.astype(y, xp.complex128)
+        resampled = signal.resample(y_complex, num, axis=1, window=window)
+
         xp_assert_close(
             signal.resample(y, num, axis=1, window=window),
-            signal.resample(y_complex, num, axis=1, window=window).real,
+            xp.real(resampled),
             atol=1e-9)
 
     def test_input_domain(self, xp):
         # Test if both input domain modes produce the same results.
-        tsig = np.arange(256) + 0j
+        tsig = xp.astype(xp.arange(256), xp.complex128)
         fsig = sp_fft.fft(tsig)
         num = 256
         xp_assert_close(
@@ -1423,35 +1426,37 @@ class TestResample:
 
     @pytest.mark.parametrize('nx', (1, 2, 3, 5, 8))
     @pytest.mark.parametrize('ny', (1, 2, 3, 5, 8))
-    @pytest.mark.parametrize('dtype', ('float', 'complex'))
+    @pytest.mark.parametrize('dtype', ('float64', 'complex128'))
     def test_dc(self, nx, ny, dtype, xp):
-        x = np.array([1] * nx, dtype)
+        dtype = getattr(xp, dtype)
+        x = xp.asarray([1] * nx, dtype=dtype)
         y = signal.resample(x, ny)
-        xp_assert_close(y, np.asarray([1] * ny, dtype=y.dtype))
+        xp_assert_close(y, xp.asarray([1] * ny, dtype=y.dtype))
 
     @pytest.mark.thread_unsafe  # due to Cython fused types, see cython#6506
     @pytest.mark.parametrize('padtype', padtype_options)
     def test_mutable_window(self, padtype, xp):
         # Test that a mutable window is not modified
-        impulse = np.zeros(3)
-        window = np.random.RandomState(0).randn(2)
-        window_orig = window.copy()
+        impulse = xp.zeros(3)
+        window = xp.asarray(np.random.RandomState(0).randn(2))
+        window_orig = xp.asarray(window, copy=True)
         signal.resample_poly(impulse, 5, 1, window=window, padtype=padtype)
         xp_assert_equal(window, window_orig)
 
     @pytest.mark.parametrize('padtype', padtype_options)
     def test_output_float32(self, padtype, xp):
         # Test that float32 inputs yield a float32 output
-        x = np.arange(10, dtype=np.float32)
-        h = np.array([1, 1, 1], dtype=np.float32)
+        x = xp.arange(10, dtype=xp.float32)
+        h = xp.asarray([1, 1, 1], dtype=xp.float32)
         y = signal.resample_poly(x, 1, 2, window=h, padtype=padtype)
-        assert y.dtype == np.float32
+        assert y.dtype == xp.float32
 
     @pytest.mark.parametrize('padtype', padtype_options)
-    @pytest.mark.parametrize('dtype', [np.float32, np.float64])
+    @pytest.mark.parametrize('dtype', ['float32', 'float64'])
     def test_output_match_dtype(self, padtype, dtype, xp):
         # Test that the dtype of x is preserved per issue #14733
-        x = np.arange(10, dtype=dtype)
+        dtype = getattr(xp, dtype)
+        x = xp.arange(10, dtype=dtype)
         y = signal.resample_poly(x, 1, 2, padtype=padtype)
         assert y.dtype == x.dtype
 
@@ -1470,13 +1475,13 @@ class TestResample:
         rates_to = [49, 50, 51, 99, 100, 101, 199, 200, 201]
 
         # Sinusoids, windowed to avoid edge artifacts
-        t = np.arange(rate) / float(rate)
-        freqs = np.array((1., 10., 40.))[:, np.newaxis]
-        x = np.sin(2 * np.pi * freqs * t) * hann(rate)
+        t = xp.arange(rate, dtype=xp.float64) / float(rate)
+        freqs = xp.asarray((1., 10., 40.))[:, xp.newaxis]
+        x = xp.sin(2 * xp.pi * freqs * t) * hann(rate, xp=xp)
 
         for rate_to in rates_to:
-            t_to = np.arange(rate_to) / float(rate_to)
-            y_tos = np.sin(2 * np.pi * freqs * t_to) * hann(rate_to)
+            t_to = xp.arange(rate_to, dtype=xp.float64) / float(rate_to)
+            y_tos = xp.sin(2 * xp.pi * freqs * t_to) * hann(rate_to, xp=xp)
             if method == 'fft':
                 y_resamps = signal.resample(x, rate_to, axis=-1)
             else:
@@ -1497,9 +1502,13 @@ class TestResample:
                 y_resamps = signal.resample_poly(x, rate_to, rate, axis=-1,
                                                  **polyargs)
 
-            for y_to, y_resamp, freq in zip(y_tos, y_resamps, freqs):
+            for i in range(y_tos.shape[0]):
+                y_to = y_tos[i, :]
+                y_resamp = y_resamps[i, :]
+                freq = float(freqs[i, 0])
                 if freq >= 0.5 * rate_to:
-                    y_to.fill(0.)  # mostly low-passed away
+                    #y_to.fill(0.)  # mostly low-passed away
+                    y_to = xp.zeros_like(y_to)  # mostly low-passed away
                     if padtype in ['minimum', 'maximum']:
                         xp_assert_close(y_resamp, y_to, atol=3e-1)
                     else:
@@ -1512,9 +1521,10 @@ class TestResample:
         # Random data
         rng = np.random.RandomState(0)
         x = hann(rate) * np.cumsum(rng.randn(rate))  # low-pass, wind
+        x = xp.asarray(x)
         for rate_to in rates_to:
             # random data
-            t_to = np.arange(rate_to) / float(rate_to)
+            t_to = xp.arange(rate_to, dtype=xp.float64) / float(rate_to)
             y_to = np.interp(t_to, t, x)
             if method == 'fft':
                 y_resamp = signal.resample(x, rate_to)
@@ -1522,48 +1532,49 @@ class TestResample:
                 y_resamp = signal.resample_poly(x, rate_to, rate,
                                                 padtype=padtype)
             assert y_to.shape == y_resamp.shape
-            corr = np.corrcoef(y_to, y_resamp)[0, 1]
+            corr = xp.asarray(np.corrcoef(y_to, np.asarray(y_resamp))[0, 1])
             assert corr > 0.99, corr
 
         # More tests of fft method (Master 0.18.1 fails these)
         if method == 'fft':
-            x1 = np.array([1.+0.j, 0.+0.j])
+            x1 = xp.asarray([1.+0.j, 0.+0.j])
             y1_test = signal.resample(x1, 4)
             # upsampling a complex array
-            y1_true = np.array([1.+0.j, 0.5+0.j, 0.+0.j, 0.5+0.j])
+            y1_true = xp.asarray([1.+0.j, 0.5+0.j, 0.+0.j, 0.5+0.j])
             xp_assert_close(y1_test, y1_true, atol=1e-12)
-            x2 = np.array([1., 0.5, 0., 0.5])
+            x2 = xp.asarray([1., 0.5, 0., 0.5])
             y2_test = signal.resample(x2, 2)  # downsampling a real array
-            y2_true = np.array([1., 0.])
+            y2_true = xp.asarray([1., 0.])
             xp_assert_close(y2_test, y2_true, atol=1e-12)
 
-    def test_poly_vs_filtfilt(self, xp):
+    @pytest.mark.parametrize('down_factor', [2, 11, 79])
+    def test_poly_vs_filtfilt(self, down_factor, xp):
         # Check that up=1.0 gives same answer as filtfilt + slicing
         random_state = np.random.RandomState(17)
         try_types = (int, np.float32, np.complex64, float, complex)
         size = 10000
-        down_factors = [2, 11, 79]
 
         for dtype in try_types:
             x = random_state.randn(size).astype(dtype)
             if dtype in (np.complex64, np.complex128):
                 x += 1j * random_state.randn(size)
+            x = xp.asarray(x)
 
             # resample_poly assumes zeros outside of signl, whereas filtfilt
             # can only constant-pad. Make them equivalent:
             x[0] = 0
             x[-1] = 0
 
-            for down in down_factors:
-                h = signal.firwin(31, 1. / down, window='hamming')
-                yf = filtfilt(h, 1.0, x, padtype='constant')[::down]
+            h = signal.firwin(31, 1. / down_factor, window='hamming')
+            h = xp.asarray(h)   # XXX: convert firwin
+            yf = filtfilt(h, 1.0, x, padtype='constant')[::down_factor]
 
-                # Need to pass convolved version of filter to resample_poly,
-                # since filtfilt does forward and backward, but resample_poly
-                # only goes forward
-                hc = convolve(h, h[::-1])
-                y = signal.resample_poly(x, 1, down, window=hc)
-                xp_assert_close(yf, y, atol=1e-7, rtol=1e-7)
+            # Need to pass convolved version of filter to resample_poly,
+            # since filtfilt does forward and backward, but resample_poly
+            # only goes forward
+            hc = convolve(h, xp.flip(h))
+            y = signal.resample_poly(x, 1, down_factor, window=hc)
+            xp_assert_close(yf, y, atol=1e-7, rtol=1e-7)
 
     def test_correlate1d(self, xp):
         for down in [2, 4]:
@@ -1571,14 +1582,17 @@ class TestResample:
                 for nweights in (32, 33):
                     x = np.random.random((nx,))
                     weights = np.random.random((nweights,))
-                    y_g = correlate1d(x, weights[::-1], mode='constant')
+                    x, weights = map(xp.asarray, (x, weights))
+                    flip = array_namespace(x).flip
+                    y_g = correlate1d(x, flip(weights), mode='constant')
                     y_s = signal.resample_poly(
                         x, up=1, down=down, window=weights)
                     xp_assert_close(y_g[::down], y_s)
 
-    @pytest.mark.parametrize('dtype', [np.int32, np.float32])
+    @pytest.mark.parametrize('dtype', ['int32', 'float32'])
     def test_gh_15620(self, dtype, xp):
-        data = np.array([0, 1, 2, 3, 2, 1, 0], dtype=dtype)
+        dtype = getattr(xp, dtype)
+        data = xp.asarray([0, 1, 2, 3, 2, 1, 0], dtype=dtype)
         actual = signal.resample_poly(data,
                                       up=2,
                                       down=1,
@@ -3324,7 +3338,9 @@ class TestEnvelope:
         self.assert_close(zr_1, zr_0,
                           msg="Unsquared versus Squared residual calculation error")
 
-        ze2_2, zr_2 = xp.unstack(envelope(z, (1, 3), residual='all', squared=True, n_out=3*n))
+        ze2_2, zr_2 = xp.unstack(
+            envelope(z, (1, 3), residual='all', squared=True, n_out=3*n)
+        )
         self.assert_close(ze2_2[::3], ze2_0,
                           msg="3x up-sampled envelope calculation error")
         self.assert_close(zr_2[::3], zr_0,

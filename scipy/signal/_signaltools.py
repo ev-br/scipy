@@ -30,6 +30,7 @@ from scipy._lib._array_api import (
     array_namespace, is_torch, is_numpy, xp_copy, xp_size
 
 )
+from scipy._lib.array_api_compat import is_array_api_obj
 import scipy._lib.array_api_compat.numpy as np_compat
 import scipy._lib.array_api_extra as xpx
 
@@ -2645,10 +2646,10 @@ def hilbert2(x, N=None):
     return x
 
 
-def envelope(z: 'array-like', bp_in: tuple[int | None, int | None] = (1, None), *,
+def envelope(z, bp_in: tuple[int | None, int | None] = (1, None), *,
              n_out: int | None = None, squared: bool = False,
              residual: Literal['lowpass', 'all', None] = 'lowpass',
-             axis: int = -1) -> np.ndarray:
+             axis: int = -1):
     r"""Compute the envelope of a real- or complex-valued signal.
 
     Parameters
@@ -3608,11 +3609,13 @@ def resample(x, num, t=None, axis=0, window=None, domain='time'):
         raise ValueError("Acceptable domain flags are 'time' or"
                          f" 'freq', not domain={domain}")
 
-    x = np.asarray(x)
+    xp = array_namespace(x, t)
+
+    x = xp.asarray(x)
     Nx = x.shape[axis]
 
     # Check if we can use faster real FFT
-    real_input = np.isrealobj(x)
+    real_input = xp.isdtype(x.dtype, 'real floating')
 
     if domain == 'time':
         # Forward transform
@@ -3626,24 +3629,24 @@ def resample(x, num, t=None, axis=0, window=None, domain='time'):
     # Apply window to spectrum
     if window is not None:
         if callable(window):
-            W = window(sp_fft.fftfreq(Nx))
-        elif isinstance(window, np.ndarray):
+            W = window(sp_fft.fftfreq(Nx, xp=xp, device=x.device))
+        elif hasattr(window, 'shape'):   # must be an array object
             if window.shape != (Nx,):
                 raise ValueError('window must have the same length as data')
             W = window
         else:
-            W = sp_fft.ifftshift(get_window(window, Nx))
+            W = sp_fft.ifftshift(get_window(window, Nx, xp=xp, device=x.device))
 
         newshape_W = [1] * x.ndim
         newshape_W[axis] = X.shape[axis]
         if real_input:
             # Fold the window back on itself to mimic complex behavior
-            W_real = W.copy()
-            W_real[1:] += W_real[-1:0:-1]
+            W_real = xp.asarray(W, copy=True)
+            W_real[1:] += xp.flip(W_real[1:])  #:-1]
             W_real[1:] *= 0.5
-            X *= W_real[:newshape_W[axis]].reshape(newshape_W)
+            X *= xp.reshape(W_real[:newshape_W[axis]], newshape_W)
         else:
-            X *= W.reshape(newshape_W)
+            X *= xp.reshape(W, newshape_W)
 
     # Copy each half of the original spectrum to the output spectrum, either
     # truncating high frequencies (downsampling) or zero-padding them
@@ -3655,7 +3658,7 @@ def resample(x, num, t=None, axis=0, window=None, domain='time'):
         newshape[axis] = num // 2 + 1
     else:
         newshape[axis] = num
-    Y = np.zeros(newshape, X.dtype)
+    Y = xp.zeros(newshape, dtype=X.dtype)
 
     # Copy positive frequency components (and Nyquist, if present)
     N = min(num, Nx)
@@ -3702,7 +3705,7 @@ def resample(x, num, t=None, axis=0, window=None, domain='time'):
     if t is None:
         return y
     else:
-        new_t = np.arange(0, num) * (t[1] - t[0]) * Nx / float(num) + t[0]
+        new_t = xp.arange(0, num) * (t[1] - t[0]) * Nx / float(num) + t[0]
         return y, new_t
 
 
@@ -3830,7 +3833,9 @@ def resample_poly(x, up, down, axis=0, window=('kaiser', 5.0),
     >>> plt.show()
 
     """
-    x = np.asarray(x)
+    xp = array_namespace(x)
+
+    x = xp.asarray(x)
     if up != int(up):
         raise ValueError("up must be an integer")
     if down != int(down):
@@ -3849,28 +3854,32 @@ def resample_poly(x, up, down, axis=0, window=('kaiser', 5.0),
     up //= g_
     down //= g_
     if up == down == 1:
-        return x.copy()
+        return xp.asarray(x, copy=True)
     n_in = x.shape[axis]
     n_out = n_in * up
     n_out = n_out // down + bool(n_out % down)
 
-    if isinstance(window, (list | np.ndarray)):
-        window = np.array(window)  # use array to force a copy (we modify it)
+    if isinstance(window, list) or is_array_api_obj(window):
+        window = xp.asarray(window, copy=True)  # force a copy (we modify `window`)
         if window.ndim > 1:
             raise ValueError('window must be 1-D')
-        half_len = (window.size - 1) // 2
+        half_len = (xp_size(window) - 1) // 2
         h = window
     else:
         # Design a linear-phase low-pass FIR filter
         max_rate = max(up, down)
         f_c = 1. / max_rate  # cutoff of FIR filter (rel. to Nyquist)
         half_len = 10 * max_rate  # reasonable cutoff for sinc-like function
-        if np.issubdtype(x.dtype, np.floating):
+        if xp.isdtype(x.dtype, "real floating"):   # XXX: complex `x`?
+            dt = np.asarray(x).dtype   # XXX: convert firwin
             h = firwin(2 * half_len + 1, f_c,
-                       window=window).astype(x.dtype)  # match dtype of x
+                       window=window).astype(dt)  # match dtype of x
+            h = xp.asarray(h)   # XXX: convert firwin
         else:
             h = firwin(2 * half_len + 1, f_c,
                        window=window)
+            h = xp.asarray(h)
+
     h *= up
 
     # Zero-pad our filter to put the output samples at the center
@@ -3878,16 +3887,19 @@ def resample_poly(x, up, down, axis=0, window=('kaiser', 5.0),
     n_post_pad = 0
     n_pre_remove = (half_len + n_pre_pad) // down
     # We should rarely need to do this given our filter lengths...
-    while _output_len(len(h) + n_pre_pad + n_post_pad, n_in,
+    while _output_len(h.shape[0] + n_pre_pad + n_post_pad, n_in,
                       up, down) < n_out + n_pre_remove:
         n_post_pad += 1
-    h = np.concatenate((np.zeros(n_pre_pad, dtype=h.dtype), h,
-                        np.zeros(n_post_pad, dtype=h.dtype)))
+    h = xp.concat((xp.zeros(n_pre_pad, dtype=h.dtype), h,
+                   xp.zeros(n_post_pad, dtype=h.dtype)))
     n_pre_remove_end = n_pre_remove + n_out
 
+    def _median(x, *args, **kwds):
+        return xp.asarray(np.median(np.asarray(x), *args, **kwds))
+
     # Remove background depending on the padtype option
-    funcs = {'mean': np.mean, 'median': np.median,
-             'minimum': np.amin, 'maximum': np.amax}
+    funcs = {'mean': xp.mean, 'median': _median,
+             'minimum': xp.min, 'maximum': xp.max}
     upfirdn_kwargs = {'mode': 'constant', 'cval': 0}
     if padtype in funcs:
         background_values = funcs[padtype](x, axis=axis, keepdims=True)
@@ -4526,6 +4538,10 @@ def _filtfilt_gust(b, a, x, axis=-1, irlen=None):
     return y_opt, x0, x1
 
 
+def _skip_if_float(arg):
+    return None if isinstance(arg, float) else arg
+
+
 def filtfilt(b, a, x, axis=-1, padtype='odd', padlen=None, method='pad',
              irlen=None):
     """
@@ -4684,7 +4700,7 @@ def filtfilt(b, a, x, axis=-1, padtype='odd', padlen=None, method='pad',
     2.875334415008979e-10
 
     """
-    xp = array_namespace(b, a, x)
+    xp = array_namespace(_skip_if_float(b), _skip_if_float(a), x)
 
     b = np.atleast_1d(b)
     a = np.atleast_1d(a)
@@ -4726,6 +4742,8 @@ def filtfilt(b, a, x, axis=-1, padtype='odd', padlen=None, method='pad',
     if edge > 0:
         # Slice the actual signal from the extended signal.
         y = axis_slice(y, start=edge, stop=-edge, axis=axis)
+        if is_torch(xp):
+            y = y.copy()    # XXX: torch chokes on negative strides
 
     return xp.asarray(y)
 

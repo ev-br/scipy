@@ -305,7 +305,7 @@ def detrend_signature(data, axis=1, type='linear', bp=0, *args, **kwds):
 
 
 def filtfilt_signature(b, a, x, *args, **kwds):
-    return array_namespace(b, a, x)
+    return array_namespace(_skip_if_float(b), _skip_if_float(a), x)
 
 
 def lfilter_signature(b, a, x, axis=-1, zi=None):
