@@ -1434,7 +1434,7 @@ class TestResample:
         y = signal.resample(x, ny)
         xp_assert_close(y, xp.asarray([1] * ny, dtype=y.dtype))
 
-    @skip_xp_backends(np_only=True, reason="XXX: blocked by firwin")
+    @skip_xp_backends(cpu_only=True, reason="XXX: blocked by firwin")
     @pytest.mark.thread_unsafe  # due to Cython fused types, see cython#6506
     @pytest.mark.parametrize('padtype', padtype_options)
     def test_mutable_window(self, padtype, xp):
@@ -1445,6 +1445,7 @@ class TestResample:
         signal.resample_poly(impulse, 5, 1, window=window, padtype=padtype)
         xp_assert_equal(window, window_orig)
 
+    @skip_xp_backends(cpu_only=True, reason="XXX: blocked by firwin")
     @pytest.mark.parametrize('padtype', padtype_options)
     def test_output_float32(self, padtype, xp):
         # Test that float32 inputs yield a float32 output
@@ -1453,6 +1454,7 @@ class TestResample:
         y = signal.resample_poly(x, 1, 2, window=h, padtype=padtype)
         assert y.dtype == xp.float32
 
+    @skip_xp_backends(cpu_only=True, reason="XXX: blocked by firwin")
     @pytest.mark.parametrize('padtype', padtype_options)
     @pytest.mark.parametrize('dtype', ['float32', 'float64'])
     def test_output_match_dtype(self, padtype, dtype, xp):
@@ -1462,6 +1464,7 @@ class TestResample:
         y = signal.resample_poly(x, 1, 2, padtype=padtype)
         assert y.dtype == x.dtype
 
+    @skip_xp_backends(cpu_only=True, reason="XXX: blocked by firwin")
     @pytest.mark.parametrize(
         "method, ext, padtype",
         [("fft", False, None)]
@@ -1597,6 +1600,7 @@ class TestResample:
                         x, up=1, down=down, window=weights)
                     xp_assert_close(y_g[::down], y_s)
 
+    @skip_xp_backends(cpu_only=True, reason="XXX: blocked by firwin")
     @pytest.mark.parametrize('dtype', ['int32', 'float32'])
     def test_gh_15620(self, dtype, xp):
         dtype = getattr(xp, dtype)
