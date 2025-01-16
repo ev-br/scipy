@@ -1401,20 +1401,25 @@ class TestResample:
     def test_rfft(self, N, num, window, xp):
         # Make sure the speed up using rfft gives the same result as the normal
         # way using fft
+        dt_r = xp_default_dtype(xp)
+        dt_c = xp.complex64 if dt_r == xp.float32 else xp.complex128
+
         x = xp.linspace(0, 10, N, endpoint=False)
         y = xp.cos(-x**2/6.0)
-        desired = signal.resample(xp.astype(y, xp.complex128), num, window=window)
+        desired = signal.resample(xp.astype(y, dt_c), num, window=window)
         xp_assert_close(signal.resample(y, num, window=window),
                         xp.real(desired))
 
         y = xp.stack([xp.cos(-x**2/6.0), xp.sin(-x**2/6.0)])
-        y_complex = xp.astype(y, xp.complex128)
+        y_complex = xp.astype(y, dt_c)
         resampled = signal.resample(y_complex, num, axis=1, window=window)
+
+        atol = 1e-9 if dt_r == xp.float64 else 2e-7
 
         xp_assert_close(
             signal.resample(y, num, axis=1, window=window),
             xp.real(resampled),
-            atol=1e-9)
+            atol=atol)
 
     @skip_xp_backends("jax.numpy", reason="XXX: immutable arrays")
     def test_input_domain(self, xp):
@@ -3303,9 +3308,14 @@ class TestEnvelope:
     """Unit tests for function `._signaltools.envelope()`. """
 
     @staticmethod
-    def assert_close(actual, desired, msg):
+    def assert_close(actual, desired, msg, xp):
+        a_r_tol = ({'atol': 1e-12, 'rtol': 1e-12}
+                   if xp_default_dtype(xp) == xp.float64
+                   else {'atol': 1e-5, 'rtol': 1e-5}
+        )
+
         """Little helper to compare to arrays with proper tolerances"""
-        xp_assert_close(actual, desired, atol=1e-12, rtol=1e-12, err_msg=msg)
+        xp_assert_close(actual, desired, **a_r_tol, err_msg=msg)
 
     def test_envelope_invalid_parameters(self, xp):
         """For `envelope()` Raise all exceptions that are used to verify function
@@ -3337,55 +3347,61 @@ class TestEnvelope:
     @skip_xp_backends("jax.numpy", reason="XXX: immutable arrays")
     def test_envelope_verify_parameters(self, xp):
         """Ensure that the various parametrizations produce compatible results. """
-        Z, Zr_a = xp.asarray([4.0, 2, 2, 3, 0]), xp.asarray([4.0, 0, 0, 6, 0, 0, 0, 0])
+        dt_r = xp_default_dtype(xp)
+        dt_c = xp.complex64 if dt_r == xp.float32 else xp.complex128
+
+        Z = xp.asarray([4.0, 2, 2, 3, 0], dtype=dt_r)
+        Zr_a = xp.asarray([4.0, 0, 0, 6, 0, 0, 0, 0], dtype=dt_r)
         z = sp_fft.irfft(Z)
         n = z.shape[0]
 
         # the reference envelope:
         ze2_0, zr_0 = xp.unstack(envelope(z, (1, 3), residual='all', squared=True))
         self.assert_close(sp_fft.rfft(ze2_0),
-                          xp.asarray([4, 2, 0, 0, 0], dtype=xp.complex128),
-                          msg="Envelope calculation error")
+                          xp.asarray([4, 2, 0, 0, 0], dtype=dt_c),
+                          msg="Envelope calculation error", xp=xp)
         self.assert_close(sp_fft.rfft(zr_0),
-                          xp.asarray([4, 0, 0, 3, 0], dtype=xp.complex128),
-                          msg="Residual calculation error")
+                          xp.asarray([4, 0, 0, 3, 0], dtype=dt_c),
+                          msg="Residual calculation error", xp=xp)
 
         ze_1, zr_1 = xp.unstack(envelope(z, (1, 3), residual='all', squared=False))
         self.assert_close(ze_1**2, ze2_0,
-                          msg="Unsquared versus Squared envelope calculation error")
+                          msg="Unsquared versus Squared envelope calculation error",
+                          xp=xp)
         self.assert_close(zr_1, zr_0,
-                          msg="Unsquared versus Squared residual calculation error")
+                          msg="Unsquared versus Squared residual calculation error",
+                          xp=xp)
 
         ze2_2, zr_2 = xp.unstack(
             envelope(z, (1, 3), residual='all', squared=True, n_out=3*n)
         )
         self.assert_close(ze2_2[::3], ze2_0,
-                          msg="3x up-sampled envelope calculation error")
+                          msg="3x up-sampled envelope calculation error", xp=xp)
         self.assert_close(zr_2[::3], zr_0,
-                          msg="3x up-sampled residual calculation error")
+                          msg="3x up-sampled residual calculation error", xp=xp)
 
         ze2_3, zr_3 = xp.unstack(envelope(z, (1, 3), residual='lowpass', squared=True))
         self.assert_close(ze2_3, ze2_0,
-                          msg="`residual='lowpass'` envelope calculation error")
+                          msg="`residual='lowpass'` envelope calculation error", xp=xp)
         self.assert_close(sp_fft.rfft(zr_3),
-                          xp.asarray([4, 0, 0, 0, 0], dtype=xp.complex128),
-                          msg="`residual='lowpass'` residual calculation error")
+                          xp.asarray([4, 0, 0, 0, 0], dtype=dt_c),
+                          msg="`residual='lowpass'` residual calculation error", xp=xp)
 
         ze2_4 = envelope(z, (1, 3), residual=None, squared=True)
         self.assert_close(ze2_4, ze2_0,
-                          msg="`residual=None` envelope calculation error")
+                          msg="`residual=None` envelope calculation error", xp=xp)
 
         # compare complex analytic signal to real version
         Z_a = xp.asarray(Z, copy=True)
         Z_a[1:] *= 2
         z_a = sp_fft.ifft(Z_a, n=n)  # analytic signal of Z
         self.assert_close(xp.real(z_a), z,
-                          msg="Reference analytic signal error")
+                          msg="Reference analytic signal error", xp=xp)
         ze2_a, zr_a = xp.unstack(envelope(z_a, (1, 3), residual='all', squared=True))
-        self.assert_close(ze2_a, xp.astype(ze2_0, xp.complex128),  # dtypes must match
-                          msg="Complex envelope calculation error")
-        self.assert_close(sp_fft.fft(zr_a), xp.asarray(Zr_a, dtype=xp.complex128),
-                          msg="Complex residual calculation error")
+        self.assert_close(ze2_a, xp.astype(ze2_0, dt_c),  # dtypes must match
+                          msg="Complex envelope calculation error", xp=xp)
+        self.assert_close(sp_fft.fft(zr_a), xp.asarray(Zr_a, dtype=dt_c),
+                          msg="Complex residual calculation error", xp=xp)
 
     @skip_xp_backends("jax.numpy", reason="XXX: immutable arrays")
     @pytest.mark.parametrize(
@@ -3419,16 +3435,16 @@ class TestEnvelope:
         Ze2_desired = xp.asarray(Ze2_desired, dtype=xp.complex128)
         Zr_desired = xp.asarray(Zr_desired, dtype=xp.complex128)
         self.assert_close(Ze2, Ze2_desired,
-                          msg="Envelope calculation error (residual='all')")
+                          msg="Envelope calculation error (residual='all')", xp=xp)
         self.assert_close(Zr, Zr_desired,
-                          msg="Residual calculation error (residual='all')")
+                          msg="Residual calculation error (residual='all')", xp=xp)
 
         if bp_in[1] is not None:
             Zr_desired[bp_in[1]:] = 0
         self.assert_close(Ze2_lp, Ze2_desired,
-                          msg="Envelope calculation error (residual='lowpass')")
+                          msg="Envelope calculation error (residual='lowpass')", xp=xp)
         self.assert_close(Zr_lp, Zr_desired,
-                          msg="Residual calculation error (residual='lowpass')")
+                          msg="Residual calculation error (residual='lowpass')", xp=xp)
 
     @skip_xp_backends("jax.numpy", reason="XXX: immutable arrays")
     @pytest.mark.parametrize(
@@ -3452,35 +3468,43 @@ class TestEnvelope:
         Ze2, Zr = (sp_fft.fftshift(sp_fft.fft(z_)) for z_ in (ze2, zr))
 
         self.assert_close(Ze2, Ze2_desired,
-                          msg="Envelope calculation error")
+                          msg="Envelope calculation error", xp=xp)
         self.assert_close(Zr, Zr_desired,
-                          msg="Residual calculation error")
+                          msg="Residual calculation error", xp=xp)
 
     @skip_xp_backends("jax.numpy", reason="XXX: immutable arrays")
     def test_envelope_verify_axis_parameter(self, xp):
         """Test for multi-channel envelope calculations. """
-        z = sp_fft.irfft(xp.asarray([[1.0, 0, 2, 2, 0], [7, 0, 4, 4, 0]]))
+        dt_r = xp_default_dtype(xp)
+        dt_c = xp.complex64 if dt_r == xp.float32 else xp.complex128
+
+        z = sp_fft.irfft(xp.asarray([[1.0, 0, 2, 2, 0], [7, 0, 4, 4, 0]], dtype=dt_r))
         Ze2_desired = xp.asarray([[4, 2, 0, 0, 0], [16, 8, 0, 0, 0]],
-                                 dtype=xp.complex128)
-        Zr_desired = xp.asarray([[1, 0, 0, 0, 0], [7, 0, 0, 0, 0]], dtype=xp.complex128)
+                                 dtype=dt_c)
+        Zr_desired = xp.asarray([[1, 0, 0, 0, 0], [7, 0, 0, 0, 0]], dtype=dt_c)
 
         ze2, zr = xp.unstack(envelope(z, squared=True, axis=1))
         ye2T, yrT = xp.unstack(envelope(z.T, squared=True, axis=0))
         Ze2, Ye2, Zr, Yr = (sp_fft.rfft(z_) for z_ in (ze2, ye2T.T, zr, yrT.T))
 
-        self.assert_close(Ze2, Ze2_desired, msg="2d envelope calculation error")
-        self.assert_close(Zr, Zr_desired,  msg="2d residual calculation error")
-        self.assert_close(Ye2, Ze2_desired, msg="Transposed 2d envelope calc. error")
-        self.assert_close(Yr, Zr_desired, msg="Transposed 2d residual calc. error")
+        self.assert_close(Ze2, Ze2_desired, msg="2d envelope calculation error", xp=xp)
+        self.assert_close(Zr, Zr_desired,  msg="2d residual calculation error", xp=xp)
+        self.assert_close(
+            Ye2, Ze2_desired, msg="Transposed 2d envelope calc. error", xp=xp
+        )
+        self.assert_close(
+            Yr, Zr_desired, msg="Transposed 2d residual calc. error", xp=xp
+        )
 
     @skip_xp_backends("jax.numpy", reason="XXX: immutable arrays")
     def test_envelope_verify_axis_parameter_complex(self, xp):
         """Test for multi-channel envelope calculations with complex values. """
-        inp = xp.asarray([[1.0, 5, 0, 5, 2], [1, 10, 0, 10, 2]])
+        dt_r = xp_default_dtype(xp)
+        dt_c = xp.complex64 if dt_r == xp.float32 else xp.complex128
+        inp = xp.asarray([[1.0, 5, 0, 5, 2], [1, 10, 0, 10, 2]], dtype=dt_r)
         z = sp_fft.ifft(sp_fft.ifftshift(inp, axes=1))
-        Ze2_des = xp.asarray([[5, 0, 10, 0, 5], [20, 0, 40, 0, 20],],
-                           dtype=xp.complex128)
-        Zr_des = xp.asarray([[1, 0, 0, 0, 2], [1, 0, 0, 0, 2]], dtype=xp.complex128)
+        Ze2_des = xp.asarray([[5, 0, 10, 0, 5], [20, 0, 40, 0, 20],], dtype=dt_c)
+        Zr_des = xp.asarray([[1, 0, 0, 0, 2], [1, 0, 0, 0, 2]], dtype=dt_c)
 
         kw = dict(bp_in=(-1, 2), residual='all', squared=True)
         ze2, zr = xp.unstack(envelope(z, axis=1, **kw))
@@ -3488,10 +3512,12 @@ class TestEnvelope:
         Ze2, Ye2, Zr, Yr = (sp_fft.fftshift(sp_fft.fft(z_), axes=1)
                             for z_ in (ze2, ye2T.T, zr, yrT.T))
 
-        self.assert_close(Ze2, Ze2_des, msg="2d envelope calculation error")
-        self.assert_close(Zr, Zr_des, msg="2d residual calculation error")
-        self.assert_close(Ye2, Ze2_des,  msg="Transposed 2d envelope calc. error")
-        self.assert_close(Yr, Zr_des,  msg="Transposed 2d residual calc. error")
+        self.assert_close(Ze2, Ze2_des, msg="2d envelope calculation error", xp=xp)
+        self.assert_close(Zr, Zr_des, msg="2d residual calculation error", xp=xp)
+        self.assert_close(
+            Ye2, Ze2_des,  msg="Transposed 2d envelope calc. error", xp=xp
+        )
+        self.assert_close(Yr, Zr_des,  msg="Transposed 2d residual calc. error", xp=xp)
 
     @skip_xp_backends("jax.numpy", reason="XXX: immutable arrays")
     @pytest.mark.parametrize('X', [[4, 0, 0, 1, 2], [4, 0, 0, 2, 1, 2]])
@@ -3501,7 +3527,7 @@ class TestEnvelope:
         x = sp_fft.irfft(X)
         e_hil = xp.abs(hilbert(x))
         e_env = envelope(x, (None, None), residual=None)
-        self.assert_close(e_hil, e_env, msg="Hilbert-Envelope comparison error")
+        self.assert_close(e_hil, e_env, msg="Hilbert-Envelope comparison error", xp=xp)
 
 
 @skip_xp_backends(np_only=True)
