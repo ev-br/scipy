@@ -312,6 +312,10 @@ def lfilter_signature(b, a, x, axis=-1, zi=None):
     return array_namespace(b, a, x, zi)
 
 
+def envelope_signature(z, *args, **kwds):
+    return array_namespace(z)
+
+
 def find_peaks_signature(
     x, height=None, threshold=None, distance=None, prominence=None, width=None,
     wlen=None, rel_height=0.5, plateau_size=None
