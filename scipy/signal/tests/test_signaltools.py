@@ -1370,6 +1370,7 @@ padtype_options += _upfirdn_modes
 
 
 class TestResample:
+    @skip_xp_backends(np_only=True, reason="XXX: blocked by firwin")
     def test_basic(self, xp):
         # Some basic tests
 
@@ -1433,6 +1434,7 @@ class TestResample:
         y = signal.resample(x, ny)
         xp_assert_close(y, xp.asarray([1] * ny, dtype=y.dtype))
 
+    @skip_xp_backends(np_only=True, reason="XXX: blocked by firwin")
     @pytest.mark.thread_unsafe  # due to Cython fused types, see cython#6506
     @pytest.mark.parametrize('padtype', padtype_options)
     def test_mutable_window(self, padtype, xp):
@@ -1547,6 +1549,9 @@ class TestResample:
             y2_true = xp.asarray([1., 0.])
             xp_assert_close(y2_test, y2_true, atol=1e-12)
 
+    @skip_xp_backends(
+        cpu_only=True, exceptions=["cupy"], reason="filtfilt is CPU-only"
+    )
     @pytest.mark.parametrize('down_factor', [2, 11, 79])
     def test_poly_vs_filtfilt(self, down_factor, xp):
         # Check that up=1.0 gives same answer as filtfilt + slicing
@@ -1576,6 +1581,9 @@ class TestResample:
             y = signal.resample_poly(x, 1, down_factor, window=hc)
             xp_assert_close(yf, y, atol=1e-7, rtol=1e-7)
 
+    @skip_xp_backends(
+        cpu_only=True, exceptions=["cupy"], reason="correlate1d is CPU-only"
+    )
     def test_correlate1d(self, xp):
         for down in [2, 4]:
             for nx in range(1, 40, down):

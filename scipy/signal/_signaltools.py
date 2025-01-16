@@ -3629,20 +3629,24 @@ def resample(x, num, t=None, axis=0, window=None, domain='time'):
     # Apply window to spectrum
     if window is not None:
         if callable(window):
-            W = window(sp_fft.fftfreq(Nx, xp=xp, device=x.device))
+            # older numpies do not have the .device attribute
+            device_arg = {'device': x.device if hasattr(x, 'device') else None}
+            W = window(sp_fft.fftfreq(Nx, xp=xp, **device_arg))
         elif hasattr(window, 'shape'):   # must be an array object
             if window.shape != (Nx,):
                 raise ValueError('window must have the same length as data')
             W = window
         else:
-            W = sp_fft.ifftshift(get_window(window, Nx, xp=xp, device=x.device))
+            # older numpies do not have the .device attribute
+            device_arg = {'device': x.device if hasattr(x, 'device') else None}
+            W = sp_fft.ifftshift(get_window(window, Nx, xp=xp, **device_arg))
 
         newshape_W = [1] * x.ndim
         newshape_W[axis] = X.shape[axis]
         if real_input:
             # Fold the window back on itself to mimic complex behavior
             W_real = xp.asarray(W, copy=True)
-            W_real[1:] += xp.flip(W_real[1:])  #:-1]
+            W_real[1:] += xp.flip(W_real[1:])
             W_real[1:] *= 0.5
             X *= xp.reshape(W_real[:newshape_W[axis]], newshape_W)
         else:
