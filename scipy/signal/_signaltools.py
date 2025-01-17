@@ -3875,10 +3875,8 @@ def resample_poly(x, up, down, axis=0, window=('kaiser', 5.0),
         f_c = 1. / max_rate  # cutoff of FIR filter (rel. to Nyquist)
         half_len = 10 * max_rate  # reasonable cutoff for sinc-like function
         if xp.isdtype(x.dtype, "real floating"):   # XXX: complex `x`?
-            dt = np.asarray(x).dtype   # XXX: convert firwin
-            h = firwin(2 * half_len + 1, f_c,
-                       window=window).astype(dt)  # match dtype of x
-            h = xp.asarray(h)   # XXX: convert firwin
+            h = firwin(2 * half_len + 1, f_c, window=window)
+            h = xp.asarray(h, dtype=x.dtype)   # match dtype of x
         else:
             h = firwin(2 * half_len + 1, f_c,
                        window=window)
