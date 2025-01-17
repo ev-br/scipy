@@ -972,6 +972,10 @@ def firls(numtaps, bands, desired, *, weight=None, fs=None):
     >>> plt.show()
 
     """
+    xp = array_namespace(bands, desired)
+    bands = np.asarray(bands)
+    desired = np.asarray(desired)
+
     fs = _validate_fs(fs, allow_none=True)
     fs = 2 if fs is None else fs
     nyq = 0.5 * fs
@@ -1075,7 +1079,7 @@ def firls(numtaps, bands, desired, *, weight=None, fs=None):
 
     # make coefficients symmetric (linear phase)
     coeffs = np.hstack((a[:0:-1], 2 * a[0], a[1:]))
-    return coeffs
+    return xp.asarray(coeffs)
 
 
 def _dhtm(mag):

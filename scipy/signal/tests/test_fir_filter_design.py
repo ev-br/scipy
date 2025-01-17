@@ -1,3 +1,4 @@
+import math
 import numpy as np
 
 from numpy.testing import assert_warns
@@ -588,93 +589,105 @@ class TestFirls:
         # negative weight
         assert_raises(ValueError, firls, 11, [0.1, 0.2], [0, 0], weight=[-1])
 
-    def test_firls(self):
+    def test_firls(self, xp):
         N = 11  # number of taps in the filter
         a = 0.1  # width of the transition band
 
         # design a halfband symmetric low-pass filter
-        h = firls(11, [0, a, 0.5-a, 0.5], [1, 1, 0, 0], fs=1.0)
+        h = firls(11, xp.asarray([0, a, 0.5 - a, 0.5]), xp.asarray([1, 1, 0, 0]),
+                  fs=1.0)
 
         # make sure the filter has correct # of taps
         assert h.shape[0] == N
 
         # make sure it is symmetric
         midx = (N-1) // 2
-        assert_array_almost_equal(h[:midx], h[:-midx-1:-1])
+        flip = array_namespace(h).flip
+        assert_array_almost_equal(h[:midx],  flip(h[midx+1:])) # h[:-midx-1:-1])
 
         # make sure the center tap is 0.5
-        assert_almost_equal(h[midx], 0.5)
+        assert math.isclose(h[midx], 0.5) 
 
         # For halfband symmetric, odd coefficients (except the center)
         # should be zero (really small)
-        hodd = np.hstack((h[1:midx:2], h[-midx+1::2]))
-        assert_array_almost_equal(hodd, np.zeros_like(hodd))
+        hodd = xp.stack((h[1:midx:2], h[-midx+1::2]))
+        assert_array_almost_equal(hodd, xp.zeros_like(hodd))
 
         # now check the frequency response
         w, H = freqz(h, 1)
+        w, H = xp.asarray(w), xp.asarray(H)
         f = w/2/np.pi
-        Hmag = np.abs(H)
+        Hmag = xp.abs(H)
 
         # check that the pass band is close to unity
-        idx = np.logical_and(f > 0, f < a)
-        assert_array_almost_equal(Hmag[idx], np.ones_like(Hmag[idx]), decimal=3)
+        idx = (f > 0) & (f < a)
+        assert_array_almost_equal(Hmag[idx], xp.ones_like(Hmag[idx]), decimal=3)
 
         # check that the stop band is close to zero
-        idx = np.logical_and(f > 0.5-a, f < 0.5)
-        assert_array_almost_equal(Hmag[idx], np.zeros_like(Hmag[idx]), decimal=3)
+        idx = (f > 0.5 - a) & (f < 0.5)
+        assert_array_almost_equal(Hmag[idx], xp.zeros_like(Hmag[idx]), decimal=3)
 
-    def test_compare(self):
+    def test_compare(self, xp):
         # compare to OCTAVE output
-        taps = firls(9, [0, 0.5, 0.55, 1], [1, 1, 0, 0], weight=[1, 2])
+        taps = firls(9, xp.asarray([0, 0.5, 0.55, 1]),
+                    xp.asarray([1, 1, 0, 0]), weight=xp.asarray([1, 2]))
         # >> taps = firls(8, [0 0.5 0.55 1], [1 1 0 0], [1, 2]);
         known_taps = [-6.26930101730182e-04, -1.03354450635036e-01,
                       -9.81576747564301e-03, 3.17271686090449e-01,
                       5.11409425599933e-01, 3.17271686090449e-01,
                       -9.81576747564301e-03, -1.03354450635036e-01,
                       -6.26930101730182e-04]
+        known_taps = xp.asarray(known_taps)
         xp_assert_close(taps, known_taps)
 
         # compare to MATLAB output
-        taps = firls(11, [0, 0.5, 0.5, 1], [1, 1, 0, 0], weight=[1, 2])
+        taps = firls(11, xp.asarray([0, 0.5, 0.5, 1]),
+                     xp.asarray([1, 1, 0, 0]), weight=xp.asarray([1, 2]))
         # >> taps = firls(10, [0 0.5 0.5 1], [1 1 0 0], [1, 2]);
         known_taps = [
             0.058545300496815, -0.014233383714318, -0.104688258464392,
             0.012403323025279, 0.317930861136062, 0.488047220029700,
             0.317930861136062, 0.012403323025279, -0.104688258464392,
             -0.014233383714318, 0.058545300496815]
+        known_taps = xp.asarray(known_taps)
         xp_assert_close(taps, known_taps)
 
         # With linear changes:
-        taps = firls(7, (0, 1, 2, 3, 4, 5), [1, 0, 0, 1, 1, 0], fs=20)
+        taps = firls(7, xp.asarray((0, 1, 2, 3, 4, 5)),
+                     xp.asarray([1, 0, 0, 1, 1, 0]), fs=20)
         # >> taps = firls(6, [0, 0.1, 0.2, 0.3, 0.4, 0.5], [1, 0, 0, 1, 1, 0])
         known_taps = [
             1.156090832768218, -4.1385894727395849, 7.5288619164321826,
             -8.5530572592947856, 7.5288619164321826, -4.1385894727395849,
             1.156090832768218]
+        known_taps = xp.asarray(known_taps)
         xp_assert_close(taps, known_taps)
 
-    def test_rank_deficient(self):
+    def test_rank_deficient(self, xp):
         # solve() runs but warns (only sometimes, so here we don't use match)
-        x = firls(21, [0, 0.1, 0.9, 1], [1, 1, 0, 0])
+        x = firls(21, xp.asarray([0, 0.1, 0.9, 1]), xp.asarray([1, 1, 0, 0]))
         w, h = freqz(x, fs=2.)
-        absh2 = np.abs(h[:2])
-        xp_assert_close(absh2, np.ones_like(absh2), atol=1e-5)
-        absh2 = np.abs(h[-2:])
-        xp_assert_close(absh2, np.zeros_like(absh2), atol=1e-6, rtol=1e-7)
+        h = xp.asarray(h)
+        absh2 = xp.abs(h[:2])
+        xp_assert_close(absh2, xp.ones_like(absh2), atol=1e-5)
+        absh2 = xp.abs(h[-2:])
+        xp_assert_close(absh2, xp.zeros_like(absh2), atol=1e-6, rtol=1e-7)
         # switch to pinvh (tolerances could be higher with longer
         # filters, but using shorter ones is faster computationally and
         # the idea is the same)
-        x = firls(101, [0, 0.01, 0.99, 1], [1, 1, 0, 0])
+        x = firls(101, xp.asarray([0, 0.01, 0.99, 1]), xp.asarray([1, 1, 0, 0]))
         w, h = freqz(x, fs=2.)
-        mask = w < 0.01
-        assert mask.sum() > 3
-        habs = np.abs(h[mask])
-        xp_assert_close(habs, np.ones_like(habs), atol=1e-4)
-        mask = w > 0.99
-        assert mask.sum() > 3
-        habs = np.abs(h[mask])
-        xp_assert_close(habs, np.zeros_like(habs), atol=1e-4)
+        mask = xp.asarray(w < 0.01)
+        h = xp.asarray(h)
+        assert xp.sum(xp.astype(mask, xp.int64)) > 3
+        habs = xp.abs(h[mask])
+        xp_assert_close(habs, xp.ones_like(habs), atol=1e-4)
+        mask = xp.asarray(w > 0.99)
+        assert xp.sum(xp.astype(mask, xp.int64)) > 3
+        habs = xp.abs(h[mask])
+        xp_assert_close(habs, xp.zeros_like(habs), atol=1e-4)
 
+    @skip_xp_backends(np_only=True)
     def test_fs_validation(self):
         with pytest.raises(ValueError, match="Sampling.*single scalar"):
             firls(11, .1, 1, fs=np.array([10, 20]))
