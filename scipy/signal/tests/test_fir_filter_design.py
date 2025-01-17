@@ -501,12 +501,15 @@ class TestFirwin2:
         xp_assert_equal(freq1, freq2)
 
 
+@skip_xp_backends(cpu_only=True)
 class TestRemez:
 
-    def test_bad_args(self):
+    @skip_xp_backends(np_only=True)
+    def test_bad_args(self, xp):
         assert_raises(ValueError, remez, 11, [0.1, 0.4], [1], type='pooka')
 
-    def test_hilbert(self):
+    @skip_xp_backends(np_only=True)
+    def test_hilbert(self, xp):
         N = 11  # number of taps in the filter
         a = 0.1  # width of the transition band
 
@@ -535,14 +538,14 @@ class TestRemez:
         idx = np.logical_and(f > a, f < 0.5-a)
         assert (abs(Hmag[idx] - 1) < 0.015).all(), "Pass Band Close To Unity"
 
-    def test_compare(self):
+    def test_compare(self, xp):
         # test comparison to MATLAB
         k = [0.024590270518440, -0.041314581814658, -0.075943803756711,
              -0.003530911231040, 0.193140296954975, 0.373400753484939,
              0.373400753484939, 0.193140296954975, -0.003530911231040,
              -0.075943803756711, -0.041314581814658, 0.024590270518440]
-        h = remez(12, [0, 0.3, 0.5, 1], [1, 0], fs=2.)
-        xp_assert_close(h, k)
+        h = remez(12, xp.asarray([0, 0.3, 0.5, 1]), xp.asarray([1, 0]), fs=2.)
+        xp_assert_close(h, xp.asarray(k))
 
         h = [-0.038976016082299, 0.018704846485491, -0.014644062687875,
              0.002879152556419, 0.016849978528150, -0.043276706138248,
@@ -551,15 +554,22 @@ class TestRemez:
              0.129770906801075, -0.103908158578635, 0.073641298245579,
              -0.043276706138248, 0.016849978528150, 0.002879152556419,
              -0.014644062687875, 0.018704846485491, -0.038976016082299]
-        xp_assert_close(remez(21, [0, 0.8, 0.9, 1], [0, 1], fs=2.), h)
+        xp_assert_close(
+            remez(21, xp.asarray([0, 0.8, 0.9, 1]), xp.asarray([0, 1]), fs=2.),
+            xp.asarray(h)
+        )
 
-    def test_fs_validation(self):
+    @skip_xp_backends(np_only=True)
+    def test_fs_validation(self, xp):
         with pytest.raises(ValueError, match="Sampling.*single scalar"):
             remez(11, .1, 1, fs=np.array([10, 20]))
 
+
+@skip_xp_backends(cpu_only=True, reason="lstsq")
 class TestFirls:
 
-    def test_bad_args(self):
+    @skip_xp_backends(np_only=True)
+    def test_bad_args(self, xp):
         # even numtaps
         assert_raises(ValueError, firls, 10, [0.1, 0.2], [0, 0])
         # odd bands

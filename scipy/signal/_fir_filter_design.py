@@ -836,6 +836,12 @@ def remez(numtaps, bands, desired, *, weight=None, type='bandpass',
     >>> plt.show()
 
     """
+    xp = array_namespace(bands, desired, weight)
+    bands = np.asarray(bands)
+    desired = np.asarray(desired)
+    if weight:
+        weight = np.asarray(weight)
+
     fs = _validate_fs(fs, allow_none=True)
     fs = 1.0 if fs is None else fs
 
@@ -851,8 +857,9 @@ def remez(numtaps, bands, desired, *, weight=None, type='bandpass',
         weight = [1] * len(desired)
 
     bands = np.asarray(bands).copy()
-    return _sigtools._remez(numtaps, bands, desired, weight, tnum, fs,
-                            maxiter, grid_density)
+    result =  _sigtools._remez(numtaps, bands, desired, weight, tnum, fs,
+                               maxiter, grid_density)
+    return xp.asarray(result)
 
 
 def firls(numtaps, bands, desired, *, weight=None, fs=None):
