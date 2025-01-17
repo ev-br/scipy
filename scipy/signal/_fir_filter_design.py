@@ -7,12 +7,15 @@ from typing import Literal
 
 import numpy as np
 from numpy.fft import irfft, fft, ifft
-from scipy.special import sinc
 from scipy.linalg import (toeplitz, hankel, solve, LinAlgError, LinAlgWarning,
                           lstsq)
 from scipy.signal._arraytools import _validate_fs
 
 from . import _sigtools
+
+from scipy._lib._array_api import array_namespace, xp_size
+import scipy._lib.array_api_extra as xpx
+
 
 __all__ = ['kaiser_beta', 'kaiser_atten', 'kaiserord',
            'firwin', 'firwin2', 'remez', 'firls', 'minimum_phase']
@@ -370,6 +373,11 @@ def firwin(numtaps, cutoff, *, width=None, window='hamming', pass_zero=True,
     array([ 0.04890915,  0.91284326,  0.04890915])
 
     """
+    if isinstance(cutoff, (int, float)):
+        xp = array_namespace(np.empty(1))   # np_compat
+    else:
+        xp = array_namespace(cutoff)
+
     # The major enhancements to this function added in November 2010 were
     # developed by Tom Krauss (see ticket #902).
     fs = _validate_fs(fs, allow_none=True)
@@ -377,18 +385,19 @@ def firwin(numtaps, cutoff, *, width=None, window='hamming', pass_zero=True,
 
     nyq = 0.5 * fs
 
-    cutoff = np.atleast_1d(cutoff) / float(nyq)
+    cutoff = xp.asarray(cutoff, dtype=xp.float64)
+    cutoff = xpx.atleast_nd(cutoff, ndim=1) / float(nyq)
 
     # Check for invalid input.
     if cutoff.ndim > 1:
         raise ValueError("The cutoff argument must be at most "
                          "one-dimensional.")
-    if cutoff.size == 0:
+    if xp_size(cutoff) == 0:
         raise ValueError("At least one cutoff frequency must be given.")
-    if cutoff.min() <= 0 or cutoff.max() >= 1:
+    if xp.min(cutoff) <= 0 or xp.max(cutoff) >= 1:
         raise ValueError("Invalid cutoff frequency: frequencies must be "
                          "greater than 0 and less than fs/2.")
-    if np.any(np.diff(cutoff) <= 0):
+    if xp.any(cutoff[1:] - cutoff[:-1] <= 0):
         raise ValueError("Invalid cutoff frequencies: the frequencies "
                          "must be strictly increasing.")
 
@@ -402,19 +411,19 @@ def firwin(numtaps, cutoff, *, width=None, window='hamming', pass_zero=True,
     if isinstance(pass_zero, str):
         if pass_zero in ('bandstop', 'lowpass'):
             if pass_zero == 'lowpass':
-                if cutoff.size != 1:
+                if xp_size(cutoff) != 1:
                     raise ValueError('cutoff must have one element if '
                                      f'pass_zero=="lowpass", got {cutoff.shape}')
-            elif cutoff.size <= 1:
+            elif xp_size(cutoff) <= 1:
                 raise ValueError('cutoff must have at least two elements if '
                                  f'pass_zero=="bandstop", got {cutoff.shape}')
             pass_zero = True
         elif pass_zero in ('bandpass', 'highpass'):
             if pass_zero == 'highpass':
-                if cutoff.size != 1:
+                if xp_size(cutoff) != 1:
                     raise ValueError('cutoff must have one element if '
                                      f'pass_zero=="highpass", got {cutoff.shape}')
-            elif cutoff.size <= 1:
+            elif xp_size(cutoff) <= 1:
                 raise ValueError('cutoff must have at least two elements if '
                                  f'pass_zero=="bandpass", got {cutoff.shape}')
             pass_zero = False
@@ -424,26 +433,28 @@ def firwin(numtaps, cutoff, *, width=None, window='hamming', pass_zero=True,
                              f'{pass_zero}')
     pass_zero = bool(operator.index(pass_zero))  # ensure bool-like
 
-    pass_nyquist = bool(cutoff.size & 1) ^ pass_zero
+    pass_nyquist = bool(xp_size(cutoff) & 1) ^ pass_zero
     if pass_nyquist and numtaps % 2 == 0:
         raise ValueError("A filter with an even number of coefficients must "
                          "have zero response at the Nyquist frequency.")
 
     # Insert 0 and/or 1 at the ends of cutoff so that the length of cutoff
     # is even, and each pair in cutoff corresponds to passband.
-    cutoff = np.hstack(([0.0] * pass_zero, cutoff, [1.0] * pass_nyquist))
+#    cutoff = np.hstack(([0.0] * pass_zero, cutoff, [1.0] * pass_nyquist))
+    cutoff = xp.concat((xp.zeros(int(pass_zero)), cutoff, xp.ones(int(pass_nyquist))))
+
 
     # `bands` is a 2-D array; each row gives the left and right edges of
     # a passband.
-    bands = cutoff.reshape(-1, 2)
+    bands = xp.reshape(cutoff, (-1, 2))
 
     # Build up the coefficients.
     alpha = 0.5 * (numtaps - 1)
-    m = np.arange(0, numtaps) - alpha
+    m = xp.arange(0, numtaps) - alpha
     h = 0
     for left, right in bands:
-        h += right * sinc(right * m)
-        h -= left * sinc(left * m)
+        h += right * xp.sinc(right * m)
+        h -= left * xp.sinc(left * m)
 
     # Get and apply the window function.
     from .windows import get_window
@@ -460,7 +471,7 @@ def firwin(numtaps, cutoff, *, width=None, window='hamming', pass_zero=True,
             scale_frequency = 1.0
         else:
             scale_frequency = 0.5 * (left + right)
-        c = np.cos(np.pi * m * scale_frequency)
+        c = xp.cos(xp.pi * m * scale_frequency)
         s = np.sum(h * c)
         h /= s
 

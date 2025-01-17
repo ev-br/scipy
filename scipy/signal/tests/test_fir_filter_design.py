@@ -1,11 +1,15 @@
 import numpy as np
+
 from numpy.testing import assert_warns
-from scipy._lib._array_api import (
-    xp_assert_close, xp_assert_equal,
-    assert_almost_equal, assert_array_almost_equal,
-)
 from pytest import raises as assert_raises
 import pytest
+
+from scipy._lib._array_api import (
+    xp_assert_close, xp_assert_equal, assert_almost_equal, assert_array_almost_equal,
+    array_namespace,
+)
+skip_xp_backends = pytest.mark.skip_xp_backends
+xfail_xp_backends = pytest.mark.xfail_xp_backends
 
 from scipy.fft import fft
 from scipy.special import sinc
@@ -41,17 +45,22 @@ def test_kaiserord():
 class TestFirwin:
 
     def check_response(self, h, expected_response, tol=.05):
-        N = len(h)
+        xp = array_namespace(h)
+        N = h.shape[0]
         alpha = 0.5 * (N-1)
-        m = np.arange(0,N) - alpha   # time indices of taps
+        m = xp.arange(0, N) - alpha   # time indices of taps
+        Ipi = xp.asarray(
+            1j*xp.pi, dtype=xp.complex128 if m.dtype == xp.float64 else xp.complex64
+        )
         for freq, expected in expected_response:
-            actual = abs(np.sum(h*np.exp(-1.j*np.pi*m*freq)))
-            mse = abs(actual-expected)**2
+            actual = abs(xp.sum(h*xp.exp(-Ipi*m*freq)))
+            mse = abs(actual - expected)**2
             assert mse < tol, f'response not as expected, mse={mse:g} > {tol:g}'
 
-    def test_response(self):
+    def test_response(self, xp):
         N = 51
         f = .5
+
         # increase length just to try even/odd
         h = firwin(N, f)  # low-pass from 0 to f
         self.check_response(h, [(.25,1), (.75,0)])
@@ -97,7 +106,7 @@ class TestFirwin:
         mse = np.mean(abs(abs(H)-Hideal)**2)
         return mse
 
-    def test_scaling(self):
+    def test_scaling(self, xp):
         """
         For one lowpass, bandpass, and highpass example filter, this test
         checks two things:
@@ -133,26 +142,35 @@ class TestFirwin:
 class TestFirWinMore:
     """Different author, different style, different tests..."""
 
-    def test_lowpass(self):
+    def test_lowpass(self, xp):
         width = 0.04
         ntaps, beta = kaiserord(120, width)
         kwargs = dict(cutoff=0.5, window=('kaiser', beta), scale=False)
         taps = firwin(ntaps, **kwargs)
 
+        ns = array_namespace(np.empty(0))
         # Check the symmetry of taps.
-        assert_array_almost_equal(taps[:ntaps//2], taps[ntaps:ntaps-ntaps//2-1:-1])
+        assert_array_almost_equal(
+            taps[:ntaps//2], taps[ntaps:ntaps-ntaps//2-1:-1], xp=ns
+        )
 
         # Check the gain at a few samples where
         # we know it should be approximately 0 or 1.
-        freq_samples = np.array([0.0, 0.25, 0.5-width/2, 0.5+width/2, 0.75, 1.0])
+        freq_samples = xp.asarray([0.0, 0.25, 0.5-width/2, 0.5+width/2, 0.75, 1.0])
         freqs, response = freqz(taps, worN=np.pi*freq_samples)
-        assert_array_almost_equal(np.abs(response),
-                                    [1.0, 1.0, 1.0, 0.0, 0.0, 0.0], decimal=5)
+
+        freqs = xp.asarray(freqs)    # XXX: convert freqz
+        response = xp.asarray(response)
+
+        assert_array_almost_equal(
+            xp.abs(response),
+            xp.asarray([1.0, 1.0, 1.0, 0.0, 0.0, 0.0]), decimal=5
+        )
 
         taps_str = firwin(ntaps, pass_zero='lowpass', **kwargs)
-        xp_assert_close(taps, taps_str)
+        xp_assert_close(taps, taps_str, xp=ns)
 
-    def test_highpass(self):
+    def test_highpass(self, xp):
         width = 0.04
         ntaps, beta = kaiserord(120, width)
 
@@ -162,63 +180,83 @@ class TestFirWinMore:
         kwargs = dict(cutoff=0.5, window=('kaiser', beta), scale=False)
         taps = firwin(ntaps, pass_zero=False, **kwargs)
 
+        ns = array_namespace(np.empty(0))
+
         # Check the symmetry of taps.
-        assert_array_almost_equal(taps[:ntaps//2], taps[ntaps:ntaps-ntaps//2-1:-1])
+        assert_array_almost_equal(
+            taps[:ntaps//2], taps[ntaps:ntaps-ntaps//2-1:-1], xp=ns
+        )
 
         # Check the gain at a few samples where
         # we know it should be approximately 0 or 1.
-        freq_samples = np.array([0.0, 0.25, 0.5-width/2, 0.5+width/2, 0.75, 1.0])
+        freq_samples = xp.asarray([0.0, 0.25, 0.5 - width/2, 0.5 + width/2, 0.75, 1.0])
         freqs, response = freqz(taps, worN=np.pi*freq_samples)
-        assert_array_almost_equal(np.abs(response),
-                                    [0.0, 0.0, 0.0, 1.0, 1.0, 1.0], decimal=5)
+        freqs, response = xp.asarray(freqs), xp.asarray(response)
+
+        assert_array_almost_equal(xp.abs(response),
+                                  xp.asarray([0.0, 0.0, 0.0, 1.0, 1.0, 1.0]), decimal=5)
 
         taps_str = firwin(ntaps, pass_zero='highpass', **kwargs)
-        xp_assert_close(taps, taps_str)
+        xp_assert_close(taps, taps_str, xp=ns)
 
-    def test_bandpass(self):
+    def test_bandpass(self, xp):
         width = 0.04
         ntaps, beta = kaiserord(120, width)
         kwargs = dict(cutoff=[0.3, 0.7], window=('kaiser', beta), scale=False)
         taps = firwin(ntaps, pass_zero=False, **kwargs)
 
+        ns = array_namespace(np.empty(0))
+
         # Check the symmetry of taps.
-        assert_array_almost_equal(taps[:ntaps//2], taps[ntaps:ntaps-ntaps//2-1:-1])
+        assert_array_almost_equal(
+            taps[:ntaps//2], taps[ntaps:ntaps-ntaps//2-1:-1], xp=ns
+        )
 
         # Check the gain at a few samples where
         # we know it should be approximately 0 or 1.
-        freq_samples = np.array([0.0, 0.2, 0.3-width/2, 0.3+width/2, 0.5,
-                                0.7-width/2, 0.7+width/2, 0.8, 1.0])
+        freq_samples = xp.asarray([0.0, 0.2, 0.3 - width/2, 0.3 + width/2, 0.5,
+                                   0.7 - width/2, 0.7 + width/2, 0.8, 1.0])
         freqs, response = freqz(taps, worN=np.pi*freq_samples)
-        assert_array_almost_equal(np.abs(response),
-                [0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0], decimal=5)
+        freqs, response = xp.asarray(freqs), xp.asarray(response)
+
+        assert_array_almost_equal(xp.abs(response),
+                xp.asarray([0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0]), decimal=5)
 
         taps_str = firwin(ntaps, pass_zero='bandpass', **kwargs)
-        xp_assert_close(taps, taps_str)
+        xp_assert_close(taps, taps_str, xp=ns)
 
-    def test_bandstop_multi(self):
+    def test_bandstop_multi(self, xp):
         width = 0.04
         ntaps, beta = kaiserord(120, width)
         kwargs = dict(cutoff=[0.2, 0.5, 0.8], window=('kaiser', beta),
                       scale=False)
         taps = firwin(ntaps, **kwargs)
 
+        ns = array_namespace(np.empty(0))
+
         # Check the symmetry of taps.
-        assert_array_almost_equal(taps[:ntaps//2], taps[ntaps:ntaps-ntaps//2-1:-1])
+        assert_array_almost_equal(
+            taps[:ntaps//2], taps[ntaps:ntaps-ntaps//2-1:-1], xp=ns
+        )
 
         # Check the gain at a few samples where
         # we know it should be approximately 0 or 1.
-        freq_samples = np.array([0.0, 0.1, 0.2-width/2, 0.2+width/2, 0.35,
-                                0.5-width/2, 0.5+width/2, 0.65,
-                                0.8-width/2, 0.8+width/2, 0.9, 1.0])
+        freq_samples = xp.asarray([0.0, 0.1, 0.2 - width/2, 0.2 + width/2, 0.35,
+                                   0.5 - width/2, 0.5 + width/2, 0.65,
+                                   0.8 - width/2, 0.8 + width/2, 0.9, 1.0])
         freqs, response = freqz(taps, worN=np.pi*freq_samples)
-        assert_array_almost_equal(np.abs(response),
-                [1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0],
-                decimal=5)
+        freqs, response = xp.asarray(freqs), xp.asarray(response)
+
+        assert_array_almost_equal(
+            xp.abs(response),
+            xp.asarray([1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0]),
+            decimal=5
+        )
 
         taps_str = firwin(ntaps, pass_zero='bandstop', **kwargs)
-        xp_assert_close(taps, taps_str)
+        xp_assert_close(taps, taps_str, xp=ns)
 
-    def test_fs_nyq(self):
+    def test_fs_nyq(self, xp):
         """Test the fs and nyq keywords."""
         nyquist = 1000
         width = 40.0
@@ -227,18 +265,25 @@ class TestFirWinMore:
         taps = firwin(ntaps, cutoff=[300, 700], window=('kaiser', beta),
                         pass_zero=False, scale=False, fs=2*nyquist)
 
+        ns = array_namespace(np.empty(0))
+
         # Check the symmetry of taps.
-        assert_array_almost_equal(taps[:ntaps//2], taps[ntaps:ntaps-ntaps//2-1:-1])
+        assert_array_almost_equal(
+            taps[:ntaps//2], taps[ntaps:ntaps-ntaps//2 - 1:-1], xp=ns
+        )
 
         # Check the gain at a few samples where
         # we know it should be approximately 0 or 1.
-        freq_samples = np.array([0.0, 200, 300-width/2, 300+width/2, 500,
-                                700-width/2, 700+width/2, 800, 1000])
+        freq_samples = xp.asarray([0.0, 200, 300 - width/2, 300 + width/2, 500,
+                                   700 - width/2, 700 + width/2, 800, 1000])
         freqs, response = freqz(taps, worN=np.pi*freq_samples/nyquist)
-        assert_array_almost_equal(np.abs(response),
-                [0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0], decimal=5)
+        freqs, response = xp.asarray(freqs), xp.asarray(response)
 
-    def test_bad_cutoff(self):
+        assert_array_almost_equal(xp.abs(response),
+                xp.asarray([0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0]), decimal=5)
+
+    @skip_xp_backends(np_only=True)
+    def test_bad_cutoff(self, xp):
         """Test that invalid cutoff argument raises ValueError."""
         # cutoff values must be greater than 0 and less than 1.
         assert_raises(ValueError, firwin, 99, -0.5)
@@ -257,12 +302,14 @@ class TestFirWinMore:
         assert_raises(ValueError, firwin, 99, 50.0, fs=80)
         assert_raises(ValueError, firwin, 99, [10, 20, 30], fs=50)
 
+    @skip_xp_backends(np_only=True)
     def test_even_highpass_raises_value_error(self):
         """Test that attempt to create a highpass filter with an even number
         of taps raises a ValueError exception."""
         assert_raises(ValueError, firwin, 40, 0.5, pass_zero=False)
         assert_raises(ValueError, firwin, 40, [.25, 0.5])
 
+    @skip_xp_backends(np_only=True)
     def test_bad_pass_zero(self):
         """Test degenerate pass_zero cases."""
         with assert_raises(ValueError, match='pass_zero must be'):
@@ -276,6 +323,7 @@ class TestFirWinMore:
             with assert_raises(ValueError, match='must have at least two'):
                 firwin(41, [0.5], pass_zero=pass_zero)
 
+    @skip_xp_backends(np_only=True)
     def test_fs_validation(self):
         with pytest.raises(ValueError, match="Sampling.*single scalar"):
             firwin2(51, .5, 1, fs=np.array([10, 20]))
