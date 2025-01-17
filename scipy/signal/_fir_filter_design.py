@@ -6,14 +6,14 @@ import warnings
 from typing import Literal
 
 import numpy as np
-from numpy.fft import irfft, fft, ifft
+from scipy.fft import irfft, fft, ifft
 from scipy.linalg import (toeplitz, hankel, solve, LinAlgError, LinAlgWarning,
                           lstsq)
 from scipy.signal._arraytools import _validate_fs
 
 from . import _sigtools
 
-from scipy._lib._array_api import array_namespace, xp_size
+from scipy._lib._array_api import array_namespace, xp_size, xp_default_dtype
 import scipy._lib.array_api_extra as xpx
 
 
@@ -440,7 +440,6 @@ def firwin(numtaps, cutoff, *, width=None, window='hamming', pass_zero=True,
 
     # Insert 0 and/or 1 at the ends of cutoff so that the length of cutoff
     # is even, and each pair in cutoff corresponds to passband.
-#    cutoff = np.hstack(([0.0] * pass_zero, cutoff, [1.0] * pass_nyquist))
     cutoff = xp.concat((xp.zeros(int(pass_zero)), cutoff, xp.ones(int(pass_nyquist))))
 
 
@@ -582,11 +581,14 @@ def firwin2(numtaps, freq, gain, *, nfreqs=None, window='hamming',
     [-0.02286961 -0.06362756  0.57310236  0.57310236 -0.06362756 -0.02286961]
 
     """
+    xp = array_namespace(freq, gain)
+    freq, gain = xp.asarray(freq), xp.asarray(gain)
+
     fs = _validate_fs(fs, allow_none=True)
     fs = 2 if fs is None else fs
     nyq = 0.5 * fs
 
-    if len(freq) != len(gain):
+    if freq.shape[0] != gain.shape[0]:
         raise ValueError('freq and gain must be of same length.')
 
     if nfreqs is not None and numtaps >= nfreqs:
@@ -596,11 +598,11 @@ def firwin2(numtaps, freq, gain, *, nfreqs=None, window='hamming',
 
     if freq[0] != 0 or freq[-1] != nyq:
         raise ValueError('freq must start with 0 and end with fs/2.')
-    d = np.diff(freq)
-    if (d < 0).any():
+    d = freq[1:] - freq[:-1]
+    if xp.any(d < 0):
         raise ValueError('The values in freq must be nondecreasing.')
     d2 = d[:-1] + d[1:]
-    if (d2 == 0).any():
+    if xp.any(d2 == 0):
         raise ValueError('A value in freq must not occur more than twice.')
     if freq[1] == 0:
         raise ValueError('Value 0 must not be repeated in freq')
@@ -631,30 +633,34 @@ def firwin2(numtaps, freq, gain, *, nfreqs=None, window='hamming',
     if nfreqs is None:
         nfreqs = 1 + 2 ** int(ceil(log(numtaps, 2)))
 
-    if (d == 0).any():
+    if xp.any(d == 0):
         # Tweak any repeated values in freq so that interp works.
-        freq = np.array(freq, copy=True)
-        eps = np.finfo(float).eps * nyq
-        for k in range(len(freq) - 1):
+        freq = xp.asarray(freq, copy=True)
+        eps = xp.finfo(float).eps * nyq
+        for k in range(freq.shape[0] - 1):
             if freq[k] == freq[k + 1]:
                 freq[k] = freq[k] - eps
                 freq[k + 1] = freq[k + 1] + eps
         # Check if freq is strictly increasing after tweak
-        d = np.diff(freq)
-        if (d <= 0).any():
+        d = freq[1:] - freq[:-1]
+        if xp.any(d <= 0):
             raise ValueError("freq cannot contain numbers that are too close "
                              "(within eps * (fs/2): "
                              f"{eps}) to a repeated value")
 
     # Linearly interpolate the desired response on a uniform mesh `x`.
     x = np.linspace(0.0, nyq, nfreqs)
-    fx = np.interp(x, freq, gain)
+    fx = np.interp(x, np.asarray(freq), np.asarray(gain))   # XXX: xpx.interp
+    x = xp.asarray(x)
+    fx = xp.asarray(fx)
 
     # Adjust the phases of the coefficients so that the first `ntaps` of the
     # inverse FFT are the desired filter coefficients.
-    shift = np.exp(-(numtaps - 1) / 2. * 1.j * np.pi * x / nyq)
+    dt = xp.complex64 if xp_default_dtype(xp) == xp.float32 else xp.complex128
+    I = xp.asarray(1j, dtype=dt)
+    shift = xp.exp(-(numtaps - 1) / 2. * I * xp.pi * x / nyq)
     if ftype > 2:
-        shift *= 1j
+        shift *= I
 
     fx2 = fx * shift
 
@@ -664,7 +670,7 @@ def firwin2(numtaps, freq, gain, *, nfreqs=None, window='hamming',
     if window is not None:
         # Create the window to apply to the filter coefficients.
         from .windows import get_window
-        wind = get_window(window, numtaps, fftbins=False)
+        wind = get_window(window, numtaps, fftbins=False, xp=xp)
     else:
         wind = 1
 
@@ -673,7 +679,7 @@ def firwin2(numtaps, freq, gain, *, nfreqs=None, window='hamming',
     out = out_full[:numtaps] * wind
 
     if ftype == 3:
-        out[out.size // 2] = 0.0
+        out[xp_size(out) // 2] = 0.0
 
     return out
 
