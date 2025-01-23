@@ -684,7 +684,7 @@ class multivariate_normal_gen(multi_rv_generic):
         cov = cov_object.covariance
         x = self._process_quantiles(x, dim)
         if not maxpts:
-            maxpts = 1000000 * dim
+            maxpts = 10000 * dim
 
         rng = self._get_random_state(rng)
         cdf = self._cdf(x, mean, cov, maxpts, abseps, releps, lower_limit, rng)
@@ -912,7 +912,7 @@ class multivariate_normal_frozen(multi_rv_frozen):
             self._dist._process_parameters(mean, cov, allow_singular))
         self.allow_singular = allow_singular or self.cov_object._allow_singular
         if not maxpts:
-            maxpts = 1000000 * self.dim
+            maxpts = 10000 * self.dim
         self.maxpts = maxpts
         self.abseps = abseps
         self.releps = releps
