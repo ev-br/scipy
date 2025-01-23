@@ -732,7 +732,7 @@ class multivariate_normal_gen(multi_rv_generic):
         cov = cov_object.covariance
         x = self._process_quantiles(x, dim)
         if not maxpts:
-            maxpts = 1000000 * dim
+            maxpts = 10000 * dim
         rng = self._get_random_state(rng)
         out = self._cdf(x, mean, cov, maxpts, abseps, releps, lower_limit, rng)
         return out
