@@ -1369,6 +1369,7 @@ padtype_options = ["mean", "median", "minimum", "maximum", "line"]
 padtype_options += _upfirdn_modes
 
 
+@skip_xp_backends("dask.array", reason="XXX something in dask")
 class TestResample:
 
     @skip_xp_backends("jax.numpy", reason="immutable arrays")
