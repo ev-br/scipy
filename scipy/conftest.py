@@ -61,6 +61,70 @@ def pytest_configure(config):
         )
 
 
+#################################################
+import types
+
+def my_decorator(obj):
+    if isinstance(obj, types.FunctionType):
+        # Modify the function, for example, add a print statement
+        def wrapper(*args, **kwargs):
+            breakpoint()
+            print(f"Calling {obj.__name__} with args: {args} kwargs: {kwargs}")
+            return obj(*args, **kwargs)
+        return wrapper
+    return obj
+
+
+# 2. Define a custom import hook
+import importlib
+
+# Wrap the original loader to decorate all objects after loading
+class DecoratorLoader:
+    def __init__(self, loader):
+        self.loader = loader
+
+ #   def load_module(self, fullname):
+ #       module = self.loader.load_module(fullname)
+ #       self.decorate_module(module)
+ #       return module
+
+    def exec_module(self, module):
+        module = self.loader.exec_module(module)
+        self.decorate_module(module)
+        return module
+
+    def create_module(self, spec):
+        breakpoint()
+        self.loader.create_module(spec)
+
+    def decorate_module(self, module):
+        for name, obj in module.__dict__.items():
+            module.__dict__[name] = my_decorator(obj)
+
+class DecoratorImportHook:
+    def __init__(self, target_library):
+        self.target_library = target_library
+
+    def find_spec(self, fullname, path, target=None):
+        if fullname.startswith(self.target_library):
+            original_spec = importlib.machinery.PathFinder.find_spec(fullname, path)
+            if original_spec:
+                original_loader = original_spec.loader
+             
+                original_spec.loader = DecoratorLoader(original_loader)
+                return original_spec
+        return None
+
+
+def pytest_sessionstart(session):
+    # 3. Install the import hook
+    breakpoint()
+    import sys
+    sys.meta_path.insert(0, DecoratorImportHook("scipy"))     # XXX
+
+#########################################################
+
+
 def pytest_runtest_setup(item):
     mark = item.get_closest_marker("xslow")
     if mark is not None:

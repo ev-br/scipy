@@ -40,6 +40,11 @@ from scipy.interpolate import _dierckx
 class TestBSpline:
 
     def test_ctor(self):
+
+   #     for name, obj in globals().items():
+   #         print(name, type(obj), getattr(obj, '__module__', '--'))
+   #     exit(-1)
+
         # knots should be an ordered 1-D array of finite real numbers
         assert_raises((TypeError, ValueError), BSpline,
                 **dict(t=[1, 1.j], c=[1.], k=0))
