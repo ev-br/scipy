@@ -62,45 +62,39 @@ def pytest_configure(config):
 
 
 #################################################
-import types
+'''
+# Define a fixture to access test module globals with autouse=True
+@pytest.fixture(autouse=True)
+def access_globals(request):
+    # Access global variables from the test module
+    module_globals = request.module.__dict__
 
+    breakpoint()
+
+    request.module.accessed_globals = module_globals  # Store it on the module to access globally
+    # Optionally, you can also log or print the accessed globals for debugging
+    print(f"Accessed globals: {module_globals}")
+'''
+
+
+import sys
+import importlib
+import types
+import functools
+
+# 1. Define the decorator
 def my_decorator(obj):
     if isinstance(obj, types.FunctionType):
         # Modify the function, for example, add a print statement
+        @functools.wraps(obj)
         def wrapper(*args, **kwargs):
-            breakpoint()
-            print(f"Calling {obj.__name__} with args: {args} kwargs: {kwargs}")
+#            print(f"Calling {obj.__name__} with args: {args} kwargs: {kwargs}")
+       #     print(f"calling {obj.__name__} from {obj.__module__}")
             return obj(*args, **kwargs)
         return wrapper
     return obj
 
-
 # 2. Define a custom import hook
-import importlib
-
-# Wrap the original loader to decorate all objects after loading
-class DecoratorLoader:
-    def __init__(self, loader):
-        self.loader = loader
-
- #   def load_module(self, fullname):
- #       module = self.loader.load_module(fullname)
- #       self.decorate_module(module)
- #       return module
-
-    def exec_module(self, module):
-        module = self.loader.exec_module(module)
-        self.decorate_module(module)
-        return module
-
-    def create_module(self, spec):
-        breakpoint()
-        self.loader.create_module(spec)
-
-    def decorate_module(self, module):
-        for name, obj in module.__dict__.items():
-            module.__dict__[name] = my_decorator(obj)
-
 class DecoratorImportHook:
     def __init__(self, target_library):
         self.target_library = target_library
@@ -110,17 +104,40 @@ class DecoratorImportHook:
             original_spec = importlib.machinery.PathFinder.find_spec(fullname, path)
             if original_spec:
                 original_loader = original_spec.loader
-             
-                original_spec.loader = DecoratorLoader(original_loader)
-                return original_spec
+
+                if isinstance(original_loader, importlib.abc.Loader):
+                    # Wrap the original loader to decorate all objects after loading
+                    class DecoratorLoader:
+                        def __init__(self, loader):
+                            self.loader = loader
+
+                        def create_module(self, spec):
+                            """This method creates the module object."""
+                            # Create the module using the original loader's create_module
+                            return self.loader.create_module(spec)
+
+                        def exec_module(self, module):
+                            self.loader.exec_module(module)
+                            self.decorate_module(module)
+                            return module
+
+                        def decorate_module(self, module):
+                            for name, obj in module.__dict__.items():
+                                module.__dict__[name] = my_decorator(obj)
+                
+                    original_spec.loader = DecoratorLoader(original_loader)
+                    return original_spec
+            else:
+                print(f"Fails to load with {fullname}")
+
         return None
 
 
+
 def pytest_sessionstart(session):
-    # 3. Install the import hook
-    breakpoint()
     import sys
-    sys.meta_path.insert(0, DecoratorImportHook("scipy"))     # XXX
+    sys.meta_path.insert(0, DecoratorImportHook("scipy"))
+
 
 #########################################################
 
