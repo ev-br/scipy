@@ -13,7 +13,7 @@ import hypothesis
 
 from scipy._lib._fpumode import get_fpu_mode
 from scipy._lib._array_api import (
-    SCIPY_ARRAY_API, SCIPY_DEVICE, array_namespace, default_xp, xp_device
+    SCIPY_ARRAY_API, SCIPY_DEVICE, array_namespace, default_xp, xp_device, is_array_api_obj
 )
 from scipy._lib._testutils import FPUModeChangeWarning
 from scipy._lib.array_api_extra.testing import patch_lazy_xp_functions
@@ -81,23 +81,67 @@ import sys
 import importlib
 import types
 import functools
+from collections import defaultdict
+
+#from scipy._lib._array_api import is_array_api_object, array_namespace
+
+def is_public_object(obj):
+    if ('tests' in obj.__module__
+        or "_signature" in obj.__name__
+    ):
+        return False
+    else:
+        return True
+
+
+class DummyNamespace:
+    __name__ = "multiple"
+
+
+def is_array_obj(x):
+    # np.float64 is ambiguous
+    return (is_array_api_obj(x)
+            and not (type(x) is type and issubclass(x, np.generic))
+    )
+
+
+def get_arg_namespace(*args, **kwds):
+    arr_args = [x for x in args if is_array_obj(x)]
+    arr_kwds = [v for k, v in kwds.items() if is_array_obj(v)]
+    try:
+        return array_namespace(*arr_args, *arr_kwds)
+    except TypeError:
+        # multiple namespaces: probably testing a error path
+        return DummyNamespace()
+
 
 # 1. Define the decorator
-def my_decorator(obj):
+def my_decorator(obj, config):
+
     if isinstance(obj, types.FunctionType):
-        # Modify the function, for example, add a print statement
+
         @functools.wraps(obj)
         def wrapper(*args, **kwargs):
-#            print(f"Calling {obj.__name__} with args: {args} kwargs: {kwargs}")
-       #     print(f"calling {obj.__name__} from {obj.__module__}")
+            namespace = get_arg_namespace(*args, **kwargs)
+
+            qualname = f"{obj.__module__}.{obj.__name__}"
+
+            config.namespace_registry[qualname].add(namespace.__name__)
             return obj(*args, **kwargs)
+
+        if not is_public_object(obj):
+            return obj
+
         return wrapper
+    # TODO: if obj is a class instance
+
     return obj
 
 # 2. Define a custom import hook
 class DecoratorImportHook:
-    def __init__(self, target_library):
+    def __init__(self, target_library, config):
         self.target_library = target_library
+        self.config = config
 
     def find_spec(self, fullname, path, target=None):
         if fullname.startswith(self.target_library):
@@ -108,8 +152,9 @@ class DecoratorImportHook:
                 if isinstance(original_loader, importlib.abc.Loader):
                     # Wrap the original loader to decorate all objects after loading
                     class DecoratorLoader:
-                        def __init__(self, loader):
+                        def __init__(self, loader, config):
                             self.loader = loader
+                            self.config = config
 
                         def create_module(self, spec):
                             """This method creates the module object."""
@@ -123,9 +168,9 @@ class DecoratorImportHook:
 
                         def decorate_module(self, module):
                             for name, obj in module.__dict__.items():
-                                module.__dict__[name] = my_decorator(obj)
+                                module.__dict__[name] = my_decorator(obj, self.config)
                 
-                    original_spec.loader = DecoratorLoader(original_loader)
+                    original_spec.loader = DecoratorLoader(original_loader, self.config)
                     return original_spec
             else:
                 print(f"Fails to load with {fullname}")
@@ -136,7 +181,18 @@ class DecoratorImportHook:
 
 def pytest_sessionstart(session):
     import sys
-    sys.meta_path.insert(0, DecoratorImportHook("scipy"))
+    sys.meta_path.insert(0, DecoratorImportHook("scipy", session.config))
+
+    session.config.namespace_registry = defaultdict(set)
+    breakpoint()
+
+def pytest_sessionfinish(session):
+    breakpoint()
+
+    registry = {k: list(v) for k, v in session.config.namespace_registry.items()}
+
+    with open(session.config.rootpath / "namespace.registry.json", "w") as fp:
+        json.dump(registry, fp, indent=2)
 
 
 #########################################################
