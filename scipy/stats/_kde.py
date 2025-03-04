@@ -19,7 +19,7 @@
 
 # SciPy imports.
 from scipy import linalg, special
-from scipy._lib._util import check_random_state
+from scipy._lib._util import check_random_state, np_vecdot
 
 from numpy import (asarray, atleast_2d, reshape, zeros, newaxis, exp, pi,
                    sqrt, ravel, power, atleast_1d, squeeze, sum, transpose,
@@ -359,9 +359,8 @@ class gaussian_kde:
         normalized_low = ravel((low - self.dataset) / stdev)
         normalized_high = ravel((high - self.dataset) / stdev)
 
-        value = np.sum(self.weights*(
-                        special.ndtr(normalized_high) -
-                        special.ndtr(normalized_low)))
+        delta = special.ndtr(normalized_high) - special.ndtr(normalized_low))
+        value = np_vecdot(self.weights, delta)
         return value
 
     def integrate_box(self, low_bounds, high_bounds, maxpts=None):
@@ -386,8 +385,7 @@ class gaussian_kde:
         values = multivariate_normal.cdf(
             high, lower_limit=low, cov=self.covariance, maxpts=maxpts
         )
-        # XXX: xp.linalg.vecdot is much faster than (a*b).sum(axis=-1)
-        return (values * self.weights).sum(axis=-1)
+        return np_vecdot(values, self.weights, axis=-1)
 
     def integrate_kde(self, other):
         """
@@ -429,7 +427,7 @@ class gaussian_kde:
             diff = large.dataset - mean
             tdiff = linalg.cho_solve(sum_cov_chol, diff)
 
-            energies = sum(diff * tdiff, axis=0) / 2.0
+            energies = np_vecdot(diff, tdiff, axis=0) / 2.0
             result += sum(exp(-energies)*large.weights, axis=0)*small.weights[i]
 
         sqrt_det = np.prod(np.diagonal(sum_cov_chol[0]))
