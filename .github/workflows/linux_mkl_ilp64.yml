@@ -33,6 +33,7 @@ permissions:
 jobs:
 
   mkl-lp64:
+    if: "github.repository == 'ev-br/scipy'"
     runs-on: ubuntu-latest
     name: "MKL (LP64 split, SDL)"
     steps:
@@ -75,6 +76,7 @@ jobs:
 
 
   mkl-ilp64:
+    if: "github.repository == 'ev-br/scipy'"
     runs-on: ubuntu-latest
     name: "MKL ILP64"
     steps:
