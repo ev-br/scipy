@@ -456,7 +456,7 @@ if use_ilp64
   # Okay, we need ILP64 BLAS and LAPACK *in addition to LP64*. So we need to
   # detect the ILP64 variants of the found LP64 libraries now.
   _args_blas_ilp64 = ['-DHAVE_BLAS_ILP64']
-  c_args_ilp64 = ['-DHAVE_BLAS_ILP64']
+  c_flags_ilp64 = ['-DHAVE_BLAS_ILP64']
 
   blas_interface = ['interface: ilp64']
   if blas_name == 'flexiblas'
@@ -479,7 +479,7 @@ if use_ilp64
        '-DBLAS_SYMBOL_SUFFIX=_64',
        '-DFIX_MKL_2025_ILP64_MISSING_SYMBOL'
      ]
-     c_args_ilp64 += ['-DBLAS_SYMBOL_SUFFIX=_64']
+     c_flags_ilp64 += ['-DBLAS_SYMBOL_SUFFIX=_64']
   else
     if blas_name == 'openblas'
       # We cannot allow plain openblas here, that's already the LP64 library and

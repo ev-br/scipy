@@ -164,7 +164,7 @@ py3.extension_module('_dierckx',
 #if use_ilp64
 #  _c_args_fitpack += ['-DHAVE_BLAS_ILP64']
 #endif
-message(">>>>>>>>>> INTERPOLATE  ", c_flags_ilp64)
+message('>>>>>>>>>> INTERPOLATE  ', c_flags_ilp64)
 
 _fitpack = py3.extension_module('_fitpack',
   ['src/_fitpackmodule.c'],
@@ -189,7 +189,7 @@ endif
 
 py3.extension_module('_dfitpack',
   _dfitpackmodule_obj,
-  c_args: [Wno_unused_variable] + c_flags_ilp64,  _c_args_fitpack,
+  c_args: [Wno_unused_variable] +  c_flags_ilp64,  #_c_args_fitpack,  #c_flags_ilp64, 
   link_args: version_link_args,
   dependencies: [fortranobject_dep],
   link_with: [fitpack_lib],
