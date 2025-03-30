@@ -138,7 +138,7 @@ __fitpack_dep = declare_dependency(
 
 py3.extension_module('_bspl',
   cython_gen_cpp.process('_bspl.pyx'),
-  cpp_args: cython_cpp_args,
+  cpp_args: cython_cpp_args + c_flags_ilp64,
   include_directories: 'src/',
   dependencies: [np_dep, __fitpack_dep],
   link_args: version_link_args,
@@ -152,6 +152,7 @@ py3.extension_module('_dierckx',
     include_directories: 'src/',
     dependencies: [np_dep, __fitpack_dep],
     link_args: version_link_args,
+    cpp_args: c_flags_ilp64,
     install: true,
     subdir: 'scipy/interpolate'
 )

@@ -25,6 +25,12 @@ extern "C" {
 void BLAS_FUNC(dlartg)(double *f, double *g, double *cs, double *sn, double *r);
 }
 
+#define XSTR(x) STR(x)
+#define STR(x) #x
+
+#pragma message XSTR(DLARTG)
+#pragma message XSTR(BLAS_SYMBOL_SUFFIX)
+
 
 /*
  * Apply a Givens transform.
