@@ -52,41 +52,42 @@ static PyObject* slsqp_error;
 #include "__nnls.h"
 
 // BLAS/LAPACK function prototypes used in SLSQP
-void daxpy_(int* n, double* sa, double* sx, int* incx, double* sy, int* incy);
-double ddot_(int* n, double* dx, int* incx, double* dy, int* incy);
-void dgelsy_(int* m, int* n, int* nrhs, double* a, int* lda, double* b, int* ldb, int* jpvt, double* rcond, int* rank, double* work, int* lwork, int* info);
-void dgemv_(char* trans, int* m, int* n, double* alpha, double* a, int* lda, double* x, int* incx, double* beta, double* y, int* incy);
-void dgeqr2_(int* m, int* n, double* a, int* lda, double* tau, double* work, int* info);
-void dgeqrf_(int* m, int* n, double* a, int* lda, double* tau, double* work, double* lwork, int* info);
-void dgerq2_(int* m, int* n, double* a, int* lda, double* tau, double* work, int* info);
-void dlarf_(char* side, int* m, int* n, double* v, int* incv, double* tau, double* c, int* ldc, double* work);
-void dlarfgp_(int* n, double* alpha, double* x, int* incx, double* tau);
-void dlartgp_(double* f, double* g, double* cs, double* sn, double* r);
-double dnrm2_(int* n, double* x, int* incx);
-void dorm2r_(char* side, char* trans, int* m, int* n, int* k, double* a, int* lda, double* tau, double* c, int* ldc, double* work, int* info);
-void dormr2_(char* side, char* trans, int* m, int* n, int* k, double* a, int* lda, double* tau, double* c, int* ldc, double* work, int* info);
-void dscal_(int* n, double* da, double* dx, int* incx);
-void dtpmv_(char* uplo, char* trans, char* diag, int* n, double* ap, double* x, int* incx);
-void dtpsv_(char* uplo, char* trans, char* diag, int* n, double* ap, double* x, int* incx);
-void dtrsm_(char* side, char* uplo, char* transa, char* diag, int* m, int* n, double* alpha, double* a, int* lda, double* b, int* ldb);
-void dtrsv_(char* uplo, char* trans, char* diag, int* n, double* a, int* lda, double* x, int* incx);
+void BLAS_FUNC(daxpy)(CBLAS_INT* n, double* sa, double* sx, CBLAS_INT* incx, double* sy, CBLAS_INT* incy);
+double BLAS_FUNC(ddot)(CBLAS_INT* n, double* dx, CBLAS_INT* incx, double* dy, CBLAS_INT* incy);
+void BLAS_FUNC(dgelsy)(CBLAS_INT* m, CBLAS_INT* n, CBLAS_INT* nrhs, double* a, CBLAS_INT* lda, double* b, CBLAS_INT* ldb, CBLAS_INT* jpvt, double* rcond, CBLAS_INT* rank, double* work, CBLAS_INT* lwork, CBLAS_INT* info);
+void BLAS_FUNC(dgemv)(char* trans, CBLAS_INT* m, CBLAS_INT* n, double* alpha, double* a, CBLAS_INT* lda, double* x, CBLAS_INT* incx, double* beta, double* y, CBLAS_INT* incy);
+void BLAS_FUNC(dgeqr2)(CBLAS_INT* m, CBLAS_INT* n, double* a, CBLAS_INT* lda, double* tau, double* work, CBLAS_INT* info);
+void BLAS_FUNC(dgeqrf)(CBLAS_INT* m, CBLAS_INT* n, double* a, CBLAS_INT* lda, double* tau, double* work, double* lwork, CBLAS_INT* info);  // XXX unused?
+void BLAS_FUNC(dgerq2)(CBLAS_INT* m, CBLAS_INT* n, double* a, CBLAS_INT* lda, double* tau, double* work, CBLAS_INT* info);
+// These four are included from __nnls.h : dlarf, dlarfgp, dlartgp, dnrm2
+//void dlarf_(char* side, CBLAS_INT* m, CBLAS_INT* n, double* v, CBLAS_INT* incv, double* tau, double* c, CBLAS_INT* ldc, double* work);
+//void dlarfgp_(CBLAS_INT* n, double* alpha, double* x, CBLAS_INT* incx, double* tau);
+//void dlartgp_(double* f, double* g, double* cs, double* sn, double* r);
+//double dnrm2_(CBLAS_INT* n, double* x, CBLAS_INT* incx);
+void BLAS_FUNC(dorm2r)(char* side, char* trans, CBLAS_INT* m, CBLAS_INT* n, CBLAS_INT* k, double* a, CBLAS_INT* lda, double* tau, double* c, CBLAS_INT* ldc, double* work, CBLAS_INT* info);
+void BLAS_FUNC(dormr2)(char* side, char* trans, CBLAS_INT* m, CBLAS_INT* n, CBLAS_INT* k, double* a, CBLAS_INT* lda, double* tau, double* c, CBLAS_INT* ldc, double* work, CBLAS_INT* info);
+void BLAS_FUNC(dscal)(CBLAS_INT* n, double* da, double* dx, CBLAS_INT* incx);
+void BLAS_FUNC(dtpmv)(char* uplo, char* trans, char* diag, CBLAS_INT* n, double* ap, double* x, CBLAS_INT* incx);
+void BLAS_FUNC(dtpsv)(char* uplo, char* trans, char* diag, CBLAS_INT* n, double* ap, double* x, CBLAS_INT* incx);
+void BLAS_FUNC(dtrsm)(char* side, char* uplo, char* transa, char* diag, CBLAS_INT* m, CBLAS_INT* n, double* alpha, double* a, CBLAS_INT* lda, double* b, CBLAS_INT* ldb);
+void BLAS_FUNC(dtrsv)(char* uplo, char* trans, char* diag, CBLAS_INT* n, double* a, CBLAS_INT* lda, double* x, CBLAS_INT* incx);
 
 
 // The SLSQP_vars struct holds the state of the algorithm and passed to Python
 // and back such that it is thread-safe.
 struct SLSQP_vars {
     double acc, alpha, f0, gs, h1, h2, h3, h4, t, t0, tol;
-    int exact, inconsistent, reset, iter, itermax, line, m, meq, mode, n;
+    CBLAS_INT exact, inconsistent, reset, iter, itermax, line, m, meq, mode, n;
 };
 
 
-void __slsqp_body(struct SLSQP_vars* S, double* funx, double* gradx, double* C, double* d, double* sol, double* mult, double* xl, double* xu, double* buffer, int* indices);
+void __slsqp_body(struct SLSQP_vars* S, double* funx, double* gradx, double* C, double* d, double* sol, double* mult, double* xl, double* xu, double* buffer, CBLAS_INT* indices);
 
 
 static PyObject*
 nnls(PyObject* Py_UNUSED(dummy), PyObject* args) {
 
-    int maxiter, info = 0;
+    CBLAS_INT maxiter, info = 0;
     PyArrayObject* ap_A=NULL;
     PyArrayObject* ap_b=NULL;
     double* buffer;
@@ -148,7 +149,7 @@ nnls(PyObject* Py_UNUSED(dummy), PyObject* args) {
     {
         PYERR(slsqp_error, "Memory allocation failed.");
     }
-    int *indices = malloc(n*sizeof(int));
+    CBLAS_INT *indices = malloc(n*sizeof(CBLAS_INT));
     if (indices == NULL)
     {
         free(buffer);
@@ -169,18 +170,18 @@ nnls(PyObject* Py_UNUSED(dummy), PyObject* args) {
     double* restrict data_b = (double *)PyArray_DATA(ap_b);
 
     // Copy the data from the numpy array
-    for (int j = 0; j < n; j++) {
-        for (int i = 0; i < m; i++) {
+    for (CBLAS_INT j = 0; j < n; j++) {
+        for (CBLAS_INT i = 0; i < m; i++) {
             a[i + j*m] = data_A[(j*strides[1] + i*strides[0])/sizeof(double)];
         }
     }
-    for (int i = 0; i < m; i++)
+    for (CBLAS_INT i = 0; i < m; i++)
     {
         b[i] = data_b[(i * rc_stride)/sizeof(double)];
     }
 
     // Call nnls
-    __nnls((int)m, (int)n, a, b, x, w, zz, indices, maxiter, &rnorm, &info);
+    __nnls((CBLAS_INT)m, (CBLAS_INT)n, a, b, x, w, zz, indices, maxiter, &rnorm, &info);
     // x is the first n elements of buffer, shrink buffer to n elements
     free(indices);
     double* mem_ret = realloc(buffer, n*sizeof(double));
@@ -193,7 +194,7 @@ nnls(PyObject* Py_UNUSED(dummy), PyObject* args) {
     npy_intp shape_ret[1] = {n};
     PyArrayObject* ap_ret = (PyArrayObject*)PyArray_SimpleNewFromData(1, shape_ret, NPY_FLOAT64, mem_ret);
     // Return the result
-    return Py_BuildValue("Ndi",PyArray_Return(ap_ret), rnorm, info);
+    return Py_BuildValue("Ndi",PyArray_Return(ap_ret), rnorm, (int)info);
 
 }
 
@@ -259,7 +260,7 @@ slsqp(PyObject* Py_UNUSED(dummy), PyObject* args)
     #define X(name) \
         PyObject* name##_obj = PyDict_GetItemString(input_dict, #name); \
         if (!name##_obj) { PYERR(slsqp_error, #name " not found in the dictionary."); } \
-        Vars.name = (int)PyLong_AsLong(name##_obj);
+        Vars.name = (CBLAS_INT)PyLong_AsLongLong(name##_obj);
         STRUCT_INT_FIELD_NAMES
     #undef X
 
@@ -305,7 +306,7 @@ slsqp(PyObject* Py_UNUSED(dummy), PyObject* args)
     double* restrict xl_data = (double*)PyArray_DATA(ap_xl);
     double* restrict xu_data = (double*)PyArray_DATA(ap_xu);
     double* buffer_data = (double*)PyArray_DATA(ap_buffer);
-    int* indices_data = (int*)PyArray_DATA(ap_indices);
+    CBLAS_INT* indices_data = (CBLAS_INT*)PyArray_DATA(ap_indices);
 
     __slsqp_body(&Vars, &funx, gradx_data, C_data, d_data, sol_data, mult_data, xl_data, xu_data, buffer_data, indices_data);
 
@@ -337,7 +338,7 @@ slsqp(PyObject* Py_UNUSED(dummy), PyObject* args)
     #undef X
 
     #define X(name) do { \
-            PyObject* tmp_##name = PyLong_FromLong((long)Vars.name); \
+            PyObject* tmp_##name = PyLong_FromLongLong((CBLAS_INT)Vars.name); \
             if ((!tmp_##name) || (PyDict_SetItemString(input_dict, #name, tmp_##name) < 0)) { \
                 Py_XDECREF(tmp_##name); \
                 PYERR(slsqp_error, "Setting '" #name "' failed."); \
