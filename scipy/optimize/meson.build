@@ -144,8 +144,9 @@ py3.extension_module('_slsqplib',
     '__nnls.h',
     '__nnls.c'
   ],
-  dependencies: [lapack_dep, blas_dep, np_dep],
+  dependencies: [lapack_ilp64, blas_ilp64, np_dep],
   link_args: version_link_args,
+  c_args: c_flags_ilp64,
   install: true,
   subdir: 'scipy/optimize'
 )
