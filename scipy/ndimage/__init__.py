@@ -172,3 +172,7 @@ from . import morphology
 from scipy._lib._testutils import PytestTester
 test = PytestTester(__name__)
 del PytestTester
+
+
+def dummyfunc(x):
+    return True

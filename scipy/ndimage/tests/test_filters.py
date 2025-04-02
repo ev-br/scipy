@@ -2954,3 +2954,12 @@ class TestVectorizedFilter:
         res = ndimage.vectorized_filter(input, function, size=21)
         ref = ndimage.vectorized_filter(input, function, size=21)
         xp_assert_close(res, ref)
+
+
+
+from scipy.ndimage import dummyfunc
+
+@xfail_xp_backends("torch", reason='why not')
+def test_dummyfunc(xp):
+    dummyfunc(xp.ones(3))
+
