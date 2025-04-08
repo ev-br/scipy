@@ -409,6 +409,9 @@ if use_ilp64
         error('scipy-openblas64 not found.')
       endif
 
+  elif blas_name == 'accelerate'
+    blas_ilp64 = dependency(blas_name, modules: blas_interface)
+    _args_blas_ilp64 += ['-DACCELERATE_NEW_LAPACK']
   else
     # XXX: ILP64 detection has only been tested for MKL and scipy-openblas64
     if blas_name == 'openblas'
