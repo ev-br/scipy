@@ -17,7 +17,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
   accelerate:
     name: Accelerate (ILP64)
     if: "github.repository == 'ev-br/scipy'"
@@ -34,14 +33,14 @@ jobs:
 
     - uses: maxim-lobanov/setup-xcode@60606e260d2fc5762a71e64e74b2174e8ea3c8bd # v1.6.0
       with:
-        xcode-version: '14.3'
+        xcode-version: '16.3'
 
     - name: Install dependencies
       run: |
         pip install -r requirements/all.txt
         pip install git+https://github.com/numpy/meson.git@main-numpymeson
         brew install gfortran
-    - name: Build against Accelerate (LP64)
+    - name: Build against Accelerate (ILP64)
       run: python dev.py build -C-Dblas=accelerate -C-Duse-ilp64=true
 
     - name: Test
