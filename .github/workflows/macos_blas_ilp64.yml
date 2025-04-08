@@ -1,0 +1,46 @@
+name: macOS BLAS ILP64 tests
+
+on:
+  push:
+    branches:
+      - maintenance/**
+  pull_request:
+    branches:
+      - main
+      - maintenance/**
+
+permissions:
+   contents: read  # to fetch code (actions/checkout)
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+  accelerate:
+    name: Accelerate (ILP64)
+    if: "github.repository == 'ev-br/scipy'"
+    runs-on: macos-13
+    steps:
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      with:
+        submodules: recursive
+        fetch-depth: 0
+
+    - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
+      with:
+        python-version: '3.10'
+
+    - uses: maxim-lobanov/setup-xcode@60606e260d2fc5762a71e64e74b2174e8ea3c8bd # v1.6.0
+      with:
+        xcode-version: '14.3'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements/all.txt
+        pip install git+https://github.com/numpy/meson.git@main-numpymeson
+        brew install gfortran
+    - name: Build against Accelerate (LP64)
+      run: python dev.py build -C-Dblas=accelerate -C-Duse-ilp64=true
+
+    - name: Test
+      run: python dev.py test -j2
