@@ -40,6 +40,16 @@ jobs:
         pip install -r requirements/all.txt
         pip install git+https://github.com/numpy/meson.git@main-numpymeson
         brew install gfortran
+
+        GFORTRAN_LOC=$(which gfortran-13)
+        ln -s $GFORTRAN_LOC gfortran
+        export PATH=$PWD:$PATH
+
+        # Ensure we have gfortran dylib
+        GFORTRAN_LIB=$(dirname `gfortran --print-file-name libgfortran.dylib`)
+        export DYLD_LIBRARY_PATH=$GFORTRAN_LIB
+
+
     - name: Build against Accelerate (ILP64)
       run: python dev.py build -C-Dblas=accelerate -C-Duse-ilp64=true
 
