@@ -20,27 +20,27 @@ jobs:
   accelerate:
     name: Accelerate (ILP64)
     if: "github.repository == 'ev-br/scipy'"
-    runs-on: macos-13
+    runs-on: macos-15
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
     steps:
-    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       with:
         submodules: recursive
-        fetch-depth: 0
 
-    - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
+    - name: Setup Python
+      uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5.5.0
       with:
-        python-version: '3.10'
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
 
-    - uses: maxim-lobanov/setup-xcode@60606e260d2fc5762a71e64e74b2174e8ea3c8bd # v1.6.0
-      with:
-        xcode-version: '15.2'
-
-    - name: Install dependencies
+    - name: Build and Install SciPy
       run: |
-        pip install -r requirements/all.txt
-        pip install git+https://github.com/numpy/meson.git@main-numpymeson
-        brew install gfortran
+        sudo xcode-select -s /Applications/Xcode_16.app
 
+        git submodule update --init
         GFORTRAN_LOC=$(which gfortran-13)
         ln -s $GFORTRAN_LOC gfortran
         export PATH=$PWD:$PATH
@@ -49,9 +49,8 @@ jobs:
         GFORTRAN_LIB=$(dirname `gfortran --print-file-name libgfortran.dylib`)
         export DYLD_LIBRARY_PATH=$GFORTRAN_LIB
 
+        pip install click doit pydevtool rich_click meson cython pythran pybind11 ninja numpy
+        python dev.py build -C-Dblas=accelerate -C-Duse-ilp64=true
 
-    - name: Build against Accelerate (ILP64)
-      run: python dev.py build -C-Dblas=accelerate -C-Duse-ilp64=true
-
-    - name: Test
-      run: python dev.py test -j2
+        pip install pooch pytest hypothesis
+        python dev.py -n test
