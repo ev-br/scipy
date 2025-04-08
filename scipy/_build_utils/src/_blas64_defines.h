@@ -10,13 +10,6 @@
  * We therefore inject the define into the f2py-generated sources. 
  */
 
-#ifndef HAVE_BLAS_ILP64
-#error("HAVE_BLAS_ILP64 not defined.")
-#endif
-#ifndef BLAS_SYMBOL_SUFFIX
-#error("BLAS_SYMBOL_SUFFIX  not defined")
-#endif
-
 #ifdef F_FUNC
 #undef F_FUNC
 #endif
@@ -30,3 +23,10 @@
 
 #define F_INT npy_int64
 
+
+#ifndef HAVE_BLAS_ILP64
+#error("HAVE_BLAS_ILP64 not defined.")
+#endif
+#ifndef BLAS_SYMBOL_SUFFIX
+#error("BLAS_SYMBOL_SUFFIX  not defined")
+#endif
