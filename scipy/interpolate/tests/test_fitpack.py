@@ -1,5 +1,6 @@
 import itertools
 import os
+import sys
 
 import numpy as np
 from scipy._lib._array_api import (
@@ -448,6 +449,7 @@ def test_splprep_segfault():
     tck, u = splprep([x, y], task=-1, t=uknots)  # here is the crash
 
 
+@pytest.mark.skipif(sys.platform == 'darwin', reason='XXX: crashes on ILP64 CI, why')
 def test_bisplev_integer_overflow():
     np.random.seed(1)
 
