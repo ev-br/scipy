@@ -34,7 +34,7 @@ subroutine <prefix>gemv(m,n,alpha,a,x,beta,y,offx,incx,offy,incy,trans,rows,cols
   <ftype> dimension(*), intent(in) :: x
   <ftype> dimension(ly), intent(in,copy,out), depend(ly),optional :: y
   integer intent(hide), depend(incy,rows,offy) :: ly = &
-       (y_capi==Py_None?1+offy+(rows-1)*abs(incy):-1)
+       (y_capi==Py_None?1+offy+(rows-1)*labs(incy):-1)
   <ftype> dimension(m,n), intent(in) :: a
   integer depend(a), intent(hide):: m = shape(a,0)
   integer depend(a), intent(hide):: n = shape(a,1)
@@ -42,11 +42,11 @@ subroutine <prefix>gemv(m,n,alpha,a,x,beta,y,offx,incx,offy,incy,trans,rows,cols
   integer optional, intent(in) :: offx=0
   integer optional, intent(in) :: offy=0
   check(offx>=0 && offx<len(x)) :: x
-  check(len(x)>offx+(cols-1)*abs(incx)) :: x
+  check(len(x)>offx+(cols-1)*labs(incx)) :: x
   depend(offx,cols,incx) :: x
 
   check(offy>=0 && offy<len(y)) :: y
-  check(len(y)>offy+(rows-1)*abs(incy)) :: y
+  check(len(y)>offy+(rows-1)*labs(incy)) :: y
   depend(offy,rows,incy) :: y
 
   integer depend(m,n,trans), intent(hide) :: rows = (trans?n:m)
@@ -76,7 +76,7 @@ subroutine <prefix>gbmv(m,n,kl,ku,alpha,a,lda,x,incx,offx,beta,y,incy,offy,trans
   integer optional, intent(in),check(incx>0||incx<0) :: incx = 1
   integer optional, intent(in),check(incy>0||incy<0) :: incy = 1
   integer intent(hide),depend(m,n,incy,offy,trans) :: ly = &
-      (y_capi==Py_None?1+offy+(trans==0?m-1:n-1)*abs(incy):-1)
+      (y_capi==Py_None?1+offy+(trans==0?m-1:n-1)*labs(incy):-1)
   integer optional, intent(in) :: offx=0
   integer optional, intent(in) :: offy=0
 
@@ -87,12 +87,12 @@ subroutine <prefix>gbmv(m,n,kl,ku,alpha,a,lda,x,incx,offx,beta,y,incy,offy,trans
 
   <ftype> dimension(ly), intent(in,out,copy,out=yout),depend(ly),optional :: y
   check(offy>=0 && offy<len(y)) :: y
-  check(len(y)>offy+(trans==0?m-1:n-1)*abs(incy)) :: y
+  check(len(y)>offy+(trans==0?m-1:n-1)*labs(incy)) :: y
   depend(offy,n,incy) :: y
 
   <ftype> dimension(*), intent(in) :: x
   check(offx>=0 && offx<len(x)) :: x
-  check(len(x)>offx+(trans==0?n-1:m-1)*abs(incx)) :: x
+  check(len(x)>offx+(trans==0?n-1:m-1)*labs(incx)) :: x
   depend(offx,n,incx) :: x
 
 end subroutine <prefix>gbmv
@@ -115,7 +115,7 @@ subroutine <prefix><s,s,h,h>bmv(n,k,alpha,a,lda,x,incx,offx,beta,y,incy,offy,low
   integer intent(in),depend(lda),check(k>=0&&k<=lda-1) :: k
   integer optional, intent(in),check(incx>0||incx<0) :: incx = 1
   integer optional, intent(in),check(incy>0||incy<0) :: incy = 1
-  integer intent(hide),depend(incy,n,offy) :: ly = (y_capi==Py_None?1+offy+(n-1)*abs(incy):-1)
+  integer intent(hide),depend(incy,n,offy) :: ly = (y_capi==Py_None?1+offy+(n-1)*labs(incy):-1)
   integer optional, intent(in) :: offx=0
   integer optional, intent(in) :: offy=0
 
@@ -126,12 +126,12 @@ subroutine <prefix><s,s,h,h>bmv(n,k,alpha,a,lda,x,incx,offx,beta,y,incy,offy,low
 
   <ftype> dimension(ly), intent(in,out,copy,out=yout),depend(ly),optional :: y
   check(offy>=0 && offy<len(y)) :: y
-  check(len(y)>offy+(n-1)*abs(incy)) :: y
+  check(len(y)>offy+(n-1)*labs(incy)) :: y
   depend(offy,n,incy) :: y
 
   <ftype> dimension(*), intent(in) :: x
   check(offx>=0 && offx<len(x)) :: x
-  check(len(x)>offx+(n-1)*abs(incx)) :: x
+  check(len(x)>offx+(n-1)*labs(incx)) :: x
   depend(offx,n,incx) :: x
 
 end subroutine <prefix><s,s,h,h>bmv
@@ -149,7 +149,7 @@ subroutine <prefix6><s,s,s,s,h,h>pmv(n,alpha,ap,x,incx,offx,beta,y,incy,offy,low
   integer intent(in),check(n>=0) :: n
   integer optional, intent(in),check(incx>0||incx<0) :: incx = 1
   integer optional, intent(in),check(incy>0||incy<0) :: incy = 1
-  integer intent(hide),depend(incy,n,offy) :: ly = (y_capi==Py_None?1+offy+(n-1)*abs(incy):-1)
+  integer intent(hide),depend(incy,n,offy) :: ly = (y_capi==Py_None?1+offy+(n-1)*labs(incy):-1)
   integer optional, intent(in) :: offx=0
   integer optional, intent(in) :: offy=0
 
@@ -160,12 +160,12 @@ subroutine <prefix6><s,s,s,s,h,h>pmv(n,alpha,ap,x,incx,offx,beta,y,incy,offy,low
 
   <ftype6> dimension(ly), intent(in,out,copy,out=yout),depend(ly),optional :: y
   check(offy>=0 && offy<len(y)) :: y
-  check(len(y)>offy+(n-1)*abs(incy)) :: y
+  check(len(y)>offy+(n-1)*labs(incy)) :: y
   depend(offy,n,incy) :: y
 
   <ftype6> dimension(*), intent(in) :: x
   check(offx>=0 && offx<len(x)) :: x
-  check(len(x)>offx+(n-1)*abs(incx)) :: x
+  check(len(x)>offx+(n-1)*labs(incx)) :: x
   depend(offx,n,incx) :: x
 
 end subroutine <prefix6><s,s,s,s,h,h>pmv
@@ -190,18 +190,18 @@ subroutine <prefix><symv,\0,hemv,\2>(n,alpha,a,x,beta,y,offx,incx,offy,incy,lowe
   <ftype> dimension(*), intent(in) :: x
   <ftype> dimension(ly), intent(in,copy,out),depend(ly),optional :: y
   integer intent(hide),depend(incy,n,offy) :: ly = &
-       (y_capi==Py_None?1+offy+(n-1)*abs(incy):-1)
+       (y_capi==Py_None?1+offy+(n-1)*labs(incy):-1)
   <ftype> dimension(n,n), intent(in),check(shape(a,0)==shape(a,1)) :: a
   integer depend(a), intent(hide):: n = shape(a,0)
 
   integer optional, intent(in) :: offx=0
   integer optional, intent(in) :: offy=0
   check(offx>=0 && offx<len(x)) :: x
-  check(len(x)>offx+(n-1)*abs(incx)) :: x
+  check(len(x)>offx+(n-1)*labs(incx)) :: x
   depend(offx,n,incx) :: x
 
   check(offy>=0 && offy<len(y)) :: y
-  check(len(y)>offy+(n-1)*abs(incy)) :: y
+  check(len(y)>offy+(n-1)*labs(incy)) :: y
   depend(offy,n,incy) :: y
 
 end subroutine  <prefix><symv,\0,hemv,\2>
@@ -246,9 +246,9 @@ subroutine <prefix6><sy,\0,\0,\0, he,\4>r(alpha,x,lower,incx,offx,n,a)
     integer, intent(in), optional :: offx = 0
     integer, intent(in), optional, check(incx>0||incx<0) :: incx = 1
 
-    integer, intent(in), optional :: n = (len(x)-1-offx)/abs(incx)+1
+    integer, intent(in), optional :: n = (len(x)-1-offx)/labs(incx)+1
     check(n >= 0) :: n
-    check(n <= (len(x)-1-offx)/abs(incx)+1) :: n
+    check(n <= (len(x)-1-offx)/labs(incx)+1) :: n
     depend(x, offx, incx) :: n
 
     <ftype6> dimension(n,n), intent(in,copy,out), optional :: a
@@ -275,11 +275,11 @@ subroutine <prefix><sy, \0, he, \2>r2(alpha,x,y,lower,incx,offx,incy,offy,n,a)
     integer intent(in), optional, check(incy>0||incy<0) :: incy = 1
     integer intent(in), optional :: offy = 0
 
-    integer intent(in), optional :: n = ((len(x)-1-offx)/abs(incx)+1 <= (len(y)-1-offy)/abs(incy)+1 ? (len(x)-1-offx)/abs(incx)+1 : (len(y)-1-offy)/abs(incy)+1)
+    integer intent(in), optional :: n = ((len(x)-1-offx)/labs(incx)+1 <= (len(y)-1-offy)/labs(incy)+1 ? (len(x)-1-offx)/labs(incx)+1 : (len(y)-1-offy)/labs(incy)+1)
     depend(x,incx,offx,y,incy,offy) :: n
     check(n>=0) :: n
-    check(n <= (len(x)-1-offx)/abs(incx)+1) :: n
-    check(n <= (len(y)-1-offy)/abs(incy)+1) :: n
+    check(n <= (len(x)-1-offx)/labs(incx)+1) :: n
+    check(n <= (len(y)-1-offy)/labs(incy)+1) :: n
 
     <ftype> dimension(n,n), intent(in,copy,out), optional :: a
     depend(incx, offx, x, incy, offy, y, n) :: a
@@ -305,7 +305,7 @@ subroutine <prefix6><s,s,s,s,h,h>pr(n,alpha,x,incx,offx,ap,lower)
 
     <ftype6> dimension(*), intent(in) :: x
     check(offx>=0 && offx<len(x)) :: x
-    check(len(x)>offx+(n-1)*abs(incx)) :: x
+    check(len(x)>offx+(n-1)*labs(incx)) :: x
     depend(offx,n,incx) :: x
 
     <ftype6> dimension(*),depend(n),intent(in,out,copy,out=apu) :: ap
@@ -334,12 +334,12 @@ subroutine <prefix><s,s,h,h>pr2(n,alpha,x,incx,offx,y,incy,offy,ap,lower)
 
     <ftype> dimension(*), intent(in) :: x
     check(offx>=0 && offx<len(x)) :: x
-    check(len(x)>offx+(n-1)*abs(incx)) :: x
+    check(len(x)>offx+(n-1)*labs(incx)) :: x
     depend(offx,n,incx) :: x
 
     <ftype> dimension(*), intent(in) :: y
     check(offy>=0 && offy<len(y)) :: y
-    check(len(y)>offy+(n-1)*abs(incy)) :: y
+    check(len(y)>offy+(n-1)*labs(incy)) :: y
     depend(offy,n,incy) :: y
 
     <ftype> dimension(*),depend(n),intent(in,out,copy,out=apu) :: ap
@@ -374,7 +374,7 @@ subroutine <prefix>tbsv(n,k,a,lda,x,incx,offx,lower,trans,diag)
 
   <ftype> dimension(*), intent(in,out,copy,out=xout) :: x
   check(offx>=0 && offx<len(x)) :: x
-  check(len(x)>offx+(n-1)*abs(incx)) :: x
+  check(len(x)>offx+(n-1)*labs(incx)) :: x
   depend(offx,n,incx) :: x
 
 end subroutine <prefix>tbsv
@@ -405,7 +405,7 @@ subroutine <prefix>tpsv(n,ap,x,incx,offx,lower,trans,diag)
 
   <ftype> dimension(*), intent(in,out,copy,out=xout) :: x
   check(offx>=0 && offx<len(x)) :: x
-  check(len(x)>offx+(n-1)*abs(incx)) :: x
+  check(len(x)>offx+(n-1)*labs(incx)) :: x
   depend(offx,n,incx) :: x
 
 end subroutine <prefix>tpsv
@@ -433,7 +433,7 @@ subroutine <prefix>trmv(n,a,x,offx,incx,lower,trans,diag)
   integer optional, intent(in), depend(x) :: offx=0
   check(offx>=0 && offx<len(x)) :: offx
 
-  check(len(x)>offx+(n-1)*abs(incx)) :: n
+  check(len(x)>offx+(n-1)*labs(incx)) :: n
   depend(x,offx,incx) :: n
 
 end subroutine <prefix>trmv
@@ -465,7 +465,7 @@ subroutine <prefix>trsv(n,a,lda,x,incx,offx,lower,trans,diag)
 
   <ftype> dimension(*), intent(in,out,copy,out=xout) :: x
   check(offx>=0 && offx<len(x)) :: x
-  check(len(x)>offx+(n-1)*abs(incx)) :: x
+  check(len(x)>offx+(n-1)*labs(incx)) :: x
   depend(offx,n,incx) :: x
 
 end subroutine <prefix>trsv
@@ -495,7 +495,7 @@ subroutine <prefix>tbmv(n,k,a,lda,x,incx,offx,lower,trans,diag)
 
   <ftype> dimension(*), intent(in,out,copy,out=xout) :: x
   check(offx>=0 && offx<len(x)) :: x
-  check(len(x)>offx+(n-1)*abs(incx)) :: x
+  check(len(x)>offx+(n-1)*labs(incx)) :: x
   depend(offx,n,incx) :: x
 
 end subroutine <prefix>tbmv
@@ -523,7 +523,7 @@ subroutine <prefix>tpmv(n,ap,x,incx,offx,lower,trans,diag)
 
   <ftype> dimension(*), intent(in,out,copy,out=xout) :: x
   check(offx>=0 && offx<len(x)) :: x
-  check(len(x)>offx+(n-1)*abs(incx)) :: x
+  check(len(x)>offx+(n-1)*labs(incx)) :: x
   depend(offx,n,incx) :: x
 
 end subroutine <prefix>tpmv

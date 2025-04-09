@@ -27,6 +27,7 @@
 #ifndef HAVE_BLAS_ILP64
 #error("HAVE_BLAS_ILP64 not defined.")
 #endif
+
 #ifndef BLAS_SYMBOL_SUFFIX
 #error("BLAS_SYMBOL_SUFFIX  not defined")
 #endif
