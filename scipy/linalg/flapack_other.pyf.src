@@ -2107,7 +2107,7 @@ subroutine <prefix>laswp(n,a,nrows,k1,k2,piv,off,inc,m,npiv)
 
     integer optional, intent(in),check(inc>0||inc<0) :: inc = 1
     integer optional,intent(in),depend(npiv),check(off>=0 && off<len(piv)) :: off=0
-    integer intent(hide),depend(npiv,inc,off),check(npiv-off>(m-1)*abs(inc)) :: m = (len(piv)-off)/abs(inc)
+    integer intent(hide),depend(npiv,inc,off),check(npiv-off>(m-1)*labs(inc)) :: m = (len(piv)-off)/labs(inc)
 
 end subroutine <prefix>laswp
 
@@ -2227,7 +2227,7 @@ subroutine <prefix>larf(side,m,n,v,incv,tau,c,ldc,work,lwork)
     character intent(in), check(side[0]=='L'||side[0]=='R') :: side = 'L'
     integer intent(in,hide), depend(c) :: m = shape(c,0)
     integer intent(in,hide), depend(c) :: n = shape(c,1)
-    <ftype> intent(in),dimension((side[0]=='L'?(1 + (m-1)*abs(incv)):(1 + (n-1)*abs(incv)))),depend(n,m,side,incv) :: v
+    <ftype> intent(in),dimension((side[0]=='L'?(1 + (m-1)*labs(incv)):(1 + (n-1)*labs(incv)))),depend(n,m,side,incv) :: v
     integer intent(in), check(incv>0||incv<0) :: incv = 1
     <ftype> intent(in) :: tau
     <ftype> dimension(m,n), intent(in,copy,out) :: c
@@ -2258,9 +2258,9 @@ subroutine <prefix2c>rot(n,x,offx,incx,y,offy,incy,c,s,lx,ly)
     integer optional, intent(in), check(incy>0||incy<0) :: incy = 1
     integer optional, intent(in), depend(lx), check(offx>=0 && offx<lx) :: offx=0
     integer optional, intent(in), depend(ly), check(offy>=0 && offy<ly) :: offy=0
-    integer optional, intent(in), depend(lx,incx,offx,ly,incy,offy) :: n = (lx-1-offx)/abs(incx)+1
-    check(lx-offx>(n-1)*abs(incx)) :: n
-    check(ly-offy>(n-1)*abs(incy)) :: n
+    integer optional, intent(in), depend(lx,incx,offx,ly,incy,offy) :: n = (lx-1-offx)/labs(incx)+1
+    check(lx-offx>(n-1)*labs(incx)) :: n
+    check(ly-offy>(n-1)*labs(incy)) :: n
 end subroutine <prefix2c>rot
 
 subroutine ilaver(major, minor, patch)

@@ -136,9 +136,9 @@ subroutine <tchar>rot(n,x,offx,incx,y,offy,incy,c,s)
   check(offx>=0 && offx<len(x)) :: offx
   check(offy>=0 && offy<len(y)) :: offy
   integer optional, intent(in), depend(x,incx,offx,y,incy,offy) :: &
-       n = (len(x)-1-offx)/abs(incx)+1
-  check(len(x)-offx>(n-1)*abs(incx)) :: n
-  check(len(y)-offy>(n-1)*abs(incy)) :: n
+       n = (len(x)-1-offx)/labs(incx)+1
+  check(len(x)-offx>(n-1)*labs(incx)) :: n
+  check(len(y)-offy>(n-1)*labs(incy)) :: n
 
 end subroutine <tchar>rot
 
@@ -167,9 +167,9 @@ subroutine <prefix2>rotm(n,x,offx,incx,y,offy,incy,param)
   check(offx>=0 && offx<len(x)) :: offx
   check(offy>=0 && offy<len(y)) :: offy
   integer optional, intent(in),depend(x,incx,offx,y,incy,offy) :: &
-       n = (len(x)-offx)/abs(incx)
-  check(len(x)-offx>(n-1)*abs(incx)) :: n
-  check(len(y)-offy>(n-1)*abs(incy)) :: n
+       n = (len(x)-offx)/labs(incx)
+  check(len(x)-offx>(n-1)*labs(incx)) :: n
+  check(len(y)-offy>(n-1)*labs(incy)) :: n
 
 end subroutine <prefix2>rotm
 
@@ -188,9 +188,9 @@ subroutine <prefix>swap(n,x,offx,incx,y,offy,incy)
   check(offx>=0 && offx<len(x)) :: offx
   check(offy>=0 && offy<len(y)) :: offy
   integer optional, intent(in),depend(x,incx,offx,y,incy,offy) :: &
-       n = (len(x)-offx)/abs(incx)
-  check(len(x)-offx>(n-1)*abs(incx)) :: n
-  check(len(y)-offy>(n-1)*abs(incy)) :: n
+       n = (len(x)-offx)/labs(incx)
+  check(len(x)-offx>(n-1)*labs(incx)) :: n
+  check(len(y)-offy>(n-1)*labs(incy)) :: n
 
 end subroutine <prefix>swap
 
@@ -206,8 +206,8 @@ subroutine <prefix>scal(n,a,x,offx,incx)
   integer optional, intent(in), check(incx>0||incx<0) :: incx = 1
   integer optional, intent(in), depend(x) :: offx=0
   check(offx>=0 && offx<len(x)) :: offx
-  integer optional, intent(in),depend(x,incx,offx) :: n = (len(x)-offx)/abs(incx)
-  check(len(x)-offx>(n-1)*abs(incx)) :: n
+  integer optional, intent(in),depend(x,incx,offx) :: n = (len(x)-offx)/labs(incx)
+  check(len(x)-offx>(n-1)*labs(incx)) :: n
 
 end subroutine <prefix>scal
 
@@ -225,8 +225,8 @@ subroutine <tchar2c>scal(n,a,x,offx,incx)
   integer optional, intent(in),check(incx>0||incx<0) :: incx = 1
   integer optional, intent(in),depend(x) :: offx=0
   check(offx>=0 && offx<len(x)) :: offx
-  integer optional, intent(in),depend(x,incx,offx) :: n = (len(x)-offx)/abs(incx)
-  check(len(x)-offx>(n-1)*abs(incx)) :: n
+  integer optional, intent(in),depend(x,incx,offx) :: n = (len(x)-offx)/labs(incx)
+  check(len(x)-offx>(n-1)*labs(incx)) :: n
 
 end subroutine <tchar2c>scal
 
@@ -246,9 +246,9 @@ subroutine <prefix>copy(n,x,offx,incx,y,offy,incy)
   check(offx>=0 && offx<len(x)) :: offx
   check(offy>=0 && offy<len(y)) :: offy
   integer optional, intent(in),depend(x,incx,offx,y,incy,offy) :: &
-       n = (len(x)-offx)/abs(incx)
-  check(len(x)-offx>(n-1)*abs(incx)) :: n
-  check(len(y)-offy>(n-1)*abs(incy)) :: n
+       n = (len(x)-offx)/labs(incx)
+  check(len(x)-offx>(n-1)*labs(incx)) :: n
+  check(len(y)-offy>(n-1)*labs(incy)) :: n
 
 end subroutine <prefix>copy
 
@@ -269,9 +269,9 @@ subroutine <prefix>axpy(n,a,x,offx,incx,y,offy,incy)
   check(offx>=0 && offx<len(x)) :: offx
   check(offy>=0 && offy<len(y)) :: offy
   integer optional, intent(in),depend(x,incx,offx,y,incy,offy) :: &
-       n = (len(x)-offx)/abs(incx)
-  check(len(x)-offx>(n-1)*abs(incx)) :: n
-  check(len(y)-offy>(n-1)*abs(incy)) :: n
+       n = (len(x)-offx)/labs(incx)
+  check(len(x)-offx>(n-1)*labs(incx)) :: n
+  check(len(y)-offy>(n-1)*labs(incy)) :: n
 
 end subroutine <prefix>axpy
 
@@ -294,9 +294,9 @@ function sdot(n,x,offx,incx,y,offy,incy) result (xy)
   check(offx>=0 && offx<len(x)) :: offx
   check(offy>=0 && offy<len(y)) :: offy
   integer optional, intent(in),depend(x,incx,offx,y,incy,offy) :: &
-       n = (len(x)-offx)/abs(incx)
-  check(len(x)-offx>(n-1)*abs(incx)) :: n
-  check(len(y)-offy>(n-1)*abs(incy)) :: n
+       n = (len(x)-offx)/labs(incx)
+  check(len(x)-offx>(n-1)*labs(incx)) :: n
+  check(len(y)-offy>(n-1)*labs(incy)) :: n
 
 end function sdot
 
@@ -319,9 +319,9 @@ function ddot(n,x,offx,incx,y,offy,incy) result (xy)
   check(offx>=0 && offx<len(x)) :: offx
   check(offy>=0 && offy<len(y)) :: offy
   integer optional, intent(in),depend(x,incx,offx,y,incy,offy) :: &
-       n = (len(x)-offx)/abs(incx)
-  check(len(x)-offx>(n-1)*abs(incx)) :: n
-  check(len(y)-offy>(n-1)*abs(incy)) :: n
+       n = (len(x)-offx)/labs(incx)
+  check(len(x)-offx>(n-1)*labs(incx)) :: n
+  check(len(y)-offy>(n-1)*labs(incy)) :: n
 
 end function ddot
 
@@ -345,9 +345,9 @@ subroutine <prefix2c>dotu(n,x,offx,incx,y,offy,incy,xy)
   check(offy>=0 && offy<len(y)) :: offy
 
   integer optional,intent(in),depend(x,incx,offx,y,incy,offy) &
-       :: n = (len(x)-offx)/abs(incx)
-  check(len(x)-offx>(n-1)*abs(incx)) :: n
-  check(len(y)-offy>(n-1)*abs(incy)) :: n
+       :: n = (len(x)-offx)/labs(incx)
+  check(len(x)-offx>(n-1)*labs(incx)) :: n
+  check(len(y)-offy>(n-1)*labs(incy)) :: n
 
 end subroutine <prefix2c>dotu
 
@@ -370,9 +370,9 @@ subroutine <prefix2c>dotc(n,x,offx,incx,y,offy,incy,xy)
   check(offx>=0 && offx<len(x)) :: offx
   check(offy>=0 && offy<len(y)) :: offy
 
-  integer optional,intent(in),depend(x,incx,offx,y,incy,offy) :: n = (len(x)-offx)/abs(incx)
-  check(len(x)-offx>(n-1)*abs(incx)) :: n
-  check(len(y)-offy>(n-1)*abs(incy)) :: n
+  integer optional,intent(in),depend(x,incx,offx,y,incy,offy) :: n = (len(x)-offx)/labs(incx)
+  check(len(x)-offx>(n-1)*labs(incx)) :: n
+  check(len(y)-offy>(n-1)*labs(incy)) :: n
 
 end subroutine <prefix2c>dotc
 
@@ -393,8 +393,8 @@ function <prefix3>nrm2(n,x,offx,incx) result(n2)
   integer optional,intent(in),depend(x) :: offx=0
   check(offx>=0 && offx<len(x)) :: offx
 
-  integer optional,intent(in),depend(x,incx,offx) :: n = (len(x)-offx)/abs(incx)
-  check(len(x)-offx>(n-1)*abs(incx)) :: n
+  integer optional,intent(in),depend(x,incx,offx) :: n = (len(x)-offx)/labs(incx)
+  check(len(x)-offx>(n-1)*labs(incx)) :: n
 
 end function <prefix3>nrm2
 
@@ -415,8 +415,8 @@ function <prefix4>nrm2(n,x,offx,incx) result(n2)
   integer optional,intent(in),depend(x) :: offx=0
   check(offx>=0 && offx<len(x)) :: offx
 
-  integer optional,intent(in),depend(x,incx,offx) :: n = (len(x)-offx)/abs(incx)
-  check(len(x)-offx>(n-1)*abs(incx)) :: n
+  integer optional,intent(in),depend(x,incx,offx) :: n = (len(x)-offx)/labs(incx)
+  check(len(x)-offx>(n-1)*labs(incx)) :: n
 
 end function <prefix4>nrm2
 
@@ -434,8 +434,8 @@ function <prefix3>asum(n,x,offx,incx) result (s)
   integer optional, intent(in), check(incx>0||incx<0) :: incx = 1
   integer optional, intent(in), depend(x) :: offx=0
   check(offx>=0 && offx<len(x)) :: offx
-  integer optional, intent(in),depend(x,incx,offx) :: n = (len(x)-offx)/abs(incx)
-  check(len(x)-offx>(n-1)*abs(incx)) :: n
+  integer optional, intent(in),depend(x,incx,offx) :: n = (len(x)-offx)/labs(incx)
+  check(len(x)-offx>(n-1)*labs(incx)) :: n
 
 end function <prefix3>asum
 
@@ -453,8 +453,8 @@ function <prefix4>asum(n,x,offx,incx) result (s)
   integer optional, intent(in), check(incx>0||incx<0) :: incx = 1
   integer optional, intent(in), depend(x) :: offx=0
   check(offx>=0 && offx<len(x)) :: offx
-  integer optional, intent(in),depend(x,incx,offx) :: n = (len(x)-offx)/abs(incx)
-  check(len(x)-offx>(n-1)*abs(incx)) :: n
+  integer optional, intent(in),depend(x,incx,offx) :: n = (len(x)-offx)/labs(incx)
+  check(len(x)-offx>(n-1)*labs(incx)) :: n
 
 end function <prefix4>asum
 
@@ -473,8 +473,8 @@ function i<prefix>amax(n,x,offx,incx) result(k)
   integer optional, intent(in), check(incx>0||incx<0) :: incx = 1
   integer optional, intent(in), depend(x) :: offx=0
   check(offx>=0 && offx<len(x)) :: offx
-  integer optional, intent(in),depend(x,incx,offx) :: n = (len(x)-offx)/abs(incx)
-  check(len(x)-offx>(n-1)*abs(incx)) :: n
+  integer optional, intent(in),depend(x,incx,offx) :: n = (len(x)-offx)/labs(incx)
+  check(len(x)-offx>(n-1)*labs(incx)) :: n
 
 end function i<prefix>amax
 
