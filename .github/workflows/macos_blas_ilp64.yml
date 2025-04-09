@@ -53,4 +53,4 @@ jobs:
         python dev.py build -C-Dblas=accelerate -C-Duse-ilp64=true
 
         pip install pooch pytest hypothesis
-        python dev.py -n test
+        python dev.py -n test -v
