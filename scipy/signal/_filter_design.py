@@ -15,6 +15,7 @@ from scipy import special, optimize, fft as sp_fft
 from scipy.special import comb
 from scipy._lib._util import float_factorial
 from scipy.signal._arraytools import _validate_fs
+from scipy.signal.windows._windows import _namespace
 
 import scipy._lib.array_api_extra as xpx
 from scipy._lib._array_api import array_namespace, xp_promote, xp_size
@@ -5344,7 +5345,7 @@ def _design_notch_peak_filter(w0, Q, ftype, fs=2.0):
     return b, a
 
 
-def iircomb(w0, Q, ftype='notch', fs=2.0, *, pass_zero=False):
+def iircomb(w0, Q, ftype='notch', fs=2.0, *, pass_zero=False, xp=None, device=None):
     """
     Design IIR notching or peaking digital comb filter.
 
@@ -5479,6 +5480,7 @@ def iircomb(w0, Q, ftype='notch', fs=2.0, *, pass_zero=False):
     >>> ax[1].grid(True)
     >>> plt.show()
     """
+    xp = _namespace(xp)
 
     # Convert w0, Q, and fs to float
     w0 = float(w0)
@@ -5497,12 +5499,12 @@ def iircomb(w0, Q, ftype='notch', fs=2.0, *, pass_zero=False):
     N = round(fs / w0)
 
     # Check for cutoff frequency divisibility
-    if abs(w0 - fs/N)/fs > 1e-14:
+    if abs(w0 - fs/N) / fs > 1e-14:
         raise ValueError('fs must be divisible by w0.')
 
     # Compute frequency in radians and filter bandwidth
     # Eq. 11.3.1 (p. 574) from reference [1]
-    w0 = (2 * np.pi * w0) / fs
+    w0 = (2 * math.pi * w0) / fs
     w_delta = w0 / Q
 
     # Define base gain values depending on notch or peak filter
@@ -5517,7 +5519,7 @@ def iircomb(w0, Q, ftype='notch', fs=2.0, *, pass_zero=False):
     # assuming a -3 dB attenuation value, i.e, assuming GB = 1 / np.sqrt(2),
     # the following term simplifies to:
     #   np.sqrt((GB**2 - G0**2) / (G**2 - GB**2)) = 1
-    beta = np.tan(N * w_delta / 4)
+    beta = xp.tan(N * w_delta / 4)
 
     # Compute filter coefficients
     # Eq 11.5.1 (p. 590) variables a, b, c from reference [1]
@@ -5533,7 +5535,7 @@ def iircomb(w0, Q, ftype='notch', fs=2.0, *, pass_zero=False):
     # Compute numerator coefficients
     # Eq 11.5.1 (p. 590) or Eq 11.5.4 (p. 591) from reference [1]
     # b - cz^-N or b + cz^-N
-    b = np.zeros(N + 1)
+    b = xp.zeros(N + 1, device=device)
     b[0] = bx
     if negative_coef:
         b[-1] = -cx
@@ -5543,7 +5545,7 @@ def iircomb(w0, Q, ftype='notch', fs=2.0, *, pass_zero=False):
     # Compute denominator coefficients
     # Eq 11.5.1 (p. 590) or Eq 11.5.4 (p. 591) from reference [1]
     # 1 - az^-N or 1 + az^-N
-    a = np.zeros(N + 1)
+    a = xp.zeros(N + 1, device=device)
     a[0] = 1
     if negative_coef:
         a[-1] = -ax
