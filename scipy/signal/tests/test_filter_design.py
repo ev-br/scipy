@@ -12,7 +12,7 @@ from numpy.testing import (
 import pytest
 from pytest import raises as assert_raises
 from scipy._lib._array_api import (
-    xp_assert_close, xp_assert_equal,
+    xp_assert_close, xp_assert_equal, array_namespace,
     assert_array_almost_equal, xp_size, xp_default_dtype, is_numpy
 )
 
@@ -1863,112 +1863,127 @@ class TestPrototypeType:
 def dB(x):
     # Return magnitude in decibels, avoiding divide-by-zero warnings
     # (and deal with some "not less-ordered" errors when -inf shows up)
-    return 20 * np.log10(np.maximum(np.abs(x), np.finfo(np.float64).tiny))
+    xp = array_namespace(x)
+    tiny = xp.asarray(np.finfo(np.float64).tiny)
+    return 20 * xp.log10(xp.maximum(xp.abs(x), tiny))
 
 
+@skip_xp_backends("dask.array", reason="https://github.com/dask/dask/issues/11883")
 class TestButtord:
 
-    def test_lowpass(self):
-        wp = 0.2
-        ws = 0.3
+    def test_lowpass(self, xp):
+        wp = xp.asarray(0.2)
+        ws = xp.asarray(0.3)
         rp = 3
         rs = 60
         N, Wn = buttord(wp, ws, rp, rs, False)
         b, a = butter(N, Wn, 'lowpass', False)
         w, h = freqz(b, a)
         w /= np.pi
-        assert np.all(-rp < dB(h[w <= wp]))
-        assert np.all(dB(h[ws <= w]) < -rs)
+        assert xp.all(-rp < dB(h[w <= wp]))
+        assert xp.all(dB(h[ws <= w]) < -rs)
 
         assert N == 16
         xp_assert_close(Wn,
-                        2.0002776782743284e-01, rtol=1e-15)
+                        xp.asarray(2.0002776782743284e-01), rtol=1e-15, check_0d=False)
 
-    def test_highpass(self):
-        wp = 0.3
-        ws = 0.2
+    def test_highpass(self, xp):
+        wp = xp.asarray(0.3)
+        ws = xp.asarray(0.2)
         rp = 3
         rs = 70
         N, Wn = buttord(wp, ws, rp, rs, False)
         b, a = butter(N, Wn, 'highpass', False)
         w, h = freqz(b, a)
-        w /= np.pi
-        assert np.all(-rp < dB(h[wp <= w]))
-        assert np.all(dB(h[w <= ws]) < -rs)
+        w /= xp.pi
+        assert xp.all(-rp < dB(h[wp <= w]))
+        assert xp.all(dB(h[w <= ws]) < -rs)
 
         assert N == 18
         xp_assert_close(Wn,
-                        2.9996603079132672e-01, rtol=1e-15)
+                        xp.asarray(2.9996603079132672e-01), rtol=1e-15, check_0d=False)
 
-    def test_bandpass(self):
-        wp = [0.2, 0.5]
-        ws = [0.1, 0.6]
+    def test_bandpass(self, xp):
+        wp = xp.asarray([0.2, 0.5])
+        ws = xp.asarray([0.1, 0.6])
         rp = 3
         rs = 80
         N, Wn = buttord(wp, ws, rp, rs, False)
         b, a = butter(N, Wn, 'bandpass', False)
         w, h = freqz(b, a)
-        w /= np.pi
+        w /= xp.pi
 
-        assert np.all((-rp - 0.1) < dB(h[np.logical_and(wp[0] <= w, w <= wp[1])]))
+        assert xp.all((-rp - 0.1) < dB(h[xp.logical_and(wp[0] <= w, w <= wp[1])]))
 
-        assert np.all(dB(h[np.logical_or(w <= ws[0], ws[1] <= w)]) < (-rs + 0.1))
+        assert xp.all(dB(h[xp.logical_or(w <= ws[0], ws[1] <= w)]) < (-rs + 0.1))
 
         assert N == 18
-        xp_assert_close(Wn, [1.9998742411409134e-01, 5.0002139595676276e-01],
-                        rtol=1e-15)
+        xp_assert_close(
+            Wn, xp.asarray([1.9998742411409134e-01, 5.0002139595676276e-01]),
+            rtol=1e-15
+        )
 
-    def test_bandstop(self):
-        wp = [0.1, 0.6]
-        ws = [0.2, 0.5]
+    def test_bandstop(self, xp):
+        wp = xp.asarray([0.1, 0.6])
+        ws = xp.asarray([0.2, 0.5])
         rp = 3
         rs = 90
         N, Wn = buttord(wp, ws, rp, rs, False)
         b, a = butter(N, Wn, 'bandstop', False)
         w, h = freqz(b, a)
-        w /= np.pi
+        w /= xp.pi
 
-        assert np.all(-rp < dB(h[np.logical_or(w <= wp[0], wp[1] <= w)]))
-        assert np.all(dB(h[np.logical_and(ws[0] <= w, w <= ws[1])]) < -rs)
+        assert xp.all(-rp < dB(h[xp.logical_or(w <= wp[0], wp[1] <= w)]))
+        assert xp.all(dB(h[xp.logical_and(ws[0] <= w, w <= ws[1])]) < -rs)
 
         assert N == 20
-        xp_assert_close(Wn, [1.4759432329294042e-01, 5.9997365985276407e-01],
-                        rtol=1e-6)
+        xp_assert_close(
+            Wn, xp.asarray([1.4759432329294042e-01, 5.9997365985276407e-01]),
+            rtol=1e-6
+        )
 
-    def test_analog(self):
-        wp = 200
-        ws = 600
+    def test_analog(self, xp):
+        wp = xp.asarray(200.)
+        ws = xp.asarray(600.)
         rp = 3
         rs = 60
         N, Wn = buttord(wp, ws, rp, rs, True)
         b, a = butter(N, Wn, 'lowpass', True)
         w, h = freqs(b, a)
-        assert np.all(-rp < dB(h[w <= wp]))
-        assert np.all(dB(h[ws <= w]) < -rs)
+        assert xp.all(-rp < dB(h[w <= wp]))
+        assert xp.all(dB(h[ws <= w]) < -rs)
 
         assert N == 7
-        xp_assert_close(Wn, 2.0006785355671877e+02, rtol=1e-15)
+        xp_assert_close(
+            Wn, xp.asarray(2.0006785355671877e+02), rtol=1e-15, check_0d=False
+        )
 
-        n, Wn = buttord(1, 550/450, 1, 26, analog=True)
+        n, Wn = buttord(1, xp.asarray(550/450), 1, 26, analog=True)
         assert n == 19
-        xp_assert_close(Wn, 1.0361980524629517, rtol=1e-15)
+        xp_assert_close(
+            Wn, xp.asarray(1.0361980524629517), rtol=1e-15, check_0d=False
+        )
 
-        xp_assert_equal(buttord(1, 1.2, 1, 80, analog=True)[0], 55)
+        assert buttord(1, xp.asarray(1.2), 1, 80, analog=True)[0] == 55
 
-    def test_fs_param(self):
-        wp = [4410, 11025]
-        ws = [2205, 13230]
+    def test_fs_param(self, xp):
+        wp = xp.asarray([4410, 11025])
+        ws = xp.asarray([2205, 13230])
         rp = 3
         rs = 80
         fs = 44100
         N, Wn = buttord(wp, ws, rp, rs, False, fs=fs)
         b, a = butter(N, Wn, 'bandpass', False, fs=fs)
         w, h = freqz(b, a, fs=fs)
-        assert np.all(-rp - 0.1 < dB(h[np.logical_and(wp[0] <= w, w <= wp[1])]))
-        assert np.all(dB(h[np.logical_or(w <= ws[0], ws[1] <= w)]) < -rs + 0.1)
+
+        wp = xp.astype(wp, xp.float64)
+        ws = xp.astype(ws, xp.float64)
+
+        assert xp.all(-rp - 0.1 < dB(h[xp.logical_and(wp[0] <= w, w <= wp[1])]))
+        assert xp.all(dB(h[xp.logical_or(w <= ws[0], ws[1] <= w)]) < -rs + 0.1)
 
         assert N == 18
-        xp_assert_close(Wn, [4409.722701715714, 11025.47178084662],
+        xp_assert_close(Wn, xp.asarray([4409.722701715714, 11025.47178084662]),
                         rtol=1e-15)
 
     def test_invalid_input(self):

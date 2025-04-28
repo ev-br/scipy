@@ -61,6 +61,17 @@ def _is_int_type(x):
         return True
 
 
+def _real_dtype_for_complex(dtyp, *, xp):
+    if xp.isdtype(dtyp, 'real floating'):
+        return dtyp
+    if dtyp == xp.complex64:
+        return xp.float32
+    elif dtyp == xp.complex128:
+        return xp.float64
+    else:
+        raise ValueError(f"Unknown dtype {dtyp}.")
+
+
 # https://github.com/numpy/numpy/blob/v2.2.0/numpy/_core/function_base.py#L195-L302
 def _logspace(start, stop, num=50, endpoint=True, base=10.0, dtype=None, *, xp):
     if not isinstance(base, float | int) and xp.asarray(base).ndim > 0:
@@ -493,6 +504,7 @@ def freqz(b, a=1, worN=512, whole=False, plot=None, fs=2*pi,
     if xp.isdtype(a.dtype, 'integral'):
         a = xp.astype(a, xp_default_dtype(xp))
     res_dtype = xp.result_type(b, a)
+    real_dtype = _real_dtype_for_complex(res_dtype, xp=xp)
 
     b = xpx.atleast_nd(b, ndim=1, xp=xp)
     a = xpx.atleast_nd(a, ndim=1, xp=xp)
@@ -514,7 +526,7 @@ def freqz(b, a=1, worN=512, whole=False, plot=None, fs=2*pi,
         # if include_nyquist is true and whole is false, w should
         # include end point
         w = xp.linspace(0, lastpoint, N,
-                        endpoint=include_nyquist and not whole, dtype=res_dtype)
+                        endpoint=include_nyquist and not whole, dtype=real_dtype)
         n_fft = N if whole else 2 * (N - 1) if include_nyquist else 2 * N
         if (xp_size(a) == 1 and (b.ndim == 1 or (b.shape[-1] == 1))
                 and n_fft >= b.shape[0]
@@ -2788,18 +2800,20 @@ def iirfilter(N, Wn, rp=None, rs=None, btype='band', analog=False,
     >>> plt.show()
 
     """
+    xp = array_namespace(Wn)
+    Wn = xp.asarray(Wn)
+
     fs = _validate_fs(fs, allow_none=True)
     ftype, btype, output = (x.lower() for x in (ftype, btype, output))
-    Wn = asarray(Wn)
     if fs is not None:
         if analog:
             raise ValueError("fs cannot be specified for an analog filter")
         Wn = Wn / (fs/2)
 
-    if np.any(Wn <= 0):
+    if xp.any(Wn <= 0):
         raise ValueError("filter critical frequencies must be greater than 0")
 
-    if Wn.size > 1 and not Wn[0] < Wn[1]:
+    if xp_size(Wn) > 1 and not Wn[0] < Wn[1]:
         raise ValueError("Wn[0] must be less than Wn[1]")
 
     try:
@@ -2823,7 +2837,7 @@ def iirfilter(N, Wn, rp=None, rs=None, btype='band', analog=False,
 
     # Get analog lowpass prototype
     if typefunc == buttap:
-        z, p, k = typefunc(N)
+        z, p, k = typefunc(N, xp=xp)
     elif typefunc == besselap:
         z, p, k = typefunc(N, norm=bessel_norms[ftype])
     elif typefunc == cheb1ap:
@@ -2846,20 +2860,20 @@ def iirfilter(N, Wn, rp=None, rs=None, btype='band', analog=False,
 
     # Pre-warp frequencies for digital filter design
     if not analog:
-        if np.any(Wn <= 0) or np.any(Wn >= 1):
+        if xp.any(Wn <= 0) or xp.any(Wn >= 1):
             if fs is not None:
                 raise ValueError("Digital filter critical frequencies must "
                                  f"be 0 < Wn < fs/2 (fs={fs} -> fs/2={fs/2})")
             raise ValueError("Digital filter critical frequencies "
                              "must be 0 < Wn < 1")
         fs = 2.0
-        warped = 2 * fs * tan(pi * Wn / fs)
+        warped = 2 * fs * xp.tan(xp.pi * Wn / fs)
     else:
         warped = Wn
 
     # transform to lowpass, bandpass, highpass, or bandstop
     if btype in ('lowpass', 'highpass'):
-        if np.size(Wn) != 1:
+        if xp_size(Wn) != 1:
             raise ValueError('Must specify a single critical frequency Wn '
                              'for lowpass or highpass filter')
 
@@ -2870,7 +2884,7 @@ def iirfilter(N, Wn, rp=None, rs=None, btype='band', analog=False,
     elif btype in ('bandpass', 'bandstop'):
         try:
             bw = warped[1] - warped[0]
-            wo = sqrt(warped[0] * warped[1])
+            wo =xp.sqrt(warped[0] * warped[1])
         except IndexError as e:
             raise ValueError('Wn must specify start and stop frequencies for '
                              'bandpass or bandstop filter') from e
@@ -4094,8 +4108,8 @@ def band_stop_obj(wp, ind, passb, stopb, gpass, gstop, type):
 def _pre_warp(wp, ws, analog, *, xp):
     # Pre-warp frequencies for digital filter design
     if not analog:
-        passb = xp.tan(pi * wp / 2.0)
-        stopb = xp.tan(pi * ws / 2.0)
+        passb = xp.tan(xp.pi * wp / 2.0)
+        stopb = xp.tan(xp.pi * ws / 2.0)
     else:
         passb, stopb = wp, ws
         if xp.isdtype(passb.dtype, 'integral'):
@@ -4108,6 +4122,11 @@ def _pre_warp(wp, ws, analog, *, xp):
 def _validate_wp_ws(wp, ws, fs, analog, *, xp):
     wp = xpx.atleast_nd(wp, ndim=1, xp=xp)
     ws = xpx.atleast_nd(ws, ndim=1, xp=xp)
+    if xp.isdtype(wp.dtype, 'integral'):
+        wp = xp.astype(wp, xp_default_dtype(xp))
+    if xp.isdtype(ws.dtype, 'integral'):
+        ws = xp.astype(ws, xp_default_dtype(xp))
+
     if fs is not None:
         if analog:
             raise ValueError("fs cannot be specified for an analog filter")
@@ -4153,7 +4172,7 @@ def _find_nat_freq(stopb, passb, gpass, gstop, filter_type, filter_kind, *, xp):
 
 
 def _postprocess_wn(WN, analog, fs, *, xp):
-    wn = WN if analog else xp.arctan(WN) * 2.0 / xp.pi
+    wn = WN if analog else xp.atan(WN) * 2.0 / xp.pi
     if wn.shape[0] == 1:
         wn = wn[0]
     if fs is not None:
