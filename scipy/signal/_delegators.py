@@ -149,19 +149,12 @@ def unit_impulse_signature(shape, idx=None, dtype=float):
 ############################
 
 
-####################### XXX: no arrays, maybe arrays out
 def buttord_signature(wp, ws, gpass, gstop, analog=False, fs=None):
-    return np
+    return array_namespace(wp, ws)
 
-def cheb1ord_signature(wp, ws, gpass, gstop, analog=False, fs=None):
-    return np
-
-def cheb2ord_signature(wp, ws, gpass, gstop, analog=False, fs=None):
-    return np
-
-def ellipord_signature(wp, ws, gpass, gstop, analog=False, fs=None):
-    return np
-###########################################
+cheb1ord_signature = buttord_signature
+cheb2ord_signature = buttord_signature
+ellipord_signature = buttord_signature
 
 
 ########### NB: scalars in, scalars out

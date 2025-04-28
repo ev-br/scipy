@@ -2,6 +2,7 @@
 import math
 import operator
 import warnings
+import builtins
 
 import numpy as np
 from numpy import (atleast_1d, asarray,
@@ -4090,42 +4091,44 @@ def band_stop_obj(wp, ind, passb, stopb, gpass, gstop, type):
     return n
 
 
-def _pre_warp(wp, ws, analog):
+def _pre_warp(wp, ws, analog, *, xp):
     # Pre-warp frequencies for digital filter design
     if not analog:
-        passb = np.tan(pi * wp / 2.0)
-        stopb = np.tan(pi * ws / 2.0)
+        passb = xp.tan(pi * wp / 2.0)
+        stopb = xp.tan(pi * ws / 2.0)
     else:
-        passb = wp * 1.0
-        stopb = ws * 1.0
+        passb, stopb = wp, ws
+        if xp.isdtype(passb.dtype, 'integral'):
+            passb = xp.astype(passb, xp_default_dtype(xp))
+        if xp.isdtype(stopb.dtype, 'integral'):
+            stopb = xp.astype(stopb, xp_default_dtype(xp))
     return passb, stopb
 
 
-def _validate_wp_ws(wp, ws, fs, analog):
-    wp = atleast_1d(wp)
-    ws = atleast_1d(ws)
+def _validate_wp_ws(wp, ws, fs, analog, *, xp):
+    wp = xpx.atleast_nd(wp, ndim=1, xp=xp)
+    ws = xpx.atleast_nd(ws, ndim=1, xp=xp)
     if fs is not None:
         if analog:
             raise ValueError("fs cannot be specified for an analog filter")
         wp = 2 * wp / fs
         ws = 2 * ws / fs
 
-    filter_type = 2 * (len(wp) - 1) + 1
+    filter_type = 2 * (wp.shape[0] - 1) + 1
     if wp[0] >= ws[0]:
         filter_type += 1
 
     return wp, ws, filter_type
 
 
-def _find_nat_freq(stopb, passb, gpass, gstop, filter_type, filter_kind):
+def _find_nat_freq(stopb, passb, gpass, gstop, filter_type, filter_kind, *, xp):
     if filter_type == 1:            # low
         nat = stopb / passb
     elif filter_type == 2:          # high
         nat = passb / stopb
     elif filter_type == 3:          # stop
 
-       ### breakpoint()
-
+        passb, stopb = np.asarray(passb), np.asarray(stopb)    # XXX fminbound array API
         wp0 = optimize.fminbound(band_stop_obj, passb[0], stopb[0] - 1e-12,
                                  args=(0, passb, stopb, gpass, gstop,
                                        filter_kind),
@@ -4136,6 +4139,7 @@ def _find_nat_freq(stopb, passb, gpass, gstop, filter_type, filter_kind):
                                        filter_kind),
                                  disp=0)
         passb[1] = wp1
+        passb, stopb = xp.asarray(passb), xp.asarray(stopb)
         nat = ((stopb * (passb[0] - passb[1])) /
                (stopb ** 2 - passb[0] * passb[1]))
     elif filter_type == 4:          # pass
@@ -4144,13 +4148,13 @@ def _find_nat_freq(stopb, passb, gpass, gstop, filter_type, filter_kind):
     else:
         raise ValueError(f"should not happen: {filter_type =}.")
 
-    nat = min(abs(nat))
+    nat = xp.min(xp.abs(nat))
     return nat, passb
 
 
-def _postprocess_wn(WN, analog, fs):
-    wn = WN if analog else np.arctan(WN) * 2.0 / pi
-    if len(wn) == 1:
+def _postprocess_wn(WN, analog, fs, *, xp):
+    wn = WN if analog else xp.arctan(WN) * 2.0 / xp.pi
+    if wn.shape[0] == 1:
         wn = wn[0]
     if fs is not None:
         wn = wn * fs / 2
@@ -4166,7 +4170,7 @@ def buttord(wp, ws, gpass, gstop, analog=False, fs=None):
 
     Parameters
     ----------
-    wp, ws : float
+    wp, ws : float or array-like
         Passband and stopband edge frequencies.
 
         For digital filters, these are in the same units as `fs`. By default,
@@ -4235,15 +4239,18 @@ def buttord(wp, ws, gpass, gstop, analog=False, fs=None):
     >>> plt.show()
 
     """
+    xp = array_namespace(wp, ws)
+    wp, ws = map(xp.asarray, (wp, ws))
+
     _validate_gpass_gstop(gpass, gstop)
     fs = _validate_fs(fs, allow_none=True)
-    wp, ws, filter_type = _validate_wp_ws(wp, ws, fs, analog)
-    passb, stopb = _pre_warp(wp, ws, analog)
-    nat, passb = _find_nat_freq(stopb, passb, gpass, gstop, filter_type, 'butter')
+    wp, ws, filter_type = _validate_wp_ws(wp, ws, fs, analog, xp=xp)
+    passb, stopb = _pre_warp(wp, ws, analog, xp=xp)
+    nat, passb = _find_nat_freq(stopb, passb, gpass, gstop, filter_type, 'butter', xp=xp)
 
-    GSTOP = 10 ** (0.1 * abs(gstop))
-    GPASS = 10 ** (0.1 * abs(gpass))
-    ord = int(ceil(log10((GSTOP - 1.0) / (GPASS - 1.0)) / (2 * log10(nat))))
+    GSTOP = 10 ** (0.1 * builtins.abs(gstop))
+    GPASS = 10 ** (0.1 * builtins.abs(gpass))
+    ord = int(math.ceil(math.log10((GSTOP - 1.0) / (GPASS - 1.0)) / (2 * math.log10(nat))))
 
     # Find the Butterworth natural frequency WN (or the "3dB" frequency")
     # to give exactly gpass at passb.
@@ -4262,22 +4269,23 @@ def buttord(wp, ws, gpass, gstop, analog=False, fs=None):
     elif filter_type == 2:  # high
         WN = passb / W0
     elif filter_type == 3:  # stop
-        WN = np.empty(2, float)
-        discr = sqrt((passb[1] - passb[0]) ** 2 +
+        WN = xp.empty(2, dtype=xp_default_dtype(xp))
+        discr = xp.sqrt((passb[1] - passb[0]) ** 2 +
                      4 * W0 ** 2 * passb[0] * passb[1])
         WN[0] = ((passb[1] - passb[0]) + discr) / (2 * W0)
         WN[1] = ((passb[1] - passb[0]) - discr) / (2 * W0)
-        WN = np.sort(abs(WN))
+        WN = xp.sort(xp.abs(WN))
+
     elif filter_type == 4:  # pass
-        W0 = np.array([-W0, W0], float)
+        W0 = xp.asarray([-W0, W0], dtype=xp.float64)
         WN = (-W0 * (passb[1] - passb[0]) / 2.0 +
-              sqrt(W0 ** 2 / 4.0 * (passb[1] - passb[0]) ** 2 +
+              xp.sqrt(W0 ** 2 / 4.0 * (passb[1] - passb[0]) ** 2 +
                    passb[0] * passb[1]))
-        WN = np.sort(abs(WN))
+        WN = xp.sort(xp.abs(WN))
     else:
         raise ValueError(f"Bad type: {filter_type}")
 
-    wn = _postprocess_wn(WN, analog, fs)
+    wn = _postprocess_wn(WN, analog, fs, xp=xp)
 
     return ord, wn
 
