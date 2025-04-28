@@ -1834,6 +1834,7 @@ class TestBilinear_zpk:
 
 class TestPrototypeType:
 
+    @skip_xp_backends(np_only=True)
     def test_output_type(self):
         # Prototypes should consistently output arrays, not lists
         # https://github.com/scipy/scipy/pull/441
@@ -1846,6 +1847,17 @@ class TestPrototypeType:
                 z, p, k = func(N)
                 assert isinstance(z, np.ndarray)
                 assert isinstance(p, np.ndarray)
+
+    @pytest.mark.parametrize(
+        'func', [buttap, besselap,
+                 lambda N, xp: cheb1ap(N, 1, xp=xp),
+                 lambda N, xp: cheb2ap(N, 20, xp=xp),
+                 lambda N, xp: ellipap(N, 1, 20, xp=xp)
+                ],
+        ids=['butter', 'bessel', 'cheb1', 'cheb2', 'ellip']
+    )
+    def test_with_xp(self, func, xp):
+        func(7, xp=xp)
 
 
 def dB(x):

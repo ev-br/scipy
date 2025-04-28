@@ -96,21 +96,23 @@ def ellip_signature(N, rp, rs, Wn, *args, **kwds):
 
 
 ########################## XXX: no arrays in, arrays out
-def besselap_signature(N, norm='phase'):
-    return np
-
-def buttap_signature(N):
-    return np
-
-def cheb1ap_signature(N, rp):
-    return np
+def besselap_signature(N, norm='phase', *, xp=None, device=None):
+    return np if xp is None else xp
 
 
-def cheb2ap_signature(N, rs):
-    return np
+def buttap_signature(N, *, xp=None, device=None):
+    return np if xp is None else xp
 
-def ellipap_signature(N, rp, rs):
-    return np
+
+def cheb1ap_signature(N, rp, *, xp=None, device=None):
+    return np if xp is None else xp
+
+
+def cheb2ap_signature(N, rs, *, xp=None, device=None):
+    return np if xp is None else xp
+
+def ellipap_signature(N, rp, rs, *, xp=None, device=None):
+    return np if xp is None else xp
 
 def correlation_lags_signature(in1_len, in2_len, mode='full'):
     return np

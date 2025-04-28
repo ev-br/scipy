@@ -4492,12 +4492,12 @@ def cheb2ord(wp, ws, gpass, gstop, analog=False, fs=None):
     return ord, wn
 
 
-_POW10_LOG10 = np.log(10)
+_POW10_LOG10 = math.log(10)
 
 
 def _pow10m1(x):
     """10 ** x - 1 for x near 0"""
-    return np.expm1(_POW10_LOG10 * x)
+    return math.expm1(_POW10_LOG10 * x)
 
 
 def ellipord(wp, ws, gpass, gstop, analog=False, fs=None):
@@ -4593,7 +4593,7 @@ def ellipord(wp, ws, gpass, gstop, analog=False, fs=None):
     return ord, wn
 
 
-def buttap(N):
+def buttap(N, *, xp=None, device=None):
     """Return (z,p,k) for analog prototype of Nth-order Butterworth filter.
 
     The filter will have an angular (e.g., rad/s) cutoff frequency of 1.
@@ -4603,17 +4603,19 @@ def buttap(N):
     butter : Filter design function using this prototype
 
     """
+    if xp is None:
+        xp = np_compat
     if abs(int(N)) != N:
         raise ValueError("Filter order must be a nonnegative integer")
-    z = np.array([])
-    m = np.arange(-N+1, N, 2)
+    z = xp.asarray([], device=device)
+    m = xp.arange(-N+1, N, 2, device=device, dtype=xp_default_dtype(xp))
     # Middle value is 0 to ensure an exactly real pole
-    p = -np.exp(1j * pi * m / (2 * N))
+    p = -xp.exp(1j * xp.pi * m / (2 * N))
     k = 1
     return z, p, k
 
 
-def cheb1ap(N, rp):
+def cheb1ap(N, rp, *, xp=None, device=None):
     """
     Return (z,p,k) for Nth-order Chebyshev type I analog lowpass filter.
 
@@ -4627,31 +4629,35 @@ def cheb1ap(N, rp):
     cheby1 : Filter design function using this prototype
 
     """
+    if xp is None:
+        xp = np_compat
     if abs(int(N)) != N:
         raise ValueError("Filter order must be a nonnegative integer")
     elif N == 0:
         # Avoid divide-by-zero error
         # Even order filters have DC gain of -rp dB
-        return np.array([]), np.array([]), 10**(-rp/20)
-    z = np.array([])
+        return (
+            xp.asarray([], device=device), xp.asarray([], device=device), 10**(-rp/20)
+        )
+    z = xp.asarray([], device=device)
 
     # Ripple factor (epsilon)
-    eps = np.sqrt(10 ** (0.1 * rp) - 1.0)
-    mu = 1.0 / N * arcsinh(1 / eps)
+    eps = math.sqrt(10 ** (0.1 * rp) - 1.0)
+    mu = 1.0 / N * math.asinh(1 / eps)
 
     # Arrange poles in an ellipse on the left half of the S-plane
-    m = np.arange(-N+1, N, 2)
-    theta = pi * m / (2*N)
-    p = -sinh(mu + 1j*theta)
+    m = xp.arange(-N+1, N, 2, dtype=xp_default_dtype(xp), device=device)
+    theta = xp.pi * m / (2*N)
+    p = -xp.sinh(mu + 1j*theta)
 
-    k = np.prod(-p, axis=0).real
+    k = xp.real(xp.prod(-p, axis=0))
     if N % 2 == 0:
-        k = k / sqrt(1 + eps * eps)
+        k = k / math.sqrt(1 + eps * eps)
 
     return z, p, k
 
 
-def cheb2ap(N, rs):
+def cheb2ap(N, rs, *, xp=None, device=None):
     """
     Return (z,p,k) for Nth-order Chebyshev type II analog lowpass filter.
 
@@ -4666,30 +4672,38 @@ def cheb2ap(N, rs):
     cheby2 : Filter design function using this prototype
 
     """
+    if xp is None:
+        xp = np_compat
+
     if abs(int(N)) != N:
         raise ValueError("Filter order must be a nonnegative integer")
     elif N == 0:
         # Avoid divide-by-zero warning
-        return np.array([]), np.array([]), 1
+        return xp.asarray([], device=device), xp.asarray([], device=device), 1
 
     # Ripple factor (epsilon)
-    de = 1.0 / sqrt(10 ** (0.1 * rs) - 1)
-    mu = arcsinh(1.0 / de) / N
+    de = 1.0 / math.sqrt(10 ** (0.1 * rs) - 1)
+    mu = math.asinh(1.0 / de) / N
 
     if N % 2:
-        m = np.concatenate((np.arange(-N+1, 0, 2), np.arange(2, N, 2)))
+        m = xp.concat(
+            (xp.arange(-N + 1, 0, 2, dtype=xp_default_dtype(xp), device=device),
+             xp.arange(2, N, 2, dtype=xp_default_dtype(xp), device=device)
+            )
+        )
     else:
-        m = np.arange(-N+1, N, 2)
+        m = xp.arange(-N+1, N, 2, dtype=xp_default_dtype(xp), device=device)
 
-    z = -conjugate(1j / sin(m * pi / (2.0 * N)))
+    z = -xp.conj(1j / xp.sin(m * xp.pi / (2.0 * N)))
 
     # Poles around the unit circle like Butterworth
-    p = -exp(1j * pi * np.arange(-N+1, N, 2) / (2 * N))
+    m1 = xp.arange(-N+1, N, 2, dtype=xp_default_dtype(xp), device=device)
+    p = -xp.exp(1j * xp.pi * m1 / (2 * N))
     # Warp into Chebyshev II
-    p = sinh(mu) * p.real + 1j * cosh(mu) * p.imag
+    p = math.sinh(mu) * xp.real(p) + 1j * math.cosh(mu) * xp.imag(p)
     p = 1.0 / p
 
-    k = (np.prod(-p, axis=0) / np.prod(-z, axis=0)).real
+    k = xp.real(xp.prod(-p, axis=0) / xp.prod(-z, axis=0))
     return z, p, k
 
 
@@ -4821,7 +4835,7 @@ def _arc_jac_sc1(w, m):
     return zcomplex.imag
 
 
-def ellipap(N, rp, rs):
+def ellipap(N, rp, rs, *, xp=None, device=None):
     """Return (z,p,k) of Nth-order elliptic analog lowpass filter.
 
     The filter is a normalized prototype that has `rp` decibels of ripple
@@ -4843,25 +4857,34 @@ def ellipap(N, rp, rs):
            https://www.ece.rutgers.edu/~orfanidi/ece521/notes.pdf
 
     """
+    if xp is None:
+        xp = np_compat
+
     if abs(int(N)) != N:
         raise ValueError("Filter order must be a nonnegative integer")
     elif N == 0:
         # Avoid divide-by-zero warning
         # Even order filters have DC gain of -rp dB
-        return np.array([]), np.array([]), 10**(-rp/20)
+        return (
+            xp.asarray([], device=device),
+            xp.asarray([], device=device),
+            10**(-rp/20)
+        )
     elif N == 1:
-        p = -sqrt(1.0 / _pow10m1(0.1 * rp))
+        p = -math.sqrt(1.0 / _pow10m1(0.1 * rp))
         k = -p
         z = []
-        return asarray(z), asarray(p), k
+        return xp.asarray(z, device=device), xp.asarray(p, device=device), k
 
     eps_sq = _pow10m1(0.1 * rp)
 
-    eps = np.sqrt(eps_sq)
+    eps = math.sqrt(eps_sq)
     ck1_sq = eps_sq / _pow10m1(0.1 * rs)
     if ck1_sq == 0:
         raise ValueError("Cannot design a filter with given rp and rs"
                          " specifications.")
+
+    # do computations with numpy, xp.asarray the return values
 
     val = special.ellipk(ck1_sq), special.ellipkm1(ck1_sq)
 
@@ -4897,7 +4920,7 @@ def ellipap(N, rp, rs):
     if N % 2 == 0:
         k = k / np.sqrt(1 + eps_sq)
 
-    return z, p, k
+    return xp.asarray(z, device=device), xp.asarray(p, device=device), float(k)
 
 
 # TODO: Make this a real public function scipy.misc.ff
@@ -5101,7 +5124,7 @@ def _norm_factor(p, k):
     return optimize.newton(cutoff, 1.5)
 
 
-def besselap(N, norm='phase'):
+def besselap(N, norm='phase', *, xp=None, device=None):
     """
     Return (z,p,k) for analog prototype of an Nth-order Bessel filter.
 
@@ -5176,6 +5199,9 @@ def besselap(N, norm='phase'):
            https://www.ranecommercial.com/legacy/note147.html
 
     """
+    if xp is None:
+        xp = np_compat
+
     if abs(int(N)) != N:
         raise ValueError("Filter order must be a nonnegative integer")
 
@@ -5206,7 +5232,7 @@ def besselap(N, norm='phase'):
         else:
             raise ValueError('normalization not understood')
 
-    return asarray([]), asarray(p, dtype=complex), float(k)
+    return xp.asarray([], device=device), xp.asarray(p, dtype=xp.complex64), float(k)
 
 
 def iirnotch(w0, Q, fs=2.0):
