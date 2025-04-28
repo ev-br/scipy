@@ -2895,76 +2895,84 @@ class TestBessel:
                                     xp_assert_close(ba1_, ba2_)
 
 
+@skip_xp_backends("dask.array", reason="https://github.com/dask/dask/issues/11883")
 class TestButter:
 
-    def test_degenerate(self):
+    def test_degenerate(self, xp):
         # 0-order filter is just a passthrough
-        b, a = butter(0, 1, analog=True)
-        xp_assert_equal(b, np.asarray([1.0]))
-        xp_assert_equal(a, np.asarray([1.0]))
+        b, a = butter(0, xp.asarray(1), analog=True)
+        xp_assert_equal(b, xp.asarray([1.0]))
+        xp_assert_equal(a, xp.asarray([1.0]))
 
         # 1-order filter is same for all types
-        b, a = butter(1, 1, analog=True)
-        assert_array_almost_equal(b, [1])
-        assert_array_almost_equal(a, [1, 1])
+        b, a = butter(1, xp.asarray(1), analog=True)
+        assert_array_almost_equal(b, xp.asarray([1.0]))
+        assert_array_almost_equal(a, xp.asarray([1.0, 1.0]))
 
-        z, p, k = butter(1, 0.3, output='zpk')
-        xp_assert_equal(z, np.asarray([-1.0]))
-        xp_assert_close(p, [3.249196962329063e-01 + 0j], rtol=1e-14)
-        xp_assert_close(k, 3.375401518835469e-01, rtol=1e-14)
+        z, p, k = butter(1, xp.asarray(0.3), output='zpk')
+        xp_assert_equal(z, xp.asarray([-1.0]))
+        xp_assert_close(p, xp.asarray([3.249196962329063e-01 + 0j]), rtol=1e-14)
+        assert math.isclose(k, 3.375401518835469e-01, rel_tol=1e-14)
 
-    def test_basic(self):
+    def test_basic(self, xp):
         # analog s-plane
         for N in range(25):
             wn = 0.01
-            z, p, k = butter(N, wn, 'low', analog=True, output='zpk')
-            assert_array_almost_equal([], z)
-            assert len(p) == N
+            z, p, k = butter(N, xp.asarray(wn), 'low', analog=True, output='zpk')
+            assert_array_almost_equal(z, xp.asarray([]))
+            assert p.shape[0] == N
             # All poles should be at distance wn from origin
-            assert_array_almost_equal(abs(p), np.asarray(wn))
-            assert all(np.real(p) <= 0)  # No poles in right half of S-plane
-            assert_array_almost_equal(wn**N, k)
+            assert_array_almost_equal(xp.abs(p), xp.asarray(wn))
+            assert all(xp.real(p) <= 0)  # No poles in right half of S-plane
+            assert math.isclose(k, wn**N)
 
         # digital z-plane
         for N in range(25):
             wn = 0.01
-            z, p, k = butter(N, wn, 'high', analog=False, output='zpk')
-            xp_assert_equal(np.ones(N), z)  # All zeros exactly at DC
-            assert all(np.abs(p) <= 1)  # No poles outside unit circle
+            z, p, k = butter(N, xp.asarray(wn), 'high', analog=False, output='zpk')
+            xp_assert_equal(z, xp.ones(N))  # All zeros exactly at DC
+            assert xp.all(xp.abs(p) <= 1)  # No poles outside unit circle
 
-        b1, a1 = butter(2, 1, analog=True)
-        assert_array_almost_equal(b1, [1])
-        assert_array_almost_equal(a1, [1, np.sqrt(2), 1])
+        b1, a1 = butter(2, xp.asarray(1), analog=True)
+        assert_array_almost_equal(b1, xp.asarray([1.0]))
+        assert_array_almost_equal(a1, xp.asarray([1, math.sqrt(2), 1]))
 
-        b2, a2 = butter(5, 1, analog=True)
-        assert_array_almost_equal(b2, [1])
-        assert_array_almost_equal(a2, [1, 3.2361, 5.2361,
-                                       5.2361, 3.2361, 1], decimal=4)
+        b2, a2 = butter(5, xp.asarray(1.), analog=True)
+        assert_array_almost_equal(b2, xp.asarray([1]))
+        assert_array_almost_equal(a2, xp.asarray([1, 3.2361, 5.2361,
+                                                  5.2361, 3.2361, 1]), decimal=4)
 
-        b3, a3 = butter(10, 1, analog=True)
-        assert_array_almost_equal(b3, [1])
-        assert_array_almost_equal(a3, [1, 6.3925, 20.4317, 42.8021, 64.8824,
-                                       74.2334, 64.8824, 42.8021, 20.4317,
-                                       6.3925, 1], decimal=4)
+        b3, a3 = butter(10, xp.asarray(1.0), analog=True)
+        assert_array_almost_equal(b3, xp.asarray([1.0]))
+        assert_array_almost_equal(
+            a3, xp.asarray([1, 6.3925, 20.4317, 42.8021, 64.8824,
+                            74.2334, 64.8824, 42.8021, 20.4317,
+                            6.3925, 1]),
+            decimal=4
+        )
 
-        b2, a2 = butter(19, 1.0441379169150726, analog=True)
-        assert_array_almost_equal(b2, [2.2720], decimal=4)
-        assert_array_almost_equal(a2, 1.0e+004 * np.array([
+        b2, a2 = butter(19, xp.asarray(1.0441379169150726), analog=True)
+        assert_array_almost_equal(b2, xp.asarray([2.2720]), decimal=4)
+        assert_array_almost_equal(a2, 1.0e+004 * xp.asarray([
                         0.0001, 0.0013, 0.0080, 0.0335, 0.1045, 0.2570,
                         0.5164, 0.8669, 1.2338, 1.5010, 1.5672, 1.4044,
                         1.0759, 0.6986, 0.3791, 0.1681, 0.0588, 0.0153,
                         0.0026, 0.0002]), decimal=0)
 
-        b, a = butter(5, 0.4)
-        assert_array_almost_equal(b, [0.0219, 0.1097, 0.2194,
-                                      0.2194, 0.1097, 0.0219], decimal=4)
-        assert_array_almost_equal(a, [1.0000, -0.9853, 0.9738,
-                                      -0.3864, 0.1112, -0.0113], decimal=4)
+        b, a = butter(5, xp.asarray(0.4))
+        assert_array_almost_equal(
+            b, xp.asarray([0.0219, 0.1097, 0.2194,
+                           0.2194, 0.1097, 0.0219]), decimal=4
+        )
+        assert_array_almost_equal(
+            a, xp.asarray([1.0000, -0.9853, 0.9738,
+                          -0.3864, 0.1112, -0.0113]), decimal=4
+        )
 
-    def test_highpass(self):
+    def test_highpass(self, xp):
         # highpass, high even order
-        z, p, k = butter(28, 0.43, 'high', output='zpk')
-        z2 = np.ones(28)
+        z, p, k = butter(28, xp.asarray(0.43), 'high', output='zpk')
+        z2 = xp.ones(28)
         p2 = [
             2.068257195514592e-01 + 9.238294351481734e-01j,
             2.068257195514592e-01 - 9.238294351481734e-01j,
@@ -2995,15 +3003,15 @@ class TestButter:
             1.176516491045901e-01 + 2.546021573417188e-01j,
             1.176516491045901e-01 - 2.546021573417188e-01j,
             ]
+        p2 = xp.asarray(p2)
         k2 = 1.446671081817286e-06
         xp_assert_equal(z, z2)
-        xp_assert_close(sorted(p, key=np.imag),
-                        sorted(p2, key=np.imag), rtol=1e-7)
-        xp_assert_close(k, k2, rtol=1e-10)
+        xp_assert_close(_sort_cmplx(p, xp), _sort_cmplx(p2, xp), rtol=1e-7)
+        assert math.isclose(k, k2, rel_tol=1e-10)
 
         # highpass, high odd order
-        z, p, k = butter(27, 0.56, 'high', output='zpk')
-        z2 = np.ones(27)
+        z, p, k = butter(27, xp.asarray(0.56), 'high', output='zpk')
+        z2 = xp.ones(27)
         p2 = [
             -1.772572785680147e-01 + 9.276431102995948e-01j,
             -1.772572785680147e-01 - 9.276431102995948e-01j,
@@ -3033,14 +3041,14 @@ class TestButter:
             -9.484562207782568e-02 - 5.772118357151691e-02j,
             -9.452783117928215e-02
             ]
+        p2 = xp.asarray(p2)
         k2 = 9.585686688851069e-09
         xp_assert_equal(z, z2)
-        xp_assert_close(sorted(p, key=np.imag),
-                        sorted(p2, key=np.imag), rtol=1e-8)
-        xp_assert_close(k, k2)
+        xp_assert_close(_sort_cmplx(p, xp), _sort_cmplx(p2, xp), rtol=1e-8)
+        assert math.isclose(k, k2, abs_tol=1e-13)
 
-    def test_bandpass(self):
-        z, p, k = butter(8, [0.25, 0.33], 'band', output='zpk')
+    def test_bandpass(self, xp):
+        z, p, k = butter(8, xp.asarray([0.25, 0.33]), 'band', output='zpk')
         z2 = [1, 1, 1, 1, 1, 1, 1, 1,
               -1, -1, -1, -1, -1, -1, -1, -1]
         p2 = [
@@ -3061,15 +3069,16 @@ class TestButter:
             6.521767004237027e-01 + 6.744414640183752e-01j,
             6.521767004237027e-01 - 6.744414640183752e-01j,
             ]
+        z2 = xp.asarray(z2)
+        p2 = xp.asarray(p2)
         k2 = 3.398854055800844e-08
         xp_assert_equal(z, z2, check_dtype=False)
-        xp_assert_close(sorted(p, key=np.imag),
-                        sorted(p2, key=np.imag), rtol=1e-13)
-        xp_assert_close(k, k2, rtol=1e-13)
+        xp_assert_close(_sort_cmplx(p, xp), _sort_cmplx(p2, xp), rtol=1e-13)
+        assert math.isclose(k, k2, rel_tol=1e-13)
 
         # bandpass analog
-        z, p, k = butter(4, [90.5, 110.5], 'bp', analog=True, output='zpk')
-        z2 = np.zeros(4, dtype=z.dtype)
+        z, p, k = butter(4, xp.asarray([90.5, 110.5]), 'bp', analog=True, output='zpk')
+        z2 = xp.zeros(4, dtype=z.dtype)
         p2 = [
             -4.179137760733086e+00 + 1.095935899082837e+02j,
             -4.179137760733086e+00 - 1.095935899082837e+02j,
@@ -3080,14 +3089,14 @@ class TestButter:
             -3.474530886568715e+00 + 9.111599925805801e+01j,
             -3.474530886568715e+00 - 9.111599925805801e+01j,
             ]
+        p2 = xp.asarray(p2)
         k2 = 1.600000000000001e+05
         xp_assert_equal(z, z2)
-        xp_assert_close(sorted(p, key=np.imag),
-                        sorted(p2, key=np.imag))
-        xp_assert_close(k, k2, rtol=1e-15)
+        xp_assert_close(_sort_cmplx(p, xp), _sort_cmplx(p2, xp))
+        assert math.isclose(k, k2, rel_tol=1e-15)
 
-    def test_bandstop(self):
-        z, p, k = butter(7, [0.45, 0.56], 'stop', output='zpk')
+    def test_bandstop(self, xp):
+        z, p, k = butter(7, xp.asarray([0.45, 0.56]), 'stop', output='zpk')
         z2 = [-1.594474531383421e-02 + 9.998728744679880e-01j,
               -1.594474531383421e-02 - 9.998728744679880e-01j,
               -1.594474531383421e-02 + 9.998728744679880e-01j,
@@ -3116,24 +3125,27 @@ class TestButter:
                5.238812787110331e-02 - 8.524011102699969e-01j,
               -1.357545000491310e-02 + 8.382287744986582e-01j,
               -1.357545000491310e-02 - 8.382287744986582e-01j]
+        z2 = xp.asarray(z2)
+        p2 = xp.asarray(p2)
         k2 = 4.577122512960063e-01
-        xp_assert_close(sorted(z, key=np.imag),
-                        sorted(z2, key=np.imag))
-        xp_assert_close(sorted(p, key=np.imag),
-                        sorted(p2, key=np.imag))
-        xp_assert_close(k, k2, rtol=1e-14)
+        xp_assert_close(_sort_cmplx(z, xp), _sort_cmplx(z2, xp))
+        xp_assert_close(_sort_cmplx(p, xp), _sort_cmplx(p2, xp))
+        assert math.isclose(k, k2, rel_tol=1e-14)
 
-    def test_ba_output(self):
-        b, a = butter(4, [100, 300], 'bandpass', analog=True)
+    def test_ba_output(self, xp):
+        b, a = butter(4, xp.asarray([100, 300]), 'bandpass', analog=True)
         b2 = [1.6e+09, 0, 0, 0, 0]
         a2 = [1.000000000000000e+00, 5.226251859505511e+02,
               2.565685424949238e+05, 6.794127417357160e+07,
               1.519411254969542e+10, 2.038238225207147e+12,
               2.309116882454312e+14, 1.411088002066486e+16,
               8.099999999999991e+17]
+        b2 = xp.asarray(b2)
+        a2 = xp.asarray(a2)
         xp_assert_close(b, b2, rtol=1e-14)
         xp_assert_close(a, a2, rtol=1e-14)
 
+    @skip_xp_backends(np_only=True)
     def test_fs_param(self):
         for fs in (900, 900.1, 1234.567):
             for N in (0, 1, 2, 3, 10):

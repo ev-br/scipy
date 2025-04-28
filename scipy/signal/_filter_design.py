@@ -2802,6 +2802,8 @@ def iirfilter(N, Wn, rp=None, rs=None, btype='band', analog=False,
     """
     xp = array_namespace(Wn)
     Wn = xp.asarray(Wn)
+    if xp.isdtype(Wn.dtype, 'integral'):
+        Wn = xp.astype(Wn, xp_default_dtype(xp))
 
     fs = _validate_fs(fs, allow_none=True)
     ftype, btype, output = (x.lower() for x in (ftype, btype, output))
