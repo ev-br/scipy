@@ -5142,19 +5142,19 @@ def _norm_factor(p, k):
     First 10 values are listed in "Bessel Scale Factors" table,
     "Bessel Filters Polynomials, Poles and Circuit Elements 2003, C. Bond."
     """
-    p = asarray(p, dtype=complex)
+    p = np.asarray(p, dtype=np.complex128)
 
     def G(w):
         """
         Gain of filter
         """
-        return abs(k / prod(1j*w - p))
+        return np.abs(k / np.prod(1j*w - p))
 
     def cutoff(w):
         """
         When gain = -3 dB, return 0
         """
-        return G(w) - 1/np.sqrt(2)
+        return G(w) - 1/math.sqrt(2)
 
     return optimize.newton(cutoff, 1.5)
 
@@ -5267,7 +5267,9 @@ def besselap(N, norm='phase', *, xp=None, device=None):
         else:
             raise ValueError('normalization not understood')
 
-    return xp.asarray([], device=device), xp.asarray(p, dtype=xp.complex64), float(k)
+    z = xp.asarray([], device=device)
+    cdtype = xp.complex128 if z.dtype == xp.float64 else xp.complex64
+    return xp.asarray([], device=device), xp.asarray(p, dtype=cdtype), float(k)
 
 
 def iirnotch(w0, Q, fs=2.0):

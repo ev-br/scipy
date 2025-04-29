@@ -2416,29 +2416,30 @@ class TestEllipord:
             ellipord(wp, ws, rp, rs, False, fs=np.array([10, 20]))
 
 
+@skip_xp_backends("dask.array", reason="https://github.com/dask/dask/issues/11883")
 class TestBessel:
 
-    def test_degenerate(self):
+    def test_degenerate(self, xp):
         for norm in ('delay', 'phase', 'mag'):
             # 0-order filter is just a passthrough
-            b, a = bessel(0, 1, analog=True, norm=norm)
-            xp_assert_equal(b, np.asarray([1.0]))
-            xp_assert_equal(a, np.asarray([1.0]))
+            b, a = bessel(0, xp.asarray(1), analog=True, norm=norm)
+            xp_assert_equal(b, xp.asarray([1.0]))
+            xp_assert_equal(a, xp.asarray([1.0]))
 
             # 1-order filter is same for all types
-            b, a = bessel(1, 1, analog=True, norm=norm)
-            xp_assert_close(b, np.asarray([1.0]), rtol=1e-15)
-            xp_assert_close(a, np.asarray([1.0, 1]), rtol=1e-15)
+            b, a = bessel(1, xp.asarray(1.), analog=True, norm=norm)
+            xp_assert_close(b, xp.asarray([1.0]), rtol=1e-15)
+            xp_assert_close(a, xp.asarray([1.0, 1]), rtol=1e-15)
 
-            z, p, k = bessel(1, 0.3, analog=True, output='zpk', norm=norm)
-            xp_assert_equal(z, np.asarray([]))
-            xp_assert_close(p, np.asarray([-0.3+0j]), rtol=1e-14)
-            xp_assert_close(k, 0.3, rtol=1e-14)
+            z, p, k = bessel(1, xp.asarray(0.3), analog=True, output='zpk', norm=norm)
+            xp_assert_equal(z, xp.asarray([]))
+            xp_assert_close(p, xp.asarray([-0.3+0j]), rtol=1e-14)
+            assert math.isclose(k, 0.3, rel_tol=1e-14)
 
-    def test_high_order(self):
+    def test_high_order(self, xp):
         # high even order, 'phase'
-        z, p, k = bessel(24, 100, analog=True, output='zpk')
-        z2 = []
+        z, p, k = bessel(24, xp.asarray(100), analog=True, output='zpk')
+        z2 = xp.asarray([])
         p2 = [
              -9.055312334014323e+01 + 4.844005815403969e+00j,
              -8.983105162681878e+01 + 1.454056170018573e+01j,
@@ -2453,15 +2454,17 @@ class TestBessel:
              -4.027853855197555e+01 + 1.074195196518679e+02j,
              -2.433481337524861e+01 + 1.207298683731973e+02j,
              ]
+        p2 = np.union1d(p2, np.conj(p2))
+        p2 = xp.asarray(p2)
         k2 = 9.999999999999989e+47
         xp_assert_equal(z, z2)
-        xp_assert_close(sorted(p, key=np.imag),
-                        sorted(np.union1d(p2, np.conj(p2)), key=np.imag))
-        xp_assert_close(k, k2, rtol=1e-14)
+        xp_assert_close(_sort_cmplx(p, xp=xp),
+                        _sort_cmplx(p2, xp=xp))
+        assert math.isclose(k, k2, rel_tol=1e-14)
 
         # high odd order, 'phase'
-        z, p, k = bessel(23, 1000, analog=True, output='zpk')
-        z2 = []
+        z, p, k = bessel(23, xp.asarray(1000.), analog=True, output='zpk')
+        z2 = xp.asarray([])
         p2 = [
              -2.497697202208956e+02 + 1.202813187870698e+03j,
              -4.126986617510172e+02 + 1.065328794475509e+03j,
@@ -2475,15 +2478,17 @@ class TestBessel:
              -6.965966033906477e+02 + 7.207341374730186e+02j,
              -6.225903228776276e+02 + 8.301558302815096e+02j,
              -9.066732476324988e+02]
+        p2 = np.union1d(p2, np.conj(p2))
+        p2 = xp.asarray(p2)
         k2 = 9.999999999999983e+68
         xp_assert_equal(z, z2)
-        xp_assert_close(sorted(p, key=np.imag),
-                        sorted(np.union1d(p2, np.conj(p2)), key=np.imag))
-        xp_assert_close(k, k2, rtol=1e-14)
+        xp_assert_close(_sort_cmplx(p, xp=xp),
+                        _sort_cmplx(p2, xp=xp))
+        assert math.isclose(k, k2, rel_tol=1e-14)
 
         # high even order, 'delay' (Orchard 1965 "The Roots of the
         # Maximally Flat-Delay Polynomials" Table 1)
-        z, p, k = bessel(31, 1, analog=True, output='zpk', norm='delay')
+        z, p, k = bessel(31, xp.asarray(1.), analog=True, output='zpk', norm='delay')
         p2 = [-20.876706,
               -20.826543 + 1.735732j,
               -20.675502 + 3.473320j,
@@ -2501,11 +2506,13 @@ class TestBessel:
               - 8.005600 + 25.875019j,
               - 4.792045 + 28.406037j,
               ]
-        xp_assert_close(sorted(p, key=np.imag),
-                        sorted(np.union1d(p2, np.conj(p2)), key=np.imag))
+        p2 = np.union1d(p2, np.conj(p2))
+        p2 = xp.asarray(p2)
+        xp_assert_close(_sort_cmplx(p, xp=xp),
+                        _sort_cmplx(p2, xp=xp))
 
         # high odd order, 'delay'
-        z, p, k = bessel(30, 1, analog=True, output='zpk', norm='delay')
+        z, p, k = bessel(30, xp.asarray(1.), analog=True, output='zpk', norm='delay')
         p2 = [-20.201029 + 0.867750j,
               -20.097257 + 2.604235j,
               -19.888485 + 4.343721j,
@@ -2522,15 +2529,17 @@ class TestBessel:
               - 7.901170 + 24.924391j,
               - 4.734679 + 27.435615j,
               ]
-        xp_assert_close(sorted(p, key=np.imag),
-                        sorted(np.union1d(p2, np.conj(p2)), key=np.imag))
+        p2 = np.union1d(p2, np.conj(p2))
+        p2 = xp.asarray(p2)
+        xp_assert_close(_sort_cmplx(p, xp=xp),
+                        _sort_cmplx(p2, xp=xp))
 
-    def test_refs(self):
+    def test_refs(self, xp):
         # Compare to http://www.crbond.com/papers/bsf2.pdf
         # "Delay Normalized Bessel Polynomial Coefficients"
-        bond_b = np.asarray([10395.0])
-        bond_a = np.asarray([1.0, 21, 210, 1260, 4725, 10395, 10395])
-        b, a = bessel(6, 1, norm='delay', analog=True)
+        bond_b = xp.asarray([10395.0])
+        bond_a = xp.asarray([1.0, 21, 210, 1260, 4725, 10395, 10395])
+        b, a = bessel(6, xp.asarray(1.0), norm='delay', analog=True)
         xp_assert_close(b, bond_b)
         xp_assert_close(a, bond_a)
 
@@ -2558,8 +2567,9 @@ class TestBessel:
 
         for N in range(1, 11):
             p1 = np.sort(bond_poles[N])
-            p2 = np.sort(np.concatenate(_cplxreal(besselap(N, 'delay')[1])))
-            assert_array_almost_equal(p1, p2, decimal=10)
+            ap = besselap(N, 'delay')
+            p2 = np.sort(np.concatenate(_cplxreal(ap[1])))
+            assert_array_almost_equal(xp.asarray(p1), xp.asarray(p2), decimal=10)
 
         # "Frequency Normalized Bessel Pole Locations"
         bond_poles = {
@@ -2585,53 +2595,54 @@ class TestBessel:
 
         for N in range(1, 11):
             p1 = np.sort(bond_poles[N])
-            p2 = np.sort(np.concatenate(_cplxreal(besselap(N, 'mag')[1])))
-            assert_array_almost_equal(p1, p2, decimal=10)
+            ap = besselap(N, 'mag')
+            p2 = np.sort(np.concatenate(_cplxreal(ap[1])))
+            assert_array_almost_equal(xp.asarray(p1), xp.asarray(p2), decimal=10)
 
         # Compare to https://www.ranecommercial.com/legacy/note147.html
         # "Table 1 - Bessel Crossovers of Second, Third, and Fourth-Order"
-        a = np.asarray([1, 1, 1/3])
-        b2, a2 = bessel(2, 1, norm='delay', analog=True)
-        xp_assert_close(a[::-1], a2/b2)
+        a = xp.asarray([1, 1, 1/3])
+        b2, a2 = bessel(2, xp.asarray(1.), norm='delay', analog=True)
+        xp_assert_close(xp.flip(a), a2/b2)
 
-        a = np.asarray([1, 1, 2/5, 1/15])
-        b2, a2 = bessel(3, 1, norm='delay', analog=True)
-        xp_assert_close(a[::-1], a2/b2)
+        a = xp.asarray([1, 1, 2/5, 1/15])
+        b2, a2 = bessel(3, xp.asarray(1.), norm='delay', analog=True)
+        xp_assert_close(xp.flip(a), a2/b2)
 
-        a = np.asarray([1, 1, 9/21, 2/21, 1/105])
-        b2, a2 = bessel(4, 1, norm='delay', analog=True)
-        xp_assert_close(a[::-1], a2/b2)
+        a = xp.asarray([1, 1, 9/21, 2/21, 1/105])
+        b2, a2 = bessel(4, xp.asarray(1.), norm='delay', analog=True)
+        xp_assert_close(xp.flip(a), a2/b2)
 
-        a = np.asarray([1, np.sqrt(3), 1])
-        b2, a2 = bessel(2, 1, norm='phase', analog=True)
-        xp_assert_close(a[::-1], a2/b2)
-
-        # TODO: Why so inaccurate?  Is reference flawed?
-        a = np.asarray([1, 2.481, 2.463, 1.018])
-        b2, a2 = bessel(3, 1, norm='phase', analog=True)
-        assert_array_almost_equal(a[::-1], a2/b2, decimal=1)
+        a = xp.asarray([1, math.sqrt(3), 1])
+        b2, a2 = bessel(2, xp.asarray(1.), norm='phase', analog=True)
+        xp_assert_close(xp.flip(a), a2/b2)
 
         # TODO: Why so inaccurate?  Is reference flawed?
-        a = np.asarray([1, 3.240, 4.5, 3.240, 1.050])
-        b2, a2 = bessel(4, 1, norm='phase', analog=True)
-        assert_array_almost_equal(a[::-1], a2/b2, decimal=1)
+        a = xp.asarray([1, 2.481, 2.463, 1.018])
+        b2, a2 = bessel(3, xp.asarray(1.), norm='phase', analog=True)
+        assert_array_almost_equal(xp.flip(a), a2/b2, decimal=1)
+
+        # TODO: Why so inaccurate?  Is reference flawed?
+        a = xp.asarray([1, 3.240, 4.5, 3.240, 1.050])
+        b2, a2 = bessel(4, xp.asarray(1.), norm='phase', analog=True)
+        assert_array_almost_equal(xp.flip(a), a2/b2, decimal=1)
 
         # Table of -3 dB factors:
-        N, scale = 2, np.asarray([1.272, 1.272], dtype=np.complex128)
-        scale2 = besselap(N, 'mag')[1] / besselap(N, 'phase')[1]
+        N, scale = 2, xp.asarray([1.272, 1.272], dtype=xp.complex128)
+        scale2 = besselap(N, 'mag', xp=xp)[1] / besselap(N, 'phase', xp=xp)[1]
         assert_array_almost_equal(scale2, scale, decimal=3)
 
         # TODO: Why so inaccurate?  Is reference flawed?
-        N, scale = 3, np.asarray([1.413, 1.413, 1.413], dtype=np.complex128)
-        scale2 = besselap(N, 'mag')[1] / besselap(N, 'phase')[1]
+        N, scale = 3, xp.asarray([1.413, 1.413, 1.413], dtype=xp.complex128)
+        scale2 = besselap(N, 'mag', xp=xp)[1] / besselap(N, 'phase', xp=xp)[1]
         assert_array_almost_equal(scale2, scale, decimal=2)
 
         # TODO: Why so inaccurate?  Is reference flawed?
-        N, scale = 4, np.asarray([1.533]*4, dtype=np.complex128)
-        scale2 = besselap(N, 'mag')[1] / besselap(N, 'phase')[1]
+        N, scale = 4, xp.asarray([1.533]*4, dtype=xp.complex128)
+        scale2 = besselap(N, 'mag', xp=xp)[1] / besselap(N, 'phase', xp=xp)[1]
         assert_array_almost_equal(scale, scale2, decimal=1)
 
-    def test_hardcoded(self):
+    def test_hardcoded(self, xp):
         # Compare to values from original hardcoded implementation
         originals = {
             0: [],
@@ -2806,45 +2817,47 @@ class TestBessel:
                  -.2373280669322028974199184 + 1.211476658382565356579418j],
             }
         for N in originals:
-            p1 = sorted(np.union1d(originals[N],
-                                   np.conj(originals[N])), key=np.imag)
-            p2 = sorted(besselap(N)[1], key=np.imag)
-            xp_assert_close(p1,
-                            p2, rtol=1e-14, check_dtype=False)
+            p1 = np.union1d(originals[N], np.conj(originals[N]))
+            p2 = besselap(N)[1]
+            p1, p2 = xp.asarray(p1), xp.asarray(p2)
+            xp_assert_close(_sort_cmplx(p1, xp=xp),
+                            _sort_cmplx(p2, xp=xp), rtol=1e-14, check_dtype=False)
 
-    def test_norm_phase(self):
+    def test_norm_phase(self, xp):
         # Test some orders and frequencies and see that they have the right
         # phase at w0
         for N in (1, 2, 3, 4, 5, 51, 72):
             for w0 in (1, 100):
-                b, a = bessel(N, w0, analog=True, norm='phase')
-                w = np.linspace(0, w0, 100)
+                b, a = bessel(N, xp.asarray(w0), analog=True, norm='phase')
+                w = xp.linspace(0, w0, 100)
                 w, h = freqs(b, a, w)
-                phase = np.unwrap(np.angle(h))
-                xp_assert_close(phase[[0, -1]], (0, -N*pi/4), rtol=1e-1)
+                phase = np.unwrap(np.angle(xp.asarray(h)))
+                xp_assert_close(xp.asarray(phase[[0, -1]]), xp.asarray([0, -N*xp.pi/4]), rtol=1e-1)
 
-    def test_norm_mag(self):
+    def test_norm_mag(self, xp):
         # Test some orders and frequencies and see that they have the right
         # mag at w0
         for N in (1, 2, 3, 4, 5, 51, 72):
             for w0 in (1, 100):
-                b, a = bessel(N, w0, analog=True, norm='mag')
-                w = (0, w0)
+                b, a = bessel(N, xp.asarray(w0), analog=True, norm='mag')
+                w = xp.asarray([0.0, w0])
                 w, h = freqs(b, a, w)
-                mag = abs(h)
-                xp_assert_close(mag, (1, 1/np.sqrt(2)))
+                mag = xp.abs(h)
+                xp_assert_close(mag, xp.asarray([1, 1/math.sqrt(2)]))
 
-    def test_norm_delay(self):
+    def test_norm_delay(self, xp):
         # Test some orders and frequencies and see that they have the right
         # delay at DC
         for N in (1, 2, 3, 4, 5, 51, 72):
             for w0 in (1, 100):
-                b, a = bessel(N, w0, analog=True, norm='delay')
-                w = np.linspace(0, 10*w0, 1000)
+                b, a = bessel(N, xp.asarray(w0), analog=True, norm='delay')
+                w = xp.linspace(0, 10*w0, 1000)
                 w, h = freqs(b, a, w)
-                delay = -np.diff(np.unwrap(np.angle(h)))/np.diff(w)
-                xp_assert_close(delay[0], 1/w0, rtol=1e-4)
+                unwr_h = xp.asarray(np.unwrap(np.angle(np.asarray(h))))
+                delay = -xp.diff(unwr_h) / xp.diff(w)
+                assert math.isclose(delay[0], 1/w0, rel_tol=1e-4)
 
+    @skip_xp_backends(np_only=True)
     def test_norm_factor(self):
         mpmath_values = {
             1: 1.0, 2: 1.361654128716130520, 3: 1.755672368681210649,
@@ -2865,13 +2878,16 @@ class TestBessel:
             z, p, k = besselap(N, 'delay')
             xp_assert_close(mpmath_values[N], _norm_factor(p, k), rtol=1e-13)
 
+    @skip_xp_backends(np_only=True)
     def test_bessel_poly(self):
         xp_assert_equal(_bessel_poly(5), [945, 945, 420, 105, 15, 1])
         xp_assert_equal(_bessel_poly(4, True), [1, 10, 45, 105, 105])
 
+    @skip_xp_backends(np_only=True)
     def test_bessel_zeros(self):
         xp_assert_equal(_bessel_zeros(0), [])
 
+    @skip_xp_backends(np_only=True)
     def test_invalid(self):
         assert_raises(ValueError, besselap, 5, 'nonsense')
         assert_raises(ValueError, besselap, -5)
@@ -2879,6 +2895,7 @@ class TestBessel:
         assert_raises(ValueError, _bessel_poly, -3)
         assert_raises(ValueError, _bessel_poly, 3.3)
 
+    @skip_xp_backends(np_only=True)
     @pytest.mark.fail_slow(10)
     def test_fs_param(self):
         for norm in ('phase', 'mag', 'delay'):
@@ -3837,10 +3854,10 @@ class TestEllip:
                5.877753105317594e-01 + 8.090050577978136e-01j,
                5.877753105317594e-01 - 8.090050577978136e-01j]
         k2 = 4.918081266957108e-02
-        xp_assert_close(sorted(z, key=np.angle),
-                        sorted(z2, key=np.angle), rtol=1e-4)
-        xp_assert_close(sorted(p, key=np.angle),
-                        sorted(p2, key=np.angle), rtol=1e-4)
+        xp_assert_close(_sort_cmplx(z, key=np.angle),
+                        _sort_cmplx(z2, key=np.angle), rtol=1e-4)
+        xp_assert_close(_sort_cmplx(p, key=np.angle),
+                        _sort_cmplx(p2, key=np.angle), rtol=1e-4)
         xp_assert_close(k, k2, rtol=1e-3)
 
         # high odd order
@@ -3892,10 +3909,10 @@ class TestEllip:
               -6.948417068525226e-07 + 9.999882737700173e-01j,
               -6.948417068525226e-07 - 9.999882737700173e-01j]
         k2 = 1.220910020289434e-02
-        xp_assert_close(sorted(z, key=np.angle),
-                        sorted(z2, key=np.angle), rtol=1e-4)
-        xp_assert_close(sorted(p, key=np.angle),
-                        sorted(p2, key=np.angle), rtol=1e-4)
+        xp_assert_close(_sort_cmplx(z, key=np.angle),
+                        _sort_cmplx(z2, key=np.angle), rtol=1e-4)
+        xp_assert_close(_sort_cmplx(p, key=np.angle),
+                        _sort_cmplx(p2, key=np.angle), rtol=1e-4)
         xp_assert_close(k, k2, rtol=1e-3)
 
     def test_bandpass(self):
@@ -3929,10 +3946,10 @@ class TestEllip:
               9.747235066273385e-01 + 2.178937926146544e-01j,
               9.747235066273385e-01 - 2.178937926146544e-01j]
         k2 = 8.354782670263239e-03
-        xp_assert_close(sorted(z, key=np.angle),
-                        sorted(z2, key=np.angle), rtol=1e-4)
-        xp_assert_close(sorted(p, key=np.angle),
-                        sorted(p2, key=np.angle), rtol=1e-4)
+        xp_assert_close(_sort_cmplx(z, key=np.angle),
+                        _sort_cmplx(z2, key=np.angle), rtol=1e-4)
+        xp_assert_close(_sort_cmplx(p, key=np.angle),
+                        _sort_cmplx(p2, key=np.angle), rtol=1e-4)
         xp_assert_close(k, k2, rtol=1e-3)
 
         z, p, k = ellip(5, 1, 75, [90.5, 110.5], 'pass', True, 'zpk')
@@ -3956,10 +3973,10 @@ class TestEllip:
               -7.230484977485752e-01 + 9.056598800801140e+01j,
               -7.230484977485752e-01 - 9.056598800801140e+01j]
         k2 = 3.774571622827070e-02
-        xp_assert_close(sorted(z, key=np.imag),
-                        sorted(z2, key=np.imag), rtol=1e-4)
-        xp_assert_close(sorted(p, key=np.imag),
-                        sorted(p2, key=np.imag), rtol=1e-6)
+        xp_assert_close(_sort_cmplx(z, xp=xp),
+                        _sort_cmplx(z2, xp=xp), rtol=1e-4)
+        xp_assert_close(_sort_cmplx(p, xp=xp),
+                        _sort_cmplx(p2, xp=xp), rtol=1e-6)
         xp_assert_close(k, k2, rtol=1e-3)
 
     def test_bandstop(self):
@@ -3998,10 +4015,10 @@ class TestEllip:
                8.062787978834571e-01 + 5.855780880424964e-01j,
                8.062787978834571e-01 - 5.855780880424964e-01j]
         k2 = 2.068622545291259e-01
-        xp_assert_close(sorted(z, key=np.angle),
-                        sorted(z2, key=np.angle), rtol=1e-6)
-        xp_assert_close(sorted(p, key=np.angle),
-                        sorted(p2, key=np.angle), rtol=1e-5)
+        xp_assert_close(_sort_cmplx(z, key=np.angle),
+                        _sort_cmplx(z2, key=np.angle), rtol=1e-6)
+        xp_assert_close(_sort_cmplx(p, key=np.angle),
+                        _sort_cmplx(p2, key=np.angle), rtol=1e-5)
         xp_assert_close(k, k2, rtol=1e-5)
 
     def test_ba_output(self):
