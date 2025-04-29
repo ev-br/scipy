@@ -2856,7 +2856,7 @@ def iirfilter(N, Wn, rp=None, rs=None, btype='band', analog=False,
         if rs is None or rp is None:
             raise ValueError("Both rp and rs must be provided to design an "
                              "elliptic filter.")
-        z, p, k = typefunc(N, rp, rs)
+        z, p, k = typefunc(N, rp, rs, xp=xp)
     else:
         raise NotImplementedError(f"'{ftype}' not implemented in iirfilter.")
 
@@ -4611,19 +4611,23 @@ def ellipord(wp, ws, gpass, gstop, analog=False, fs=None):
     >>> plt.show()
 
     """
+    xp = array_namespace(wp, ws)
+    wp, ws = map(xp.asarray, (wp, ws))
+
     fs = _validate_fs(fs, allow_none=True)
     _validate_gpass_gstop(gpass, gstop)
-    wp, ws, filter_type = _validate_wp_ws(wp, ws, fs, analog)
-    passb, stopb = _pre_warp(wp, ws, analog)
-    nat, passb = _find_nat_freq(stopb, passb, gpass, gstop, filter_type, 'ellip')
+    wp, ws, filter_type = _validate_wp_ws(wp, ws, fs, analog, xp=xp)
+    passb, stopb = _pre_warp(wp, ws, analog, xp=xp)
+    nat, passb = _find_nat_freq(stopb, passb, gpass, gstop, filter_type, 'ellip', xp=xp)
 
     arg1_sq = _pow10m1(0.1 * gpass) / _pow10m1(0.1 * gstop)
     arg0 = 1.0 / nat
+    arg0 = np.asarray(arg0)
     d0 = special.ellipk(arg0 ** 2), special.ellipkm1(arg0 ** 2)
     d1 = special.ellipk(arg1_sq), special.ellipkm1(arg1_sq)
-    ord = int(ceil(d0[0] * d1[1] / (d0[1] * d1[0])))
+    ord = int(np.ceil(d0[0] * d1[1] / (d0[1] * d1[0])))
 
-    wn = _postprocess_wn(passb, analog, fs)
+    wn = _postprocess_wn(passb, analog, fs, xp=xp)
 
     return ord, wn
 
