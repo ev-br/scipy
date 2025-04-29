@@ -3761,53 +3761,55 @@ class TestCheby2:
                                 xp_assert_close(ba1_, ba2_)
 
 
+@skip_xp_backends("dask.array", reason="https://github.com/dask/dask/issues/11883")
 class TestEllip:
 
-    def test_degenerate(self):
+    def test_degenerate(self, xp):
         # 0-order filter is just a passthrough
         # Even-order filters have DC gain of -rp dB
         # Stopband ripple factor doesn't matter
-        b, a = ellip(0, 10*np.log10(2), 123.456, 1, analog=True)
-        assert_array_almost_equal(b, [1/np.sqrt(2)])
-        xp_assert_equal(a, np.asarray([1.0]))
+        b, a = ellip(0, 10*math.log10(2), 123.456, xp.asarray(1.), analog=True)
+        assert_array_almost_equal(b, xp.asarray([1/math.sqrt(2)]))
+        xp_assert_equal(a, xp.asarray([1.0]))
 
         # 1-order filter is same for all types
-        b, a = ellip(1, 10*np.log10(2), 1, 1, analog=True)
-        assert_array_almost_equal(b, [1])
-        assert_array_almost_equal(a, [1, 1])
+        b, a = ellip(1, 10*math.log10(2), 1, xp.asarray(1.), analog=True)
+        assert_array_almost_equal(b, xp.asarray([1.]))
+        assert_array_almost_equal(a, xp.asarray([1., 1]))
 
-        z, p, k = ellip(1, 1, 55, 0.3, output='zpk')
-        xp_assert_close(z, [-9.999999999999998e-01], rtol=1e-14)
-        xp_assert_close(p, [-6.660721153525525e-04], rtol=1e-10)
-        xp_assert_close(k, 5.003330360576763e-01, rtol=1e-14)
+        z, p, k = ellip(1, 1, 55, xp.asarray(0.3), output='zpk')
+        xp_assert_close(z, xp.asarray([-9.999999999999998e-01]), rtol=1e-14)
+        xp_assert_close(p, xp.asarray([-6.660721153525525e-04]), rtol=1e-10)
+        assert math.isclose(k, 5.003330360576763e-01, rel_tol=1e-14)
 
-    def test_basic(self):
+    def test_basic(self, xp):
         for N in range(25):
-            wn = 0.01
+            wn = xp.asarray(0.01)
             z, p, k = ellip(N, 1, 40, wn, 'low', analog=True, output='zpk')
-            assert len(p) == N
-            assert all(np.real(p) <= 0)  # No poles in right half of S-plane
+            assert p.shape[0] == N
+            assert xp.all(xp.real(p) <= 0)  # No poles in right half of S-plane
 
         for N in range(25):
-            wn = 0.01
+            wn = xp.asarray(0.01)
             z, p, k = ellip(N, 1, 40, wn, 'high', analog=False, output='zpk')
-            assert all(np.abs(p) <= 1)  # No poles outside unit circle
+            assert xp.all(xp.abs(p) <= 1)  # No poles outside unit circle
 
-        b3, a3 = ellip(5, 3, 26, 1, analog=True)
-        assert_array_almost_equal(b3, [0.1420, 0, 0.3764, 0,
-                                       0.2409], decimal=4)
-        assert_array_almost_equal(a3, [1, 0.5686, 1.8061, 0.8017, 0.8012,
-                                       0.2409], decimal=4)
+        b3, a3 = ellip(5, 3, 26, xp.asarray(1.), analog=True)
+        assert_array_almost_equal(b3, xp.asarray([0.1420, 0, 0.3764, 0, 0.2409]),
+                                  decimal=4)
+        assert_array_almost_equal(
+            a3, xp.asarray([1, 0.5686, 1.8061, 0.8017, 0.8012, 0.2409]), decimal=4
+        )
 
-        b, a = ellip(3, 1, 60, [0.4, 0.7], 'stop')
-        assert_array_almost_equal(b, [0.3310, 0.3469, 1.1042, 0.7044, 1.1042,
-                                      0.3469, 0.3310], decimal=4)
-        assert_array_almost_equal(a, [1.0000, 0.6973, 1.1441, 0.5878, 0.7323,
-                                      0.1131, -0.0060], decimal=4)
+        b, a = ellip(3, 1, 60, xp.asarray([0.4, 0.7]), 'stop')
+        assert_array_almost_equal(b, xp.asarray([0.3310, 0.3469, 1.1042, 0.7044, 1.1042,
+                                      0.3469, 0.3310]), decimal=4)
+        assert_array_almost_equal(a, xp.asarray([1.0000, 0.6973, 1.1441, 0.5878, 0.7323,
+                                      0.1131, -0.0060]), decimal=4)
 
-    def test_highpass(self):
+    def test_highpass(self, xp):
         # high even order
-        z, p, k = ellip(24, 1, 80, 0.3, 'high', output='zpk')
+        z, p, k = ellip(24, 1, 80, xp.asarray(0.3), 'high', output='zpk')
         z2 = [9.761875332501075e-01 + 2.169283290099910e-01j,
               9.761875332501075e-01 - 2.169283290099910e-01j,
               8.413503353963494e-01 + 5.404901600661900e-01j,
@@ -3856,15 +3858,17 @@ class TestEllip:
                5.876904783532237e-01 - 8.090127161018823e-01j,
                5.877753105317594e-01 + 8.090050577978136e-01j,
                5.877753105317594e-01 - 8.090050577978136e-01j]
+        z2 = xp.asarray(z2)
+        p2 = xp.asarray(p2)
         k2 = 4.918081266957108e-02
-        xp_assert_close(_sort_cmplx(z, key=np.angle),
-                        _sort_cmplx(z2, key=np.angle), rtol=1e-4)
-        xp_assert_close(_sort_cmplx(p, key=np.angle),
-                        _sort_cmplx(p2, key=np.angle), rtol=1e-4)
-        xp_assert_close(k, k2, rtol=1e-3)
+        xp_assert_close(_sort_cmplx(z, xp=xp),
+                        _sort_cmplx(z2, xp=xp), rtol=1e-4)
+        xp_assert_close(_sort_cmplx(p, xp=xp),
+                        _sort_cmplx(p2, xp=xp), rtol=1e-4)
+        assert math.isclose(k, k2, rel_tol=1e-3)
 
         # high odd order
-        z, p, k = ellip(23, 1, 70, 0.5, 'high', output='zpk')
+        z, p, k = ellip(23, 1, 70, xp.asarray(0.5), 'high', output='zpk')
         z2 = [9.999999999998661e-01,
               6.603717261750994e-01 + 7.509388678638675e-01j,
               6.603717261750994e-01 - 7.509388678638675e-01j,
@@ -3911,14 +3915,16 @@ class TestEllip:
               -5.687071588789117e-05 - 9.999527573294513e-01j,
               -6.948417068525226e-07 + 9.999882737700173e-01j,
               -6.948417068525226e-07 - 9.999882737700173e-01j]
+        z2 = xp.asarray(z2)
+        p2 = xp.asarray(p2)
         k2 = 1.220910020289434e-02
-        xp_assert_close(_sort_cmplx(z, key=np.angle),
-                        _sort_cmplx(z2, key=np.angle), rtol=1e-4)
-        xp_assert_close(_sort_cmplx(p, key=np.angle),
-                        _sort_cmplx(p2, key=np.angle), rtol=1e-4)
-        xp_assert_close(k, k2, rtol=1e-3)
+        xp_assert_close(_sort_cmplx(z, xp=xp),
+                        _sort_cmplx(z2, xp=xp), rtol=1e-4)
+        xp_assert_close(_sort_cmplx(p, xp=xp),
+                        _sort_cmplx(p2, xp=xp), rtol=1e-4)
+        assert math.isclose(k, k2, rel_tol=1e-3)
 
-    def test_bandpass(self):
+    def test_bandpass(self, xp):
         z, p, k = ellip(7, 1, 40, [0.07, 0.2], 'pass', output='zpk')
         z2 = [-9.999999999999991e-01,
                6.856610961780020e-01 + 7.279209168501619e-01j,
@@ -3948,12 +3954,14 @@ class TestEllip:
               9.679465190411238e-01 - 2.228772501848216e-01j,
               9.747235066273385e-01 + 2.178937926146544e-01j,
               9.747235066273385e-01 - 2.178937926146544e-01j]
+        z2 = xp.asarray(z2)
+        p2 = xp.asarray(p2)
         k2 = 8.354782670263239e-03
-        xp_assert_close(_sort_cmplx(z, key=np.angle),
-                        _sort_cmplx(z2, key=np.angle), rtol=1e-4)
-        xp_assert_close(_sort_cmplx(p, key=np.angle),
-                        _sort_cmplx(p2, key=np.angle), rtol=1e-4)
-        xp_assert_close(k, k2, rtol=1e-3)
+        xp_assert_close(_sort_cmplx(z, xp=xp),
+                        _sort_cmplx(z2, xp=xp), rtol=1e-4)
+        xp_assert_close(_sort_cmplx(p, xp=xp),
+                        _sort_cmplx(p2, xp=xp), rtol=1e-4)
+        assert math.isclose(k, k2, rel_tol=1e-3)
 
         z, p, k = ellip(5, 1, 75, [90.5, 110.5], 'pass', True, 'zpk')
         z2 = [-5.583607317695175e-14 + 1.433755965989225e+02j,
@@ -3975,14 +3983,16 @@ class TestEllip:
               -2.180456023925693e+00 - 9.379206865455268e+01j,
               -7.230484977485752e-01 + 9.056598800801140e+01j,
               -7.230484977485752e-01 - 9.056598800801140e+01j]
+        z2 = xp.asarray(z2)
+        p2 = xp.asarray(p2)
         k2 = 3.774571622827070e-02
         xp_assert_close(_sort_cmplx(z, xp=xp),
                         _sort_cmplx(z2, xp=xp), rtol=1e-4)
         xp_assert_close(_sort_cmplx(p, xp=xp),
                         _sort_cmplx(p2, xp=xp), rtol=1e-6)
-        xp_assert_close(k, k2, rtol=1e-3)
+        assert math.isclose(k, k2, rel_tol=1e-3)
 
-    def test_bandstop(self):
+    def test_bandstop(self, xp):
         z, p, k = ellip(8, 1, 65, [0.2, 0.4], 'stop', output='zpk')
         z2 = [3.528578094286510e-01 + 9.356769561794296e-01j,
               3.528578094286510e-01 - 9.356769561794296e-01j,
@@ -4017,16 +4027,18 @@ class TestEllip:
                8.066158014414928e-01 - 5.649811440393374e-01j,
                8.062787978834571e-01 + 5.855780880424964e-01j,
                8.062787978834571e-01 - 5.855780880424964e-01j]
+        z2 = xp.asarray(z2)
+        p2 = xp.asarray(p2)
         k2 = 2.068622545291259e-01
-        xp_assert_close(_sort_cmplx(z, key=np.angle),
-                        _sort_cmplx(z2, key=np.angle), rtol=1e-6)
-        xp_assert_close(_sort_cmplx(p, key=np.angle),
-                        _sort_cmplx(p2, key=np.angle), rtol=1e-5)
-        xp_assert_close(k, k2, rtol=1e-5)
+        xp_assert_close(_sort_cmplx(z, xp=xp),
+                        _sort_cmplx(z2, xp=xp), rtol=1e-6)
+        xp_assert_close(_sort_cmplx(p, xp=xp),
+                        _sort_cmplx(p2, xp=xp), rtol=1e-5)
+        assert math.isclose(k, k2, rel_tol=1e-5)
 
-    def test_ba_output(self):
+    def test_ba_output(self, xp):
         # with transfer function conversion,  without digital conversion
-        b, a = ellip(5, 1, 40, [201, 240], 'stop', True)
+        b, a = ellip(5, 1, 40, xp.asarray([201, 240]), 'stop', True)
         b2 = [
              1.000000000000000e+00, 0,  # Matlab: 1.743506051190569e-13,
              2.426561778314366e+05, 0,  # Matlab: 3.459426536825722e-08,
@@ -4043,9 +4055,12 @@ class TestEllip:
              2.791577695211466e+19, 7.241811142725384e+20,
              2.612380874940182e+23
              ]
+        b2 = xp.asarray(b2)
+        a2 = xp.asarray(a2)
         xp_assert_close(b, b2, rtol=1e-6)
         xp_assert_close(a, a2, rtol=1e-4)
 
+    @skip_xp_backends(np_only=True)
     def test_fs_param(self):
         for fs in (900, 900.1, 1234.567):
             for N in (0, 1, 2, 3, 10):
@@ -4064,6 +4079,7 @@ class TestEllip:
                             for ba1_, ba2_ in zip(ba1, ba2):
                                 xp_assert_close(ba1_, ba2_)
 
+    @skip_xp_backends(np_only=True)
     def test_fs_validation(self):
         with pytest.raises(ValueError, match="Sampling.*single scalar"):
             iirnotch(0.06, 30, fs=np.array([10, 20]))
