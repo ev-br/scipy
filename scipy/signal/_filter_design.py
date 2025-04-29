@@ -2841,17 +2841,17 @@ def iirfilter(N, Wn, rp=None, rs=None, btype='band', analog=False,
     if typefunc == buttap:
         z, p, k = typefunc(N, xp=xp)
     elif typefunc == besselap:
-        z, p, k = typefunc(N, norm=bessel_norms[ftype])
+        z, p, k = typefunc(N, norm=bessel_norms[ftype], xp=xp)
     elif typefunc == cheb1ap:
         if rp is None:
             raise ValueError("passband ripple (rp) must be provided to "
                              "design a Chebyshev I filter.")
-        z, p, k = typefunc(N, rp)
+        z, p, k = typefunc(N, rp, xp=xp)
     elif typefunc == cheb2ap:
         if rs is None:
             raise ValueError("stopband attenuation (rs) must be provided to "
                              "design an Chebyshev II filter.")
-        z, p, k = typefunc(N, rs)
+        z, p, k = typefunc(N, rs, xp=xp)
     elif typefunc == ellipap:
         if rs is None or rp is None:
             raise ValueError("Both rp and rs must be provided to design an "
@@ -4387,19 +4387,22 @@ def cheb1ord(wp, ws, gpass, gstop, analog=False, fs=None):
     >>> plt.show()
 
     """
+    xp = array_namespace(wp, ws)
+    wp, ws = map(xp.asarray, (wp, ws))
+
     fs = _validate_fs(fs, allow_none=True)
     _validate_gpass_gstop(gpass, gstop)
-    wp, ws, filter_type = _validate_wp_ws(wp, ws, fs, analog)
-    passb, stopb = _pre_warp(wp, ws, analog)
-    nat, passb = _find_nat_freq(stopb, passb, gpass, gstop, filter_type, 'cheby')
+    wp, ws, filter_type = _validate_wp_ws(wp, ws, fs, analog, xp=xp)
+    passb, stopb = _pre_warp(wp, ws, analog, xp=xp)
+    nat, passb = _find_nat_freq(stopb, passb, gpass, gstop, filter_type, 'cheby', xp=xp)
 
-    GSTOP = 10 ** (0.1 * abs(gstop))
-    GPASS = 10 ** (0.1 * abs(gpass))
-    v_pass_stop = np.arccosh(np.sqrt((GSTOP - 1.0) / (GPASS - 1.0)))
-    ord = int(ceil(v_pass_stop / np.arccosh(nat)))
+    GSTOP = 10 ** (0.1 * builtins.abs(gstop))
+    GPASS = 10 ** (0.1 * builtins.abs(gpass))
+    v_pass_stop = math.acosh(math.sqrt((GSTOP - 1.0) / (GPASS - 1.0)))
+    ord = int(xp.ceil(v_pass_stop / xp.acosh(nat)))
 
     # Natural frequencies are just the passband edges
-    wn = _postprocess_wn(passb, analog, fs)
+    wn = _postprocess_wn(passb, analog, fs, xp=xp)
 
     return ord, wn
 
@@ -4482,21 +4485,24 @@ def cheb2ord(wp, ws, gpass, gstop, analog=False, fs=None):
     >>> plt.show()
 
     """
+    xp = array_namespace(wp, ws)
+    wp, ws = map(xp.asarray, (wp, ws))
+
     fs = _validate_fs(fs, allow_none=True)
     _validate_gpass_gstop(gpass, gstop)
-    wp, ws, filter_type = _validate_wp_ws(wp, ws, fs, analog)
-    passb, stopb = _pre_warp(wp, ws, analog)
-    nat, passb = _find_nat_freq(stopb, passb, gpass, gstop, filter_type, 'cheby')
+    wp, ws, filter_type = _validate_wp_ws(wp, ws, fs, analog, xp=xp)
+    passb, stopb = _pre_warp(wp, ws, analog, xp=xp)
+    nat, passb = _find_nat_freq(stopb, passb, gpass, gstop, filter_type, 'cheby', xp=xp)
 
-    GSTOP = 10 ** (0.1 * abs(gstop))
-    GPASS = 10 ** (0.1 * abs(gpass))
-    v_pass_stop = np.arccosh(np.sqrt((GSTOP - 1.0) / (GPASS - 1.0)))
-    ord = int(ceil(v_pass_stop / arccosh(nat)))
+    GSTOP = 10 ** (0.1 * builtins.abs(gstop))
+    GPASS = 10 ** (0.1 * builtins.abs(gpass))
+    v_pass_stop = math.acosh(math.sqrt((GSTOP - 1.0) / (GPASS - 1.0)))
+    ord = int(xp.ceil(v_pass_stop / xp.acosh(nat)))
 
     # Find frequency where analog response is -gpass dB.
     # Then convert back from low-pass prototype to the original filter.
 
-    new_freq = cosh(1.0 / ord * v_pass_stop)
+    new_freq = math.cosh(1.0 / ord * v_pass_stop)
     new_freq = 1.0 / new_freq
 
     if filter_type == 1:
@@ -4504,19 +4510,19 @@ def cheb2ord(wp, ws, gpass, gstop, analog=False, fs=None):
     elif filter_type == 2:
         nat = passb * new_freq
     elif filter_type == 3:
-        nat = np.empty(2, float)
+        nat = xp.empty(2, dtype=xp.float64)
         nat[0] = (new_freq / 2.0 * (passb[0] - passb[1]) +
-                  sqrt(new_freq ** 2 * (passb[1] - passb[0]) ** 2 / 4.0 +
+                  math.sqrt(new_freq ** 2 * (passb[1] - passb[0]) ** 2 / 4.0 +
                        passb[1] * passb[0]))
         nat[1] = passb[1] * passb[0] / nat[0]
     elif filter_type == 4:
-        nat = np.empty(2, float)
+        nat = xp.empty(2, dtype=xp.float64)
         nat[0] = (1.0 / (2.0 * new_freq) * (passb[0] - passb[1]) +
-                  sqrt((passb[1] - passb[0]) ** 2 / (4.0 * new_freq ** 2) +
+                  math.sqrt((passb[1] - passb[0]) ** 2 / (4.0 * new_freq ** 2) +
                        passb[1] * passb[0]))
         nat[1] = passb[0] * passb[1] / nat[0]
 
-    wn = _postprocess_wn(nat, analog, fs)
+    wn = _postprocess_wn(nat, analog, fs, xp=xp)
 
     return ord, wn
 
