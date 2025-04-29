@@ -3442,58 +3442,60 @@ class TestCheby1:
                             for ba1_, ba2_ in zip(ba1, ba2):
                                 xp_assert_close(ba1_, ba2_)
 
+
+@skip_xp_backends("dask.array", reason="https://github.com/dask/dask/issues/11883")
 class TestCheby2:
 
-    def test_degenerate(self):
+    def test_degenerate(self, xp):
         # 0-order filter is just a passthrough
         # Stopband ripple factor doesn't matter
-        b, a = cheby2(0, 123.456, 1, analog=True)
-        xp_assert_equal(b, np.asarray([1.0]))
-        xp_assert_equal(a, np.asarray([1.0]))
+        b, a = cheby2(0, 123.456, xp.asarray(1), analog=True)
+        xp_assert_equal(b, xp.asarray([1.0]))
+        xp_assert_equal(a, xp.asarray([1.0]))
 
         # 1-order filter is same for all types
-        b, a = cheby2(1, 10*np.log10(2), 1, analog=True)
-        assert_array_almost_equal(b, [1])
-        assert_array_almost_equal(a, [1, 1])
+        b, a = cheby2(1, 10*math.log10(2), xp.asarray(1.), analog=True)
+        assert_array_almost_equal(b, xp.asarray([1]))
+        assert_array_almost_equal(a, xp.asarray([1, 1]))
 
-        z, p, k = cheby2(1, 50, 0.3, output='zpk')
-        xp_assert_equal(z, np.asarray([-1], dtype=np.complex128))
-        xp_assert_close(p, [9.967826460175649e-01 + 0j], rtol=1e-14)
-        xp_assert_close(k, 1.608676991217512e-03, rtol=1e-14)
+        z, p, k = cheby2(1, 50, xp.asarray(0.3), output='zpk')
+        xp_assert_equal(z, xp.asarray([-1], dtype=xp.complex128))
+        xp_assert_close(p, xp.asarray([9.967826460175649e-01 + 0j]), rtol=1e-14)
+        assert math.isclose(k, 1.608676991217512e-03, rel_tol=1e-14)
 
-    def test_basic(self):
+    def test_basic(self, xp):
         for N in range(25):
-            wn = 0.01
+            wn = xp.asarray(0.01)
             z, p, k = cheby2(N, 40, wn, 'low', analog=True, output='zpk')
-            assert len(p) == N
-            assert all(np.real(p) <= 0)  # No poles in right half of S-plane
+            assert p.shape[0] == N
+            assert all(xp.real(p) <= 0)  # No poles in right half of S-plane
 
         for N in range(25):
-            wn = 0.01
+            wn = xp.asarray(0.01)
             z, p, k = cheby2(N, 40, wn, 'high', analog=False, output='zpk')
-            assert all(np.abs(p) <= 1)  # No poles outside unit circle
+            assert all(xp.abs(p) <= 1)  # No poles outside unit circle
 
-        B, A = cheby2(18, 100, 0.5)
-        assert_array_almost_equal(B, [
+        B, A = cheby2(18, 100, xp.asarray(0.5))
+        assert_array_almost_equal(B, xp.asarray([
             0.00167583914216, 0.01249479541868, 0.05282702120282,
             0.15939804265706, 0.37690207631117, 0.73227013789108,
             1.20191856962356, 1.69522872823393, 2.07598674519837,
             2.21972389625291, 2.07598674519838, 1.69522872823395,
             1.20191856962359, 0.73227013789110, 0.37690207631118,
             0.15939804265707, 0.05282702120282, 0.01249479541868,
-            0.00167583914216], decimal=13)
-        assert_array_almost_equal(A, [
+            0.00167583914216]), decimal=13)
+        assert_array_almost_equal(A, xp.asarray([
             1.00000000000000, -0.27631970006174, 3.19751214254060,
             -0.15685969461355, 4.13926117356269, 0.60689917820044,
             2.95082770636540, 0.89016501910416, 1.32135245849798,
             0.51502467236824, 0.38906643866660, 0.15367372690642,
             0.07255803834919, 0.02422454070134, 0.00756108751837,
             0.00179848550988, 0.00033713574499, 0.00004258794833,
-            0.00000281030149], decimal=13)
+            0.00000281030149]), decimal=13)
 
-    def test_highpass(self):
+    def test_highpass(self, xp):
         # high even order
-        z, p, k = cheby2(26, 60, 0.3, 'high', output='zpk')
+        z, p, k = cheby2(26, 60, xp.asarray(0.3), 'high', output='zpk')
         z2 = [9.981088955489852e-01 + 6.147058341984388e-02j,
               9.981088955489852e-01 - 6.147058341984388e-02j,
               9.832702870387426e-01 + 1.821525257215483e-01j,
@@ -3546,15 +3548,18 @@ class TestCheby2:
               5.958145844148228e-01 - 6.107074340842115e-01j,
               5.747812938519067e-01 + 6.643001536914696e-01j,
               5.747812938519067e-01 - 6.643001536914696e-01j]
+        z2 = xp.asarray(z2)
+        p2 = xp.asarray(p2)
+        k2 = 6.190427617192018e-04
         k2 = 9.932997786497189e-02
-        xp_assert_close(sorted(z, key=np.angle),
-                        sorted(z2, key=np.angle), rtol=1e-13)
-        xp_assert_close(sorted(p, key=np.angle),
-                        sorted(p2, key=np.angle), rtol=1e-12)
-        xp_assert_close(k, k2, rtol=1e-11)
+        xp_assert_close(_sort_cmplx(z, xp=xp),
+                        _sort_cmplx(z2, xp=xp), rtol=1e-13)
+        xp_assert_close(_sort_cmplx(p, xp=xp),
+                        _sort_cmplx(p2, xp=xp), rtol=1e-12)
+        assert math.isclose(k, k2, rel_tol=1e-11)
 
         # high odd order
-        z, p, k = cheby2(25, 80, 0.5, 'high', output='zpk')
+        z, p, k = cheby2(25, 80, xp.asarray(0.5), 'high', output='zpk')
         z2 = [9.690690376586687e-01 + 2.467897896011971e-01j,
               9.690690376586687e-01 - 2.467897896011971e-01j,
               9.999999999999492e-01,
@@ -3605,15 +3610,17 @@ class TestCheby2:
               -3.007943405982616e-02 - 8.846331716180016e-01j,
               6.857277464483946e-03 + 8.383275456264492e-01j,
               6.857277464483946e-03 - 8.383275456264492e-01j]
+        z2 = xp.asarray(z2)
+        p2 = xp.asarray(p2)
         k2 = 6.507068761705037e-03
-        xp_assert_close(sorted(z, key=np.angle),
-                        sorted(z2, key=np.angle), rtol=1e-13)
-        xp_assert_close(sorted(p, key=np.angle),
-                        sorted(p2, key=np.angle), rtol=1e-12)
-        xp_assert_close(k, k2, rtol=1e-11)
+        xp_assert_close(_sort_cmplx(z, xp=xp),
+                        _sort_cmplx(z2, xp=xp), rtol=1e-13)
+        xp_assert_close(_sort_cmplx(p, xp=xp),
+                        _sort_cmplx(p2, xp=xp), rtol=1e-12)
+        assert math.isclose(k, k2, rel_tol=1e-11)
 
-    def test_bandpass(self):
-        z, p, k = cheby2(9, 40, [0.07, 0.2], 'pass', output='zpk')
+    def test_bandpass(self, xp):
+        z, p, k = cheby2(9, 40, xp.asarray([0.07, 0.2]), 'pass', output='zpk')
         z2 = [-9.999999999999999e-01,
                3.676588029658514e-01 + 9.299607543341383e-01j,
                3.676588029658514e-01 - 9.299607543341383e-01j,
@@ -3650,15 +3657,17 @@ class TestCheby2:
               9.630425777594550e-01 - 2.317513360702271e-01j,
               9.438104703725529e-01 + 2.193509900269860e-01j,
               9.438104703725529e-01 - 2.193509900269860e-01j]
+        z2 = xp.asarray(z2)
+        p2 = xp.asarray(p2)
         k2 = 9.345352824659604e-03
-        xp_assert_close(sorted(z, key=np.angle),
-                        sorted(z2, key=np.angle), rtol=1e-13)
-        xp_assert_close(sorted(p, key=np.angle),
-                        sorted(p2, key=np.angle), rtol=1e-13)
-        xp_assert_close(k, k2, rtol=1e-11)
+        xp_assert_close(_sort_cmplx(z, xp=xp),
+                        _sort_cmplx(z2, xp=xp), rtol=1e-13)
+        xp_assert_close(_sort_cmplx(p, xp=xp),
+                        _sort_cmplx(p2, xp=xp), rtol=1e-13)
+        assert math.isclose(k, k2, rel_tol=1e-11)
 
-    def test_bandstop(self):
-        z, p, k = cheby2(6, 55, [0.1, 0.9], 'stop', output='zpk')
+    def test_bandstop(self, xp):
+        z, p, k = cheby2(6, 55, xp.asarray([0.1, 0.9]), 'stop', output='zpk')
         z2 = [6.230544895101009e-01 + 7.821784343111114e-01j,
               6.230544895101009e-01 - 7.821784343111114e-01j,
               9.086608545660115e-01 + 4.175349702471991e-01j,
@@ -3683,16 +3692,18 @@ class TestCheby2:
                8.078751204586447e-01 - 5.729329866683007e-02j,
                8.715844103386721e-01 + 1.370665039509331e-01j,
                8.715844103386721e-01 - 1.370665039509331e-01j]
+        z2 = xp.asarray(z2)
+        p2 = xp.asarray(p2)
         k2 = 2.917823332763358e-03
-        xp_assert_close(sorted(z, key=np.angle),
-                        sorted(z2, key=np.angle), rtol=1e-13)
-        xp_assert_close(sorted(p, key=np.angle),
-                        sorted(p2, key=np.angle), rtol=1e-13)
-        xp_assert_close(k, k2, rtol=1e-11)
+        xp_assert_close(_sort_cmplx(z, xp=xp),
+                        _sort_cmplx(z2, xp=xp), rtol=1e-13)
+        xp_assert_close(_sort_cmplx(p, xp=xp),
+                        _sort_cmplx(p2, xp=xp), rtol=1e-13)
+        assert math.isclose(k, k2, rel_tol=1e-11)
 
-    def test_ba_output(self):
+    def test_ba_output(self, xp):
         # with transfer function conversion, without digital conversion
-        b, a = cheby2(5, 20, [2010, 2100], 'stop', True)
+        b, a = cheby2(5, 20, xp.asarray([2010, 2100]), 'stop', True)
         b2 = [1.000000000000000e+00, 0,  # Matlab: 6.683253076978249e-12,
               2.111512500000000e+07, 0,  # Matlab: 1.134325604589552e-04,
               1.782966433781250e+14, 0,  # Matlab: 7.216787944356781e+02,
@@ -3705,9 +3716,12 @@ class TestCheby2:
               7.535048322653831e+20, 5.567966191263037e+22,
               1.589246884221346e+27, 5.871210648525566e+28,
               1.339913493808590e+33]
+        b2 = xp.asarray(b2)
+        a2 = xp.asarray(a2)
         xp_assert_close(b, b2, rtol=1e-14)
         xp_assert_close(a, a2, rtol=1e-14)
 
+    @skip_xp_backends(np_only=True)
     def test_fs_param(self):
         for fs in (900, 900.1, 1234.567):
             for N in (0, 1, 2, 3, 10):
@@ -3725,6 +3739,7 @@ class TestCheby2:
                             ba2 = cheby2(N, 20, fcnorm, btype)
                             for ba1_, ba2_ in zip(ba1, ba2):
                                 xp_assert_close(ba1_, ba2_)
+
 
 class TestEllip:
 
