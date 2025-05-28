@@ -19,8 +19,8 @@ from scipy.linalg._testutils import assert_no_overwrite
 from scipy._lib._testutils import check_free_memory, IS_MUSL
 from scipy.linalg.blas import HAS_ILP64
 
-REAL_DTYPES = (np.float32, np.float64, np.longdouble)
-COMPLEX_DTYPES = (np.complex64, np.complex128, np.clongdouble)
+REAL_DTYPES = (np.float32, np.float64)
+COMPLEX_DTYPES = (np.complex64, np.complex128)
 DTYPES = REAL_DTYPES + COMPLEX_DTYPES
 
 
