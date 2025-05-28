@@ -107,6 +107,28 @@ void BLAS_FUNC(dpotrs)(char *uplo, CBLAS_INT *n, CBLAS_INT *nrhs, double *a, CBL
 void BLAS_FUNC(cpotrs)(char *uplo, CBLAS_INT *n, CBLAS_INT *nrhs, npy_complex64 *a, CBLAS_INT *lda, npy_complex64 *b, CBLAS_INT *ldb, CBLAS_INT *info);
 void BLAS_FUNC(zpotrs)(char *uplo, CBLAS_INT *n, CBLAS_INT *nrhs, npy_complex128 *a, CBLAS_INT *lda, npy_complex128 *b, CBLAS_INT *ldb, CBLAS_INT *info);
 
+/* ?SYTRF*/
+void BLAS_FUNC(ssytrf)(char *uplo, CBLAS_INT *n, float *a, CBLAS_INT *lda, CBLAS_INT *ipiv, float *work, CBLAS_INT *lwork, CBLAS_INT *info);
+void BLAS_FUNC(dsytrf)(char *uplo, CBLAS_INT *n, double *a, CBLAS_INT *lda, CBLAS_INT *ipiv, double *work, CBLAS_INT *lwork, CBLAS_INT *info);
+void BLAS_FUNC(csytrf)(char *uplo, CBLAS_INT *n, npy_cfloat *a, CBLAS_INT *lda, CBLAS_INT *ipiv, npy_cfloat *work, CBLAS_INT *lwork, CBLAS_INT *info);
+void BLAS_FUNC(zsytrf)(char *uplo, CBLAS_INT *n, npy_cdouble *a, CBLAS_INT *lda, CBLAS_INT *ipiv, npy_cdouble *work, CBLAS_INT *lwork, CBLAS_INT *info);
+
+/* ?HETRF */
+void BLAS_FUNC(chetrf)(char *uplo, CBLAS_INT *n, npy_cfloat *a, CBLAS_INT *lda, CBLAS_INT *ipiv, npy_cfloat *work, CBLAS_INT *lwork, CBLAS_INT *info);
+void BLAS_FUNC(zhetrf)(char *uplo, CBLAS_INT *n, npy_double *a, CBLAS_INT *lda, CBLAS_INT *ipiv, npy_cdouble *work, CBLAS_INT *lwork, CBLAS_INT *info);
+
+/* ?SYTRS*/
+void BLAS_FUNC(ssytrs)(char *uplo, CBLAS_INT *n, CBLAS_INT *nrhs, float *a, CBLAS_INT *lda, CBLAS_INT *ipiv, float *b, CBLAS_INT *ldb, CBLAS_INT *info);
+void BLAS_FUNC(dsytrs)(char *uplo, CBLAS_INT *n, CBLAS_INT *nrhs, double *a, CBLAS_INT *lda, CBLAS_INT *ipiv, double *b, CBLAS_INT *ldb, CBLAS_INT *info);
+void BLAS_FUNC(csytrs)(char *uplo, CBLAS_INT *n, CBLAS_INT *nrhs, npy_cfloat *a, CBLAS_INT *lda, CBLAS_INT *ipiv, npy_cfloat *b, CBLAS_INT *ldb, CBLAS_INT *info);
+void BLAS_FUNC(zsytrs)(char *uplo, CBLAS_INT *n, CBLAS_INT *nrhs, npy_cdouble *a, CBLAS_INT *lda, CBLAS_INT *ipiv, npy_cdouble *b, CBLAS_INT *ldb, CBLAS_INT *info);
+
+/* ?HETRS*/
+void BLAS_FUNC(chetrs)(char *uplo, CBLAS_INT *n, CBLAS_INT *nrhs, npy_cfloat *a, CBLAS_INT *lda, CBLAS_INT *ipiv, npy_cfloat *b, CBLAS_INT *ldb, CBLAS_INT *info);
+void BLAS_FUNC(zhetrs)(char *uplo, CBLAS_INT *n, CBLAS_INT *nrhs, npy_cdouble *a, CBLAS_INT *lda, CBLAS_INT *ipiv, npy_cdouble *b, CBLAS_INT *ldb, CBLAS_INT *info);
+
+
+
 
 } // extern "C"
 
