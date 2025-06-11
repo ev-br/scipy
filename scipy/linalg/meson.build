@@ -284,7 +284,8 @@ python_sources = [
   'lapack.py',
   'matfuncs.py',
   'misc.py',
-  'special_matrices.py'
+  'special_matrices.py',
+  'dummy.py',
 ]
 
 py3.install_sources(

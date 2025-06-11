@@ -630,6 +630,10 @@ if HAVE_SCPDT:
         "scipy/stats/_stats_pythran.py",
     ]
 
+    dt_config.pytest_extra_requires ={
+        "scipy/linalg/dummy.py" : "cupy",
+    }
+
     dt_config.pytest_extra_xfail = {
         # name: reason
         "ND_regular_grid.rst": "ReST parser limitation",
