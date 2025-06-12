@@ -149,6 +149,9 @@ def solve(a, b, lower=False, overwrite_a=False,
 
     Examples
     --------
+
+    >>> import cupy
+
     Given `a` and `b`, solve for `x`:
 
     >>> import numpy as np

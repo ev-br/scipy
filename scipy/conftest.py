@@ -632,6 +632,7 @@ if HAVE_SCPDT:
 
     dt_config.pytest_extra_requires ={
         "scipy/linalg/dummy.py" : "cupy",
+        "scipy.linalg.solve" : "cupy",
     }
 
     dt_config.pytest_extra_xfail = {
