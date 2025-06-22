@@ -12,6 +12,7 @@ from ._rbfinterp_pythran import (_build_system,
                                  _build_evaluation_coefficients,
                                  _polynomial_matrix)
 
+from scipy._lib._array_api import array_namespace, xp_size, is_numpy
 
 __all__ = ["RBFInterpolator"]
 
@@ -290,30 +291,41 @@ class RBFInterpolator:
                  kernel="thin_plate_spline",
                  epsilon=None,
                  degree=None):
-        y = np.asarray(y, dtype=float, order="C")
+        xp = array_namespace(y, d, smoothing)
+
+        y = xp.asarray(y, dtype=xp.float64)
+        if is_numpy(xp):   # XXX if AOT
+            y = np.asarray(y, order="C")
         if y.ndim != 2:
             raise ValueError("`y` must be a 2-dimensional array.")
 
         ny, ndim = y.shape
 
-        d_dtype = complex if np.iscomplexobj(d) else float
-        d = np.asarray(d, dtype=d_dtype, order="C")
+        d = xp.asarray(d)
+        d_dtype = xp.complex128 if xp.isdtype(d.dtype, 'complex floating') else xp.float64
+        d = xp.asarray(d, dtype=d_dtype)
+        if is_numpy(xp):
+            d = np.asarray(d, dtype=d_dtype, order="C")
+
         if d.shape[0] != ny:
             raise ValueError(
                 f"Expected the first axis of `d` to have length {ny}."
                 )
 
         d_shape = d.shape[1:]
-        d = d.reshape((ny, -1))
+        d = xp.reshape(d, (ny, -1))
         # If `d` is complex, convert it to a float array with twice as many
         # columns. Otherwise, the LHS matrix would need to be converted to
         # complex and take up 2x more memory than necessary.
-        d = d.view(float)
+        d = d.view(float)     # XXX
 
-        if np.isscalar(smoothing):
-            smoothing = np.full(ny, smoothing, dtype=float)
+        if isinstance(smoothing, int | float) or smoothing.shape == ():
+            smoothing = xp.full(ny, smoothing, dtype=xp.float64)
         else:
-            smoothing = np.asarray(smoothing, dtype=float, order="C")
+            smoothing = xp.asarray(smoothing, dtype=xp.float64)
+            if is_numpy(xp):
+                smoothing = np.asarray(smoothing, order="C")
+
             if smoothing.shape != (ny,):
                 raise ValueError(
                     "Expected `smoothing` to be a scalar or have shape "
@@ -381,7 +393,7 @@ class RBFInterpolator:
             self._coeffs = coeffs
 
         else:
-            self._tree = KDTree(y)
+            self._tree = KDTree(y)     # TODO
 
         self.y = y
         self.d = d
@@ -392,6 +404,7 @@ class RBFInterpolator:
         self.kernel = kernel
         self.epsilon = epsilon
         self.powers = powers
+        self._xp = xp
 
     def _chunk_evaluator(
             self,
@@ -431,13 +444,13 @@ class RBFInterpolator:
         """
         nx, ndim = x.shape
         if self.neighbors is None:
-            nnei = len(y)
+            nnei = y.shape[0]
         else:
             nnei = self.neighbors
         # in each chunk we consume the same space we already occupy
         chunksize = memory_budget // (self.powers.shape[0] + nnei) + 1
         if chunksize <= nx:
-            out = np.empty((nx, self.d.shape[1]), dtype=float)
+            out = self._xp.empty((nx, self.d.shape[1]), dtype=self._xp.float64)
             for i in range(0, nx, chunksize):
                 vec = _build_evaluation_coefficients(
                     x[i:i + chunksize, :],
@@ -474,7 +487,9 @@ class RBFInterpolator:
             Values of the interpolant at `x`.
 
         """
-        x = np.asarray(x, dtype=float, order="C")
+        x = self._xp.asarray(x, dtype=self._xp.float64)
+        if is_numpy(self._xp):
+            x = self._xp.asarray(x, order="C")
         if x.ndim != 2:
             raise ValueError("`x` must be a 2-dimensional array.")
 
@@ -488,7 +503,7 @@ class RBFInterpolator:
         # If this number is below 1e6 we just use 1e6
         # This memory budget is used to decide how we chunk
         # the inputs
-        memory_budget = max(x.size + self.y.size + self.d.size, 1000000)
+        memory_budget = max(xp_size(x) + xp_size(self.y) + xp_size(self.d), 1000000)
 
         if self.neighbors is None:
             out = self._chunk_evaluator(
@@ -499,6 +514,8 @@ class RBFInterpolator:
                 self._coeffs,
                 memory_budget=memory_budget)
         else:
+            # XXX: this relies on KDTree, hence is numpy-only until KDTree is converted
+
             # Get the indices of the k nearest observation points to each
             # evaluation point.
             _, yindices = self._tree.query(x, self.neighbors)
@@ -545,6 +562,6 @@ class RBFInterpolator:
                     coeffs,
                     memory_budget=memory_budget)
 
-        out = out.view(self.d_dtype)
-        out = out.reshape((nx, ) + self.d_shape)
+        out = out.view(self.d_dtype)    # XXX view
+        out = self._xp.reshape(out, (nx, ) + self.d_shape)
         return out
