@@ -1,11 +1,11 @@
 """Module for RBF interpolation."""
 import warnings
 from itertools import combinations_with_replacement
+from math import comb
 
 import numpy as np
 from numpy.linalg import LinAlgError
 from scipy.spatial import KDTree
-from scipy.special import comb
 from scipy.linalg.lapack import dgesv  # type: ignore[attr-defined]
 
 from ._rbfinterp_pythran import (_build_system,
@@ -64,7 +64,7 @@ def _monomial_powers(ndim, degree):
         monomial.
 
     """
-    nmonos = comb(degree + ndim, ndim, exact=True)
+    nmonos = comb(degree + ndim, ndim)
     out = np.zeros((nmonos, ndim), dtype=np.dtype("long"))
     count = 0
     for deg in range(degree + 1):
