@@ -447,7 +447,7 @@ class RBFInterpolator:
                     self.powers,
                     shift,
                     scale)
-                out[i:i + chunksize, :] = np.dot(vec, coeffs)
+                out[i:i + chunksize, :] = vec @ coeffs
         else:
             vec = _build_evaluation_coefficients(
                 x,
@@ -457,7 +457,7 @@ class RBFInterpolator:
                 self.powers,
                 shift,
                 scale)
-            out = np.dot(vec, coeffs)
+            out = vec @ coeffs
         return out
 
     def __call__(self, x):
