@@ -1364,6 +1364,24 @@ class TestInv:
         a_inv = inv(a, overwrite_a=True)
         assert np.shares_memory(a, a_inv)
 
+    @pytest.mark.parametrize(
+        "dtyp", [np.float16, np.float32, np.longdouble, np.clongdouble]
+    )
+    def test_dtypes(self, dtyp):
+        # backwards compat: inv(float16)->float32 ; inv(clongdouble)->complex128 etc
+        a = np.arange(4).reshape(2, 2).astype(dtyp)
+
+        a_inv = inv(a)
+        assert_allclose(a @ a_inv, np.eye(a.shape[0]), atol=100*np.finfo(a.dtype).eps)
+
+        dt_map = {
+            'e': 'f',  # float16 -> float32
+            'f': 'f',
+            'g': 'd',  # longdouble -> float64
+            'G': 'D'   # clongdouble -> complex128
+        }
+        assert a_inv.dtype.char == dt_map[a.dtype.char]
+
     def test_readonly(self):
         a = np.eye(3)
         a.flags.writeable = False
@@ -2741,3 +2759,72 @@ class TestMatrix_Balance:
         assert b.dtype == b_n.dtype
         assert scale.dtype == scale_n.dtype
         assert perm.dtype == perm_n.dtype
+
+
+class TestDTypes:
+    """Check backwards compatibility for dtypes vs scipy 1.6."""
+
+    def get_arr2D(self, tcode):
+        # return a valid 2D array for the typecode
+        if tcode == 'M':
+            return np.eye(2, dtype='datetime64[ms]')
+        elif tcode == 'V':
+            return np.asarray([[b'a', b'b'], [b'c', b'd']], dtype='V')
+        else:
+            return np.eye(2, dtype=tcode)  
+
+    def get_arr1D(self, tcode):
+        # return a valid 1D array for the typecode
+        if tcode == 'M':
+            return np.ones(2, dtype='datetime64[ms]')
+        elif tcode == 'V':
+            return np.asarray([b'a', b'b'], dtype='V')
+        else:
+            return np.ones(2, dtype=tcode) 
+
+    @pytest.mark.parametrize("tcode", np.typecodes['All'])
+    def test_inv(self, tcode):
+        # check backwards compat vs scipy 1.6
+        a = self.get_arr2D(tcode)
+        if tcode in 'SUVO':
+            # raises
+            with pytest.raises(ValueError):
+                inv(a)
+        else:
+            # passes
+            inv(a)
+
+    @pytest.mark.parametrize("tcode", np.typecodes['All'])
+    def test_det(self, tcode):
+        a = self.get_arr2D(tcode)
+
+        if tcode in 'gGSUVOmM':
+            # raises
+            with pytest.raises(TypeError):
+                det(a)
+        else:
+            # passes
+            det(a)
+
+    @pytest.mark.filterwarnings("ignore:Casting complex values")
+    @pytest.mark.parametrize("tcode_a", np.typecodes['All'])
+    @pytest.mark.parametrize("tcode_b", np.typecodes['All'])
+    def test_solve(self, tcode_a, tcode_b):
+        a = self.get_arr2D(tcode_a)
+        b = self.get_arr1D(tcode_b)
+
+        can_combine = True
+        try:
+            np.result_type(tcode_a, tcode_b)
+        except Exception as exc:
+            can_combine = False
+
+        if not can_combine:
+            # np.exceptions.DTypePromotionError subclasses TypeError
+            with pytest.raises(TypeError):
+                solve(a, b)
+        elif tcode_a in 'SUVO' or tcode_b in 'VO':
+            with pytest.raises(ValueError):
+                solve(a, b)
+        else:
+            solve(a, b)
