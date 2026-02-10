@@ -138,9 +138,9 @@ _reg_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_v,
         if (use_evr) {
             lrwork = _calc_lwork(tmp_rwork);
         }
-        if (lrwork < 0) { free(buf); free(iwork); if(isuppz) free(isuppz); if(ifail) free(ifail); return -106; }
+        if (lrwork < 0) { free(buf); if(iwork) free(iwork); if(isuppz) free(isuppz); if(ifail) free(ifail); return -106; }
         rwork = (real_type *)malloc(lrwork*sizeof(real_type));
-        if (rwork == NULL) { free(buf); free(iwork); free(isuppz); return -107; }
+        if (rwork == NULL) { free(buf); if(iwork) free(iwork); if(isuppz) free(isuppz); if(ifail) free(ifail); return -107; }
     }
 
     // partition the workspace
