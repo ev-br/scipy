@@ -63,9 +63,10 @@ _reg_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_v,
     if (use_ev) {
         // Query workspace for syev/heev
         if constexpr (type_traits<T>::is_complex) {
-            // query LWORK, LRWORK for complex types
-            call_heev(&jobz, &uplo, &intn, NULL, &lda, NULL, &tmp_work, &lwork, &tmp_rwork, &info);
-            lrwork = _calc_lwork(tmp_rwork);
+            // query LWORK for complex types
+            // Note: for heev, rwork size is fixed: max(1, 3*n-2), not returned by query
+            call_heev(&jobz, &uplo, &intn, NULL, &lda, NULL, &tmp_work, &lwork, NULL, &info);
+            lrwork = (3 * n > 2) ? (3 * n - 2) : 1;  // Fixed size for heev
         } else {
             // query LWORK for real types
             call_syev(&jobz, &uplo, &intn, NULL, &lda, NULL, &tmp_work, &lwork, &info);
@@ -281,10 +282,11 @@ _gen_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArr
     if (use_gv) {
         // Query workspace for sygv/hegv
         if constexpr (type_traits<T>::is_complex) {
-            // query LWORK, LRWORK for complex types
+            // query LWORK for complex types
+            // Note: for hegv, rwork size is fixed: max(1, 3*n-2), not returned by query
             call_hegv(&itype, &jobz, &uplo, &intn, NULL, &lda, NULL, &ldb, NULL,
-                      &tmp_work, &lwork, &tmp_rwork, &info);
-            lrwork = _calc_lwork(tmp_rwork);
+                      &tmp_work, &lwork, NULL, &info);
+            lrwork = (3 * n > 2) ? (3 * n - 2) : 1;  // Fixed size for hegv
         } else {
             // query LWORK for real types
             call_sygv(&itype, &jobz, &uplo, &intn, NULL, &lda, NULL, &ldb, NULL,
