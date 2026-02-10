@@ -669,13 +669,13 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
         return NULL;
     }
 
+    char uplo = lower ? 'L' : 'U';
+    char jobz = compute_v ? 'V' : 'N';
+
     if (compute_v) {
         ap_v = (PyArrayObject *)PyArray_SimpleNew(ndim, shape, typenum);
         if (ap_v == NULL) { PyErr_NoMemory(); goto fail; }
     }
-
-    char uplo = lower ? 'L' : 'U';
-    char jobz = compute_v ? 'V' : 'N';
 
     switch(typenum) {
         case(NPY_FLOAT32):

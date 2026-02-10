@@ -95,7 +95,7 @@ _reg_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_v,
     // Main loop to traverse the slices
     // --------------------------------------------------------------------
     for (npy_intp idx = 0; idx < outer_size; idx++) {
-        init_status(slice_status, idx, St::HERMITIAN);
+        init_status(slice_status, idx, St::HER);
 
         // copy the slice to `data` in F order
         T *slice_ptr = compute_slice_ptr(idx, Am_data, ndim, shape, strides);
@@ -226,7 +226,7 @@ _gen_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArr
     // Main loop to traverse the slices
     // --------------------------------------------------------------------
     for (npy_intp idx = 0; idx < outer_size; idx++) {
-        init_status(slice_status, idx, St::HERMITIAN);
+        init_status(slice_status, idx, St::HER);
 
         // copy the slices to `data` in F order
         T *slice_ptr_A = compute_slice_ptr(idx, Am_data, ndim, shape, strides_A);
