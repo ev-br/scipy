@@ -927,6 +927,7 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
         
         # Call batched implementation with b
         compute_v = not eigvals_only
+        print(f"[PYTHON eigh] Calling _batched_linalg._eigh with type={type}, driver={driver}")
         w, v, err_lst = _batched_linalg._eigh(a1, compute_v, lower, type,
                                               driver, range_char, il_fortran, iu_fortran, vl, vu, b1)
         

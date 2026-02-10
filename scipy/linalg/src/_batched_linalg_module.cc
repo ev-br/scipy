@@ -623,7 +623,7 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
     // Format: array, compute_v, lower, itype, driver, range, il, iu, vl, vu, b_array
     // b_array is always passed but can be None for standard eigenvalue problems
     PyObject *ap_Bm_obj = NULL;
-    if (!PyArg_ParseTuple(args, "O!pppssiiddO",
+    if (!PyArg_ParseTuple(args, "O!ppissiiddO",
             &PyArray_Type, (PyObject **)&ap_Am,
             &compute_v,
             &lower,
