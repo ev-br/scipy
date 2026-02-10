@@ -620,21 +620,28 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
     PyObject *v_ret = NULL;
 
     // Get the input array with optional driver and range parameters
-    // Format: array, compute_v, lower, itype, [b_array], [driver], [range], [il], [iu], [vl], [vu]
-    if (!PyArg_ParseTuple(args, "O!p|ppO!scidd",
+    // Format: array, compute_v, lower, itype, [driver], [range], [il], [iu], [vl], [vu], [b_array]
+    // Note: driver through b_array are all optional
+    PyObject *ap_Bm_obj = NULL;
+    if (!PyArg_ParseTuple(args, "O!ppp|sciddO!",
             &PyArray_Type, (PyObject **)&ap_Am,
             &compute_v,
             &lower,
             &itype,
-            &PyArray_Type, (PyObject **)&ap_Bm,
             &driver,
             &range,
             &il,
             &iu,
             &vl,
-            &vu)
+            &vu,
+            &PyArray_Type, &ap_Bm_obj)
     ) {
         return NULL;
+    }
+    
+    // Convert to PyArrayObject if provided
+    if (ap_Bm_obj != NULL) {
+        ap_Bm = (PyArrayObject *)ap_Bm_obj;
     }
 
     // Check for dtype compatibility & array flags

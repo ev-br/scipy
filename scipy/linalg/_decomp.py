@@ -894,15 +894,16 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
         
         # Call batched implementation
         compute_v = not eigvals_only
-        w, v, err_lst = _batched_linalg._eigh(a1, compute_v, lower, type, b1, 
-                                              driver, range_char, il_fortran, iu_fortran, vl, vu)
+        w, v, err_lst = _batched_linalg._eigh(a1, compute_v, lower, type,
+                                              driver, range_char, il_fortran, iu_fortran, vl, vu, b1)
         
         if err_lst:
             _check_format_errors_warnings(f"{driver}", err_lst)
     else:
-        # Standard eigenvalue problem
+        # Standard eigenvalue problem (b is None)
         compute_v = not eigvals_only
-        w, v, err_lst = _batched_linalg._eigh(a1, compute_v, lower, type, None,
+        # For standard problem, we don't pass b at all
+        w, v, err_lst = _batched_linalg._eigh(a1, compute_v, lower, type,
                                               driver, range_char, il_fortran, iu_fortran, vl, vu)
         
         if err_lst:
