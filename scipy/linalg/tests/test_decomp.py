@@ -3223,3 +3223,134 @@ class TestCDF2RDF:
         ])
         w, v = np.linalg.eig(X)
         assert_raises(ValueError, cdf2rdf, w, v)
+
+
+class TestEighBatched:
+    """Comprehensive tests for batched eigh operations with all drivers."""
+    
+    @pytest.mark.parametrize('dtype', [np.float32, np.float64, np.complex64, np.complex128])
+    @pytest.mark.parametrize('driver', ['ev', 'evd', 'evr', 'evx'])
+    def test_batched_standard_all_drivers(self, driver, dtype):
+        """Test all standard drivers with batched inputs."""
+        # Create batch of 3x2 matrices, each 5x5
+        batch_shape = (3, 2)
+        n = 5
+        
+        # Generate batched input
+        matrices = np.empty(batch_shape + (n, n), dtype=dtype)
+        for i in range(batch_shape[0]):
+            for j in range(batch_shape[1]):
+                matrices[i, j] = _random_hermitian_matrix(n, dtype=dtype, seed=i*10+j)
+        
+        # Compute eigenvalues and eigenvectors
+        w, v = eigh(matrices, driver=driver)
+        
+        # Verify shape
+        assert w.shape == batch_shape + (n,)
+        assert v.shape == batch_shape + (n, n)
+        
+        # Verify correctness for one element
+        a = matrices[0, 0]
+        wi = w[0, 0]
+        vi = v[0, 0]
+        assert_allclose(a @ vi, vi * wi, 
+                       rtol=1e-4 if dtype in [np.float32, np.complex64] else 1e-9,
+                       atol=1e-4 if dtype in [np.float32, np.complex64] else 1e-9)
+    
+    @pytest.mark.parametrize('dtype', [np.float64, np.complex128])
+    @pytest.mark.parametrize('driver', ['gv', 'gvd', 'gvx'])
+    @pytest.mark.parametrize('type_', [1, 2, 3])
+    def test_batched_generalized_all_types(self, driver, type_, dtype):
+        """Test all generalized drivers with all types and batched inputs."""
+        batch_shape = (2, 2)
+        n = 5
+        
+        # Generate batched inputs
+        a_matrices = np.empty(batch_shape + (n, n), dtype=dtype)
+        b_matrices = np.empty(batch_shape + (n, n), dtype=dtype)
+        
+        for i in range(batch_shape[0]):
+            for j in range(batch_shape[1]):
+                a_matrices[i, j] = _random_hermitian_matrix(n, dtype=dtype, seed=i*10+j)
+                b_matrices[i, j] = _random_hermitian_matrix(n, posdef=True, dtype=dtype, seed=i*10+j+100)
+        
+        # Compute eigenvalues and eigenvectors
+        w, v = eigh(a_matrices, b_matrices, driver=driver, type=type_)
+        
+        # Verify shape
+        assert w.shape == batch_shape + (n,)
+        assert v.shape == batch_shape + (n, n)
+        
+        # Verify correctness for one element
+        a = a_matrices[0, 0]
+        b = b_matrices[0, 0]
+        wi = w[0, 0]
+        vi = v[0, 0]
+        
+        atol = 1e-4 if dtype == np.complex64 else 1e-8
+        rtol = 1e-4 if dtype == np.complex64 else 1e-8
+        
+        if type_ == 1:
+            assert_allclose(a @ vi, wi * (b @ vi), rtol=rtol, atol=atol)
+        elif type_ == 2:
+            assert_allclose(a @ b @ vi, vi * wi, rtol=rtol, atol=atol)
+        else:  # type_ == 3
+            assert_allclose(b @ a @ vi, vi * wi, rtol=rtol, atol=atol)
+    
+    @pytest.mark.parametrize('driver', ['ev', 'evd', 'evr', 'evx'])
+    def test_batched_eigvals_only(self, driver):
+        """Test eigvals_only flag with batched inputs."""
+        batch_shape = (2, 3)
+        n = 4
+        
+        matrices = np.empty(batch_shape + (n, n), dtype=np.float64)
+        for i in range(batch_shape[0]):
+            for j in range(batch_shape[1]):
+                matrices[i, j] = _random_hermitian_matrix(n, dtype=np.float64, seed=i*10+j)
+        
+        # Compute only eigenvalues
+        w = eigh(matrices, driver=driver, eigvals_only=True)
+        
+        # Verify shape and dtype
+        assert w.shape == batch_shape + (n,)
+        assert w.dtype == np.float64
+    
+    def test_batched_broadcast_shapes(self):
+        """Test that batched dimensions broadcast correctly."""
+        # Create matrices with different but compatible batch shapes
+        a = np.empty((3, 1, 4, 4), dtype=np.float64)
+        b = np.empty((1, 2, 4, 4), dtype=np.float64)
+        
+        for i in range(3):
+            a[i, 0] = _random_hermitian_matrix(4, dtype=np.float64, seed=i)
+        
+        for j in range(2):
+            b[0, j] = _random_hermitian_matrix(4, posdef=True, dtype=np.float64, seed=j+100)
+        
+        # Should broadcast to (3, 2, 4, 4)
+        w, v = eigh(a, b)
+        
+        assert w.shape == (3, 2, 4)
+        assert v.shape == (3, 2, 4, 4)
+    
+    def test_batched_empty_batch_dim(self):
+        """Test with empty batch dimensions."""
+        matrices = np.empty((0, 4, 4), dtype=np.float64)
+        w, v = eigh(matrices)
+        
+        assert w.shape == (0, 4)
+        assert v.shape == (0, 4, 4)
+    
+    @pytest.mark.parametrize('driver', ['ev', 'evd', 'evr', 'evx'])
+    def test_batched_single_matrix_in_batch(self, driver):
+        """Test that single matrix with explicit batch dim (1,n,n) works."""
+        matrices = np.empty((1, 5, 5), dtype=np.float64)
+        matrices[0] = _random_hermitian_matrix(5, dtype=np.float64, seed=42)
+        
+        w, v = eigh(matrices, driver=driver)
+        
+        assert w.shape == (1, 5)
+        assert v.shape == (1, 5, 5)
+        
+        # Verify correctness
+        assert_allclose(matrices[0] @ v[0], v[0] * w[0], rtol=1e-10, atol=1e-10)
