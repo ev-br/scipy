@@ -8,7 +8,7 @@ template<typename T>
 int
 _reg_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_v,
           char uplo, char jobz, 
-          const char* driver,  // "evr" or "evx"
+          const char* driver,  // "ev", "evr", or "evx"
           char range,  // 'A' = all, 'V' = by value, 'I' = by index
           CBLAS_INT il, CBLAS_INT iu,  // index range (1-based)
           typename type_traits<T>::real_type vl, typename type_traits<T>::real_type vu,  // value range
@@ -38,7 +38,8 @@ _reg_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_v,
     int compute_v = (jobz == 'V');
     T *ptr_v = compute_v ? (T *)PyArray_DATA(ap_v) : NULL;
 
-    // Determine if we're using evr or evx
+    // Determine which driver we're using
+    bool use_ev = (strcmp(driver, "ev") == 0);
     bool use_evr = (strcmp(driver, "evr") == 0);
     bool use_evx = (strcmp(driver, "evx") == 0);
 
@@ -59,7 +60,17 @@ _reg_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_v,
     
     real_type abstol = 0.0;  // Use default tolerance
     
-    if (use_evr) {
+    if (use_ev) {
+        // Query workspace for syev/heev
+        if constexpr (type_traits<T>::is_complex) {
+            // query LWORK, LRWORK for complex types
+            call_heev(&jobz, &uplo, &intn, NULL, &lda, NULL, &tmp_work, &lwork, &tmp_rwork, &info);
+            lrwork = _calc_lwork(tmp_rwork);
+        } else {
+            // query LWORK for real types
+            call_syev(&jobz, &uplo, &intn, NULL, &lda, NULL, &tmp_work, &lwork, &info);
+        }
+    } else if (use_evr) {
         // Query workspace for syevr/heevr
         if constexpr (type_traits<T>::is_complex) {
             // query LWORK, LRWORK, LIWORK for complex types
@@ -92,7 +103,9 @@ _reg_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_v,
     lwork = _calc_lwork(tmp_work);
     if (lwork < 0) { return -102; }
     
-    if (use_evx) {
+    if (use_ev) {
+        liwork = 0;  // ev doesn't use iwork
+    } else if (use_evx) {
         liwork = 5 * n;  // evx specific
     } else {
         liwork = (CBLAS_INT)tmp_iwork;
@@ -104,18 +117,21 @@ _reg_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_v,
     T *buf = (T *)malloc(bufsize*sizeof(T));
     if (buf == NULL) { return -104; }
 
-    CBLAS_INT *iwork = (CBLAS_INT *)malloc(liwork*sizeof(CBLAS_INT));
-    if (iwork == NULL) { free(buf); return -105; }
+    CBLAS_INT *iwork = NULL;
+    if (liwork > 0) {
+        iwork = (CBLAS_INT *)malloc(liwork*sizeof(CBLAS_INT));
+        if (iwork == NULL) { free(buf); return -105; }
+    }
     
     // For evr, we need isuppz; for evx, we need ifail
     CBLAS_INT *isuppz = NULL;
     CBLAS_INT *ifail = NULL;
     if (use_evr) {
         isuppz = (CBLAS_INT *)malloc(2*n*sizeof(CBLAS_INT));
-        if (isuppz == NULL) { free(buf); free(iwork); return -108; }
+        if (isuppz == NULL) { free(buf); if(iwork) free(iwork); return -108; }
     } else if (use_evx) {
         ifail = (CBLAS_INT *)malloc(n*sizeof(CBLAS_INT));
-        if (ifail == NULL) { free(buf); free(iwork); return -108; }
+        if (ifail == NULL) { free(buf); if(iwork) free(iwork); return -108; }
     }
 
     if constexpr (type_traits<T>::is_complex) {
@@ -147,7 +163,21 @@ _reg_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_v,
         CBLAS_INT m = 0;  // number of eigenvalues found
 
         // compute eigenvalues (and eigenvectors if requested) for the slice
-        if (use_evr) {
+        if (use_ev) {
+            // For ev driver, eigenvalues/eigenvectors are computed in-place
+            if constexpr (type_traits<T>::is_complex) {
+                call_heev(&jobz, &uplo, &intn, data, &lda, w_buf, work, &lwork, rwork, &info);
+            } else {
+                call_syev(&jobz, &uplo, &intn, data, &lda, w_buf, work, &lwork, &info);
+            }
+            m = n;  // ev computes all eigenvalues
+            // For ev, eigenvectors are in data, need to copy to z_buf
+            if (compute_v) {
+                for (npy_intp i = 0; i < n*n; i++) {
+                    z_buf[i] = data[i];
+                }
+            }
+        } else if (use_evr) {
             if constexpr (type_traits<T>::is_complex) {
                 call_heevr(&jobz, &range, &uplo, &intn, data, &lda, &vl, &vu, &il, &iu, &abstol, &m,
                            w_buf, z_buf, &ldz, isuppz, work, &lwork, rwork, &lrwork, iwork, &liwork, &info);
@@ -180,7 +210,7 @@ _reg_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_v,
 
  done:
     free(buf);
-    free(iwork);
+    if (iwork) free(iwork);
     if (isuppz) free(isuppz);
     if (ifail) free(ifail);
     if (rwork) free(rwork);
@@ -193,7 +223,7 @@ template<typename T>
 int
 _gen_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArrayObject *ap_v,
           char uplo, char jobz, CBLAS_INT itype,
-          const char* driver,  // "gvd" or "gvx"
+          const char* driver,  // "gv", "gvd", or "gvx"
           char range,  // 'A' = all, 'V' = by value, 'I' = by index
           CBLAS_INT il, CBLAS_INT iu,  // index range (1-based)
           typename type_traits<T>::real_type vl, typename type_traits<T>::real_type vu,  // value range
@@ -226,7 +256,8 @@ _gen_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArr
     int compute_v = (jobz == 'V');
     T *ptr_v = compute_v ? (T *)PyArray_DATA(ap_v) : NULL;
 
-    // Determine if we're using gvd or gvx
+    // Determine which driver we're using
+    bool use_gv = (strcmp(driver, "gv") == 0);
     bool use_gvd = (strcmp(driver, "gvd") == 0);
     bool use_gvx = (strcmp(driver, "gvx") == 0);
 
@@ -248,7 +279,19 @@ _gen_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArr
     
     real_type abstol = 0.0;  // Use default tolerance
     
-    if (use_gvd) {
+    if (use_gv) {
+        // Query workspace for sygv/hegv
+        if constexpr (type_traits<T>::is_complex) {
+            // query LWORK, LRWORK for complex types
+            call_hegv(&itype, &jobz, &uplo, &intn, NULL, &lda, NULL, &ldb, NULL,
+                      &tmp_work, &lwork, &tmp_rwork, &info);
+            lrwork = _calc_lwork(tmp_rwork);
+        } else {
+            // query LWORK for real types
+            call_sygv(&itype, &jobz, &uplo, &intn, NULL, &lda, NULL, &ldb, NULL,
+                      &tmp_work, &lwork, &info);
+        }
+    } else if (use_gvd) {
         // Query workspace for sygvd/hegvd
         if constexpr (type_traits<T>::is_complex) {
             // query LWORK, LRWORK, LIWORK for complex types
@@ -281,7 +324,9 @@ _gen_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArr
     lwork = _calc_lwork(tmp_work);
     if (lwork < 0) { return -102; }
     
-    if (use_gvx) {
+    if (use_gv) {
+        liwork = 0;  // gv doesn't use iwork
+    } else if (use_gvx) {
         liwork = 5 * n;  // gvx specific
     } else {
         liwork = (CBLAS_INT)tmp_iwork;
@@ -293,23 +338,26 @@ _gen_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArr
     T *buf = (T *)malloc(bufsize*sizeof(T));
     if (buf == NULL) { return -104; }
 
-    CBLAS_INT *iwork = (CBLAS_INT *)malloc(liwork*sizeof(CBLAS_INT));
-    if (iwork == NULL) { free(buf); return -105; }
+    CBLAS_INT *iwork = NULL;
+    if (liwork > 0) {
+        iwork = (CBLAS_INT *)malloc(liwork*sizeof(CBLAS_INT));
+        if (iwork == NULL) { free(buf); return -105; }
+    }
     
     // For gvx, we need ifail
     CBLAS_INT *ifail = NULL;
     if (use_gvx) {
         ifail = (CBLAS_INT *)malloc(n*sizeof(CBLAS_INT));
-        if (ifail == NULL) { free(buf); free(iwork); return -108; }
+        if (ifail == NULL) { free(buf); if(iwork) free(iwork); return -108; }
     }
 
     if constexpr (type_traits<T>::is_complex) {
-        if (use_gvd) {
+        if (use_gv || use_gvd) {
             lrwork = _calc_lwork(tmp_rwork);
         }
-        if (lrwork < 0) { free(buf); free(iwork); if(ifail) free(ifail); return -106; }
+        if (lrwork < 0) { free(buf); if(iwork) free(iwork); if(ifail) free(ifail); return -106; }
         rwork = (real_type *)malloc(lrwork*sizeof(real_type));
-        if (rwork == NULL) { free(buf); free(iwork); if(ifail) free(ifail); return -107; }
+        if (rwork == NULL) { free(buf); if(iwork) free(iwork); if(ifail) free(ifail); return -107; }
     }
 
     // partition the workspace
@@ -336,7 +384,22 @@ _gen_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArr
         CBLAS_INT m = 0;  // number of eigenvalues found (for gvx)
 
         // compute eigenvalues (and eigenvectors if requested) for the slice
-        if (use_gvd) {
+        if (use_gv) {
+            // For gv driver, eigenvalues/eigenvectors are computed in-place
+            if constexpr (type_traits<T>::is_complex) {
+                call_hegv(&itype, &jobz, &uplo, &intn, data_A, &lda, data_B, &ldb, w_buf,
+                          work, &lwork, rwork, &info);
+            } else {
+                call_sygv(&itype, &jobz, &uplo, &intn, data_A, &lda, data_B, &ldb, w_buf,
+                          work, &lwork, &info);
+            }
+            m = n;  // gv computes all eigenvalues
+            
+            // copy eigenvectors if computed (stored in data_A for gv)
+            if (compute_v) {
+                copy_slice_F_to_C(ptr_v + idx*n*n, data_A, n, n, lda);
+            }
+        } else if (use_gvd) {
             if constexpr (type_traits<T>::is_complex) {
                 call_hegvd(&itype, &jobz, &uplo, &intn, data_A, &lda, data_B, &ldb, w_buf,
                            work, &lwork, rwork, &lrwork, iwork, &liwork, &info);
@@ -374,7 +437,7 @@ _gen_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArr
 
  done:
     free(buf);
-    free(iwork);
+    if (iwork) free(iwork);
     if (ifail) free(ifail);
     if (rwork) free(rwork);
 
