@@ -812,8 +812,9 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
             raise ValueError('Invalid value subset: vl must be <= vu.')
     
     # Determine if we can use the batched C++ implementation
-    # We support: evr for standard problems; gvd for generalized problems
+    # We support: evr for standard problems; gvd for generalized problems (type=1 only)
     # NOTE: evx/gvx not yet implemented due to workspace allocation complexities
+    # NOTE: type=2 and type=3 not yet working correctly in batched implementation
     # NOTE: Subset selection is NOT supported in batched mode because different
     # batch elements may return different numbers of eigenvalues, which cannot
     # be represented in a single ndarray
@@ -827,13 +828,15 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
             use_batched_impl = not has_subset  # Only batch if no subset
         else:
             driver = "gvd"  # gvd is default for generalized problems
-            use_batched_impl = not has_subset  # Only batch if no subset
+            # Only batch for type=1 (not type=2 or type=3)
+            use_batched_impl = (not has_subset) and (type == 1)
     elif driver == "evr" and b is None:
         # Standard problem with evr
         use_batched_impl = not has_subset  # Only batch if no subset
     elif driver == "gvd" and b is not None:
         # Generalized problem with gvd
-        use_batched_impl = not has_subset  # Only batch if no subset
+        # Only batch for type=1 (not type=2 or type=3)
+        use_batched_impl = (not has_subset) and (type == 1)
     # Note: evx, gvx not yet supported in batched implementation
     
     # If we can't use batched implementation, delegate to eigh0
