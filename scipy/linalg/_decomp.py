@@ -836,7 +836,8 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
     elif driver in ["gv", "gvd", "gvx"] and b is not None:
         # Generalized problem with gv, gvd, or gvx
         # Batch for all types (1, 2, 3) as long as there's no subset_by_value
-        use_batched_impl = (not has_subset_by_value)
+        # TEMPORARY: Only batch type=1 while debugging type 2/3
+        use_batched_impl = (not has_subset_by_value) and (type == 1)
     
     # If we can't use batched implementation, delegate to eigh0
     if not use_batched_impl:
