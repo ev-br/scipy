@@ -3426,3 +3426,194 @@ class TestEighBatched:
         w, v = eigh(a)
         assert w.shape == (0, 0, 5)
         assert v.shape == (0, 0, 5, 5)
+    
+    def test_batched_subset_by_index_standard(self):
+        """Test batched standard eigh with subset_by_index."""
+        # Create batch of matrices (3, 2, 5, 5)
+        np.random.seed(42)
+        batch_shape = (3, 2)
+        n = 5
+        a_batch = np.random.randn(*batch_shape, n, n)
+        
+        # Make symmetric
+        for i in range(batch_shape[0]):
+            for j in range(batch_shape[1]):
+                a_batch[i, j] = (a_batch[i, j] + a_batch[i, j].T) / 2
+        
+        # Test with subset_by_index
+        subset = (1, 3)  # Request eigenvalues 1, 2, 3 (0-based)
+        n_selected = subset[1] - subset[0] + 1
+        
+        # Test all standard drivers
+        for driver in ['evr', 'evx']:
+            w_batch, v_batch = eigh(a_batch, subset_by_index=subset, driver=driver)
+            
+            # Check shapes
+            assert w_batch.shape == (*batch_shape, n_selected), \
+                f"driver={driver}: eigenvalue shape mismatch"
+            assert v_batch.shape == (*batch_shape, n, n_selected), \
+                f"driver={driver}: eigenvector shape mismatch"
+            
+            # Verify eigenvalue equation for each matrix in batch
+            for i in range(batch_shape[0]):
+                for j in range(batch_shape[1]):
+                    a = a_batch[i, j]
+                    w = w_batch[i, j]
+                    v = v_batch[i, j]
+                    
+                    # A @ v = v @ diag(w)
+                    lhs = a @ v
+                    rhs = v @ np.diag(w)
+                    assert_array_almost_equal(lhs, rhs, decimal=10,
+                        err_msg=f"driver={driver}, batch=({i},{j})")
+    
+    def test_batched_subset_by_index_generalized(self):
+        """Test batched generalized eigh with subset_by_index."""
+        np.random.seed(43)
+        batch_shape = (2, 3)
+        n = 6
+        a_batch = np.random.randn(*batch_shape, n, n)
+        b_batch = np.random.randn(*batch_shape, n, n)
+        
+        # Make symmetric and positive definite
+        for i in range(batch_shape[0]):
+            for j in range(batch_shape[1]):
+                a_batch[i, j] = (a_batch[i, j] + a_batch[i, j].T) / 2
+                b_tmp = b_batch[i, j]
+                b_batch[i, j] = b_tmp @ b_tmp.T + np.eye(n)  # Positive definite
+        
+        # Test with subset_by_index
+        subset = (2, 4)  # Request eigenvalues 2, 3, 4 (0-based)
+        n_selected = subset[1] - subset[0] + 1
+        
+        # Test generalized driver with all types
+        for driver in ['gvd', 'gvx']:
+            for itype in [1, 2, 3]:
+                w_batch, v_batch = eigh(a_batch, b_batch, subset_by_index=subset, 
+                                       driver=driver, type=itype)
+                
+                # Check shapes
+                assert w_batch.shape == (*batch_shape, n_selected), \
+                    f"driver={driver}, type={itype}: eigenvalue shape mismatch"
+                assert v_batch.shape == (*batch_shape, n, n_selected), \
+                    f"driver={driver}, type={itype}: eigenvector shape mismatch"
+                
+                # Verify eigenvalue equation for one matrix
+                i, j = 0, 0
+                a = a_batch[i, j]
+                b = b_batch[i, j]
+                w = w_batch[i, j]
+                v = v_batch[i, j]
+                
+                # Check type-specific equation
+                if itype == 1:
+                    # A @ v = B @ v @ diag(w)
+                    lhs = a @ v
+                    rhs = b @ v @ np.diag(w)
+                elif itype == 2:
+                    # A @ B @ v = v @ diag(w)
+                    lhs = a @ b @ v
+                    rhs = v @ np.diag(w)
+                else:  # itype == 3
+                    # B @ A @ v = v @ diag(w)
+                    lhs = b @ a @ v
+                    rhs = v @ np.diag(w)
+                
+                assert_array_almost_equal(lhs, rhs, decimal=9,
+                    err_msg=f"driver={driver}, type={itype}")
+    
+    def test_batched_subset_by_index_eigvals_only(self):
+        """Test batched eigh with subset_by_index and eigvals_only=True."""
+        np.random.seed(44)
+        batch_shape = (4,)
+        n = 7
+        a_batch = np.random.randn(*batch_shape, n, n)
+        
+        # Make symmetric
+        for i in range(batch_shape[0]):
+            a_batch[i] = (a_batch[i] + a_batch[i].T) / 2
+        
+        # Test with subset_by_index
+        subset = (0, 2)  # Request first 3 eigenvalues
+        n_selected = subset[1] - subset[0] + 1
+        
+        w_batch = eigh(a_batch, subset_by_index=subset, eigvals_only=True)
+        
+        # Check shape
+        assert w_batch.shape == (*batch_shape, n_selected)
+        
+        # Verify eigenvalues are in ascending order
+        for i in range(batch_shape[0]):
+            w = w_batch[i]
+            assert np.all(w[:-1] <= w[1:]), "Eigenvalues not in ascending order"
+    
+    def test_batched_subset_by_index_complex(self):
+        """Test batched eigh with subset_by_index on complex matrices."""
+        np.random.seed(45)
+        batch_shape = (2, 2)
+        n = 5
+        a_batch = np.random.randn(*batch_shape, n, n) + 1j * np.random.randn(*batch_shape, n, n)
+        
+        # Make Hermitian
+        for i in range(batch_shape[0]):
+            for j in range(batch_shape[1]):
+                a_batch[i, j] = (a_batch[i, j] + a_batch[i, j].conj().T) / 2
+        
+        # Test with subset_by_index
+        subset = (1, 3)
+        n_selected = subset[1] - subset[0] + 1
+        
+        for driver in ['evr', 'evx']:
+            w_batch, v_batch = eigh(a_batch, subset_by_index=subset, driver=driver)
+            
+            # Check shapes and dtypes
+            assert w_batch.shape == (*batch_shape, n_selected)
+            assert v_batch.shape == (*batch_shape, n, n_selected)
+            assert w_batch.dtype == np.float64  # Eigenvalues are always real
+            assert v_batch.dtype == np.complex128
+            
+            # Verify eigenvalue equation for one matrix
+            i, j = 0, 0
+            a = a_batch[i, j]
+            w = w_batch[i, j]
+            v = v_batch[i, j]
+            
+            lhs = a @ v
+            rhs = v @ np.diag(w)
+            assert_array_almost_equal(lhs, rhs, decimal=10,
+                err_msg=f"driver={driver}")
+    
+    def test_batched_subset_by_index_edge_cases(self):
+        """Test edge cases for subset_by_index."""
+        np.random.seed(46)
+        n = 6
+        a = np.random.randn(2, n, n)
+        for i in range(2):
+            a[i] = (a[i] + a[i].T) / 2
+        
+        # Single eigenvalue
+        w, v = eigh(a, subset_by_index=(2, 2))
+        assert w.shape == (2, 1)
+        assert v.shape == (2, n, 1)
+        
+        # First eigenvalue
+        w, v = eigh(a, subset_by_index=(0, 0))
+        assert w.shape == (2, 1)
+        assert v.shape == (2, n, 1)
+        
+        # Last eigenvalue
+        w, v = eigh(a, subset_by_index=(n-1, n-1))
+        assert w.shape == (2, 1)
+        assert v.shape == (2, n, 1)
+        
+        # All eigenvalues
+        w, v = eigh(a, subset_by_index=(0, n-1))
+        assert w.shape == (2, n)
+        assert v.shape == (2, n, n)
+        
+        # Compare subset with full computation
+        w_full, v_full = eigh(a)
+        for i in range(2):
+            assert_array_almost_equal(w[i], w_full[i], decimal=10)
+            # eigenvectors might have different signs, so compare abs
+            assert_array_almost_equal(np.abs(v[i]), np.abs(v_full[i]), decimal=10)
