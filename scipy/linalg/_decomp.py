@@ -813,26 +813,26 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
     
     # Determine if we can use the batched C++ implementation
     # We support: evr, evx for standard problems; gvd, gvx for generalized problems
+    # NOTE: Subset selection is NOT supported in batched mode because different
+    # batch elements may return different numbers of eigenvalues, which cannot
+    # be represented in a single ndarray
     use_batched_impl = False
+    has_subset = (subset_by_index is not None) or (subset_by_value is not None)
     
     if driver is None:
-        # Default drivers: evr for standard (with or without subset), gvd for generalized (no subset)
+        # Default drivers
         if b is None:
-            driver = "evr"  # evr supports subset selection
-            use_batched_impl = True
-        elif subset_by_index is None and subset_by_value is None:
-            driver = "gvd"
-            use_batched_impl = True
+            driver = "evr"  # evr is default for standard problems
+            use_batched_impl = not has_subset  # Only batch if no subset
         else:
-            # Generalized with subset: use gvx
-            driver = "gvx"
-            use_batched_impl = True
+            driver = "gvd"  # gvd is default for generalized problems
+            use_batched_impl = not has_subset  # Only batch if no subset
     elif driver in ["evr", "evx"] and b is None:
         # Standard problem with evr or evx
-        use_batched_impl = True
+        use_batched_impl = not has_subset  # Only batch if no subset
     elif driver in ["gvd", "gvx"] and b is not None:
         # Generalized problem with gvd or gvx
-        use_batched_impl = True
+        use_batched_impl = not has_subset  # Only batch if no subset
     
     # If we can't use batched implementation, delegate to eigh0
     if not use_batched_impl:
