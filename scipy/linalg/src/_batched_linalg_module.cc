@@ -4,6 +4,7 @@
 #include "_linalg_svd.hh"
 #include "_linalg_lstsq.hh"
 #include "_linalg_eig.hh"
+#include "_linalg_eigh.hh"
 #include "_common_array_utils.hh"
 
 
@@ -597,6 +598,123 @@ fail:
 }
 
 
+static PyObject*
+_linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
+    PyArrayObject *ap_Am = NULL;
+    PyArrayObject *ap_Bm = NULL;
+    PyArrayObject *ap_w = NULL;
+    PyArrayObject *ap_v = NULL;
+    int compute_v = 1;
+    int lower = 1;
+    int itype = 1;
+
+    int info = 0;
+    SliceStatusVec vec_status;
+
+    // return values
+    PyObject *ret_lst = NULL;
+    PyObject *v_ret = NULL;
+
+    // Get the input array
+    if (!PyArg_ParseTuple(args, "O!p|ppO!",
+            &PyArray_Type, (PyObject **)&ap_Am,
+            &compute_v,
+            &lower,
+            &itype,
+            &PyArray_Type, (PyObject **)&ap_Bm)
+    ) {
+        return NULL;
+    }
+
+    // Check for dtype compatibility & array flags
+    int typenum = PyArray_TYPE(ap_Am);
+    bool dtype_ok = (typenum == NPY_FLOAT32)
+                     || (typenum == NPY_FLOAT64)
+                     || (typenum == NPY_COMPLEX64)
+                     || (typenum == NPY_COMPLEX128);
+    if(!dtype_ok || !PyArray_ISALIGNED(ap_Am)) {
+        PyErr_SetString(PyExc_TypeError, "Expected a real or complex array.");
+        return NULL;
+    }
+
+    // Basic checks of array dimensions
+    int ndim = PyArray_NDIM(ap_Am);
+    npy_intp *shape = PyArray_SHAPE(ap_Am);
+    if (ndim < 2) {
+        PyErr_SetString(PyExc_ValueError, "Expected at least a 2D array.");
+        return NULL;
+    }
+
+    npy_intp n = shape[ndim - 1];
+
+    if (PyArray_DIM(ap_Am, ndim-2) != n) {
+        PyErr_SetString(PyExc_ValueError, "Expected a square matrix");
+        return NULL;
+    }
+
+    // Allocate the output(s)
+    // For hermitian/symmetric problems, eigenvalues are always real
+    npy_intp shape_1[NPY_MAXDIMS];
+    for(int i=0; i<ndim; i++) {shape_1[i] = shape[i]; }
+
+    // eigenvalues - always real
+    int w_typenum = NPY_FLOAT32;
+    if (typenum == NPY_FLOAT64 || typenum == NPY_COMPLEX128) {
+        w_typenum = NPY_FLOAT64;
+    }
+
+    ap_w = (PyArrayObject *)PyArray_SimpleNew(ndim-1, shape_1, w_typenum);
+    if (ap_w == NULL) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    if (compute_v) {
+        ap_v = (PyArrayObject *)PyArray_SimpleNew(ndim, shape, typenum);
+        if (ap_v == NULL) { PyErr_NoMemory(); goto fail; }
+    }
+
+    char uplo = lower ? 'L' : 'U';
+    char jobz = compute_v ? 'V' : 'N';
+
+    switch(typenum) {
+        case(NPY_FLOAT32):
+            info = _eigh<float>(ap_Am, ap_Bm, ap_w, ap_v, uplo, jobz, (CBLAS_INT)itype, vec_status);
+            break;
+        case(NPY_FLOAT64):
+            info = _eigh<double>(ap_Am, ap_Bm, ap_w, ap_v, uplo, jobz, (CBLAS_INT)itype, vec_status);
+            break;
+        case(NPY_COMPLEX64):
+            info = _eigh<npy_complex64>(ap_Am, ap_Bm, ap_w, ap_v, uplo, jobz, (CBLAS_INT)itype, vec_status);
+            break;
+        case(NPY_COMPLEX128):
+            info = _eigh<npy_complex128>(ap_Am, ap_Bm, ap_w, ap_v, uplo, jobz, (CBLAS_INT)itype, vec_status);
+            break;
+        default:
+            PyErr_SetString(PyExc_RuntimeError, "Unknown array type.");
+            goto fail;
+    }
+
+    if (info < 0) {
+        // Either OOM or internal LAPACK error.
+        PyErr_SetString(PyExc_RuntimeError, "Memory error in scipy.linalg.eigh.");
+        goto fail;
+    }
+
+    // normal return
+    ret_lst = convert_vec_status(vec_status);
+
+    v_ret = (ap_v == NULL) ? Py_None : PyArray_Return(ap_v);
+
+    return Py_BuildValue("NNN", PyArray_Return(ap_w), v_ret, ret_lst);
+
+fail:
+    Py_DECREF(ap_w);
+    Py_XDECREF(ap_v);
+    return NULL;
+}
+
+
 /*
  * Helper: convert a vector of slice error statuses to list of dicts
  */
@@ -646,6 +764,7 @@ static char doc_solve[] = ("Solve the linear system of equations.");
 static char doc_svd[] = ("SVD factorization.");
 static char doc_lstsq[] = ("linear least squares.");
 static char doc_eig[] = ("eigenvalue solver.");
+static char doc_eigh[] = ("hermitian/symmetric eigenvalue solver.");
 
 static struct PyMethodDef inv_module_methods[] = {
   {"_inv", _linalg_inv, METH_VARARGS, doc_inv},
@@ -653,6 +772,7 @@ static struct PyMethodDef inv_module_methods[] = {
   {"_svd", _linalg_svd, METH_VARARGS, doc_svd},
   {"_lstsq", _linalg_lstsq, METH_VARARGS, doc_lstsq},
   {"_eig", _linalg_eig, METH_VARARGS, doc_eig},
+  {"_eigh", _linalg_eigh, METH_VARARGS, doc_eigh},
   {NULL, NULL, 0, NULL}
 };
 

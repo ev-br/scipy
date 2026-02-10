@@ -285,9 +285,9 @@ def eig(a, b=None, left=False, right=True, overwrite_a=False,
 
 
 @_apply_over_batch(('a', 2), ('b', 2))
-def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
-         overwrite_b=False, type=1, check_finite=True, subset_by_index=None,
-         subset_by_value=None, driver=None):
+def eigh0(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
+          overwrite_b=False, type=1, check_finite=True, subset_by_index=None,
+          subset_by_value=None, driver=None):
     """
     Solve a standard or generalized eigenvalue problem for a complex
     Hermitian or real symmetric matrix.
@@ -619,6 +619,239 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
                 msg = drv_err['evr']
 
             raise LinAlgError(msg)
+
+
+def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
+         overwrite_b=False, type=1, check_finite=True, subset_by_index=None,
+         subset_by_value=None, driver=None):
+    """
+    Solve a standard or generalized eigenvalue problem for a complex
+    Hermitian or real symmetric matrix.
+
+    Find eigenvalues array ``w`` and optionally eigenvectors array ``v`` of
+    array ``a``, where ``b`` is positive definite such that for every
+    eigenvalue λ (i-th entry of w) and its eigenvector ``vi`` (i-th column of
+    ``v``) satisfies::
+
+                      a @ vi = λ * b @ vi
+        vi.conj().T @ a @ vi = λ
+        vi.conj().T @ b @ vi = 1
+
+    In the standard problem, ``b`` is assumed to be the identity matrix.
+
+    Parameters
+    ----------
+    a : (M, M) array_like
+        A complex Hermitian or real symmetric matrix whose eigenvalues and
+        eigenvectors will be computed.
+    b : (M, M) array_like, optional
+        A complex Hermitian or real symmetric definite positive matrix in.
+        If omitted, identity matrix is assumed.
+    lower : bool, optional
+        Whether the pertinent array data is taken from the lower or upper
+        triangle of ``a`` and, if applicable, ``b``. (Default: lower)
+    eigvals_only : bool, optional
+        Whether to calculate only eigenvalues and no eigenvectors.
+        (Default: both are calculated)
+    overwrite_a : bool, optional
+        Whether to overwrite data in ``a`` (may improve performance). Default is False.
+    overwrite_b : bool, optional
+        Whether to overwrite data in ``b`` (may improve performance). Default is False.
+    type : int, optional
+        For the generalized problems, this keyword specifies the problem type
+        to be solved for ``w`` and ``v`` (only takes 1, 2, 3 as possible
+        inputs)::
+
+            1 =>     a @ v = w @ b @ v
+            2 => a @ b @ v = w @ v
+            3 => b @ a @ v = w @ v
+
+        This keyword is ignored for standard problems.
+    check_finite : bool, optional
+        Whether to check that the input matrices contain only finite numbers.
+        Disabling may give a performance gain, but may result in problems
+        (crashes, non-termination) if the inputs do contain infinities or NaNs.
+    subset_by_index : iterable, optional
+        If provided, this two-element iterable defines the start and the end
+        indices of the desired eigenvalues (ascending order and 0-indexed).
+        To return only the second smallest to fifth smallest eigenvalues,
+        ``[1, 4]`` is used. ``[n-3, n-1]`` returns the largest three. Only
+        available with "evr", "evx", and "gvx" drivers. The entries are
+        directly converted to integers via ``int()``.
+    subset_by_value : iterable, optional
+        If provided, this two-element iterable defines the half-open interval
+        ``(a, b]`` that, if any, only the eigenvalues between these values
+        are returned. Only available with "evr", "evx", and "gvx" drivers. Use
+        ``np.inf`` for the unconstrained ends.
+    driver : str, optional
+        Defines which LAPACK driver should be used. Valid options are "ev",
+        "evd", "evr", "evx" for standard problems and "gv", "gvd", "gvx" for
+        generalized (where b is not None) problems. See the Notes section.
+        The default for standard problems is "evr". For generalized problems,
+        "gvd" is used for full set, and "gvx" for subset requested cases.
+
+    Returns
+    -------
+    w : (N,) ndarray
+        The N (N<=M) selected eigenvalues, in ascending order, each
+        repeated according to its multiplicity.
+    v : (M, N) ndarray
+        The normalized eigenvector corresponding to the eigenvalue ``w[i]`` is
+        the column ``v[:,i]``. Only returned if ``eigvals_only=False``.
+
+    Raises
+    ------
+    LinAlgError
+        If eigenvalue computation does not converge, an error occurred, or
+        b matrix is not definite positive. Note that if input matrices are
+        not symmetric or Hermitian, no error will be reported but results will
+        be wrong.
+
+    See Also
+    --------
+    eigvalsh : eigenvalues of symmetric or Hermitian arrays
+    eig : eigenvalues and right eigenvectors for non-symmetric arrays
+    eigh_tridiagonal : eigenvalues and right eigenvectors for
+        symmetric/Hermitian tridiagonal matrices
+
+    Notes
+    -----
+    This function does not check the input array for being Hermitian/symmetric
+    in order to allow for representing arrays with only their upper/lower
+    triangular parts. Also, note that even though not taken into account,
+    finiteness check applies to the whole array and unaffected by "lower"
+    keyword.
+
+    This function uses LAPACK drivers for computations in all possible keyword
+    combinations, prefixed with ``sy`` if arrays are real and ``he`` if
+    complex, e.g., a float array with "evr" driver is solved via
+    "syevr", complex arrays with "gvx" driver problem is solved via "hegvx"
+    etc.
+
+    As a brief summary, the slowest and the most robust driver is the
+    classical ``<sy/he>ev`` which uses symmetric QR. ``<sy/he>evr`` is seen as
+    the optimal choice for the most general cases. However, there are certain
+    occasions that ``<sy/he>evd`` computes faster at the expense of more
+    memory usage. ``<sy/he>evx``, while still being faster than ``<sy/he>ev``,
+    often performs worse than the rest except when very few eigenvalues are
+    requested for large arrays though there is still no performance guarantee.
+
+    Note that the underlying LAPACK algorithms are different depending on whether
+    `eigvals_only` is True or False --- thus the eigenvalues may differ
+    depending on whether eigenvectors are requested or not. The difference is
+    generally of the order of machine epsilon times the largest eigenvalue,
+    so is likely only visible for zero or nearly zero eigenvalues.
+
+    For the generalized problem, normalization with respect to the given
+    type argument::
+
+            type 1 and 3 :      v.conj().T @ a @ v = w
+            type 2       : inv(v).conj().T @ a @ inv(v) = w
+
+            type 1 or 2  :      v.conj().T @ b @ v  = I
+            type 3       : v.conj().T @ inv(b) @ v  = I
+
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from scipy.linalg import eigh
+    >>> A = np.array([[6, 3, 1, 5], [3, 0, 5, 1], [1, 5, 6, 2], [5, 1, 2, 2]])
+    >>> w, v = eigh(A)
+    >>> np.allclose(A @ v - v @ np.diag(w), np.zeros((4, 4)))
+    True
+
+    Request only the eigenvalues
+
+    >>> w = eigh(A, eigvals_only=True)
+
+    Request eigenvalues that are less than 10.
+
+    >>> A = np.array([[34, -4, -10, -7, 2],
+    ...               [-4, 7, 2, 12, 0],
+    ...               [-10, 2, 44, 2, -19],
+    ...               [-7, 12, 2, 79, -34],
+    ...               [2, 0, -19, -34, 29]])
+    >>> eigh(A, eigvals_only=True, subset_by_value=[-np.inf, 10])
+    array([6.69199443e-07, 9.11938152e+00])
+
+    Request the second smallest eigenvalue and its eigenvector
+
+    >>> w, v = eigh(A, subset_by_index=[1, 1])
+    >>> w
+    array([9.11938152])
+    >>> v.shape  # only a single column is returned
+    (5, 1)
+
+    """
+    # If subset selection is requested, delegate to eigh0 which uses the decorator
+    if subset_by_index is not None or subset_by_value is not None:
+        return eigh0(a, b=b, lower=lower, eigvals_only=eigvals_only,
+                     overwrite_a=overwrite_a, overwrite_b=overwrite_b,
+                     type=type, check_finite=check_finite,
+                     subset_by_index=subset_by_index,
+                     subset_by_value=subset_by_value, driver=driver)
+    
+    # Otherwise, use batched implementation
+    # Validate and prepare inputs
+    a1 = _asarray_validated(a, check_finite=check_finite)
+    
+    if len(a1.shape) < 2 or a1.shape[-1] != a1.shape[-2]:
+        raise ValueError('expected square "a" matrix')
+    
+    # Also check if dtype is LAPACK compatible
+    a1, overwrite_a = _normalize_lapack_dtype(a1, overwrite_a)
+    a1, overwrite_a = _ensure_aligned_and_native(a1, overwrite_a)
+    
+    # accommodate empty arrays
+    if a1.shape[-1] == 0 or a1.shape[-2] == 0:
+        batch_shape = a1.shape[:-2]
+        w_n, v_n = eigh(np.eye(2, dtype=a1.dtype))
+        w = np.empty(batch_shape + (0,), dtype=w_n.dtype)
+        v = np.empty(batch_shape + (0, 0), dtype=v_n.dtype)
+        if eigvals_only:
+            return w
+        else:
+            return w, v
+    
+    if b is not None:
+        b1 = _asarray_validated(b, check_finite=check_finite)
+        a1, b1 = _ensure_dtype_cdsz(a1, b1)
+        overwrite_b = overwrite_b or (_datacopied(b1, b))
+        b1, overwrite_b = _ensure_aligned_and_native(b1, overwrite_b)
+        
+        if len(b1.shape) < 2 or b1.shape[-1] != b1.shape[-2]:
+            raise ValueError('expected square "b" matrix')
+        
+        if a1.shape[-1] != b1.shape[-1]:
+            raise ValueError(f"wrong b dimensions {b1.shape}, should be {a1.shape}")
+        
+        if type not in [1, 2, 3]:
+            raise ValueError('"type" keyword only accepts 1, 2, and 3.')
+        
+        # broadcast batch dimensions of b1 and a1
+        batch_shape = np.broadcast_shapes(a1.shape[:-2], b1.shape[:-2])
+        a1 = np.broadcast_to(a1, batch_shape + a1.shape[-2:])
+        b1 = np.broadcast_to(b1, batch_shape + b1.shape[-2:])
+        
+        # Call batched implementation
+        compute_v = not eigvals_only
+        w, v, err_lst = _batched_linalg._eigh(a1, compute_v, lower, type, b1)
+        
+        if err_lst:
+            _check_format_errors_warnings("hegvd/sygvd", err_lst)
+    else:
+        # Standard eigenvalue problem
+        compute_v = not eigvals_only
+        w, v, err_lst = _batched_linalg._eigh(a1, compute_v, lower, type)
+        
+        if err_lst:
+            _check_format_errors_warnings("heevr/syevr", err_lst)
+    
+    if eigvals_only:
+        return w
+    else:
+        return w, v
 
 
 _conv_dict = {0: 0, 1: 1, 2: 2,

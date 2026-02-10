@@ -41,19 +41,22 @@ _reg_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_v,
     CBLAS_INT tmp_iwork = 0;
 
     CBLAS_INT lda = n;
+    CBLAS_INT ldz = n;
 
     // For complex types, we need rwork
     real_type *rwork = NULL;
     real_type tmp_rwork = 0;
     CBLAS_INT lrwork = -1;
     
+    real_type abstol = 0.0;  // Use default tolerance
+    
     if constexpr (type_traits<T>::is_complex) {
         // query LWORK, LRWORK, LIWORK for complex types
-        call_heevr(&jobz, "A", &uplo, &intn, NULL, &lda, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+        call_heevr(&jobz, "A", &uplo, &intn, NULL, &lda, NULL, NULL, NULL, NULL, &abstol, NULL, NULL, NULL, &ldz, NULL,
                    &tmp_work, &lwork, &tmp_rwork, &lrwork, &tmp_iwork, &liwork, &info);
     } else {
         // query LWORK, LIWORK for real types
-        call_syevr(&jobz, "A", &uplo, &intn, NULL, &lda, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+        call_syevr(&jobz, "A", &uplo, &intn, NULL, &lda, NULL, NULL, NULL, NULL, &abstol, NULL, NULL, NULL, &ldz, NULL,
                    &tmp_work, &lwork, &tmp_iwork, &liwork, &info);
     }
     
@@ -66,23 +69,27 @@ _reg_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_v,
     if (liwork < 0) { return -103; }
 
     // allocate workspace
-    npy_intp bufsize = n*n + lwork;
+    npy_intp bufsize = n*n + lwork + n*n;  // data + work + z (eigenvectors)
     T *buf = (T *)malloc(bufsize*sizeof(T));
     if (buf == NULL) { return -104; }
 
     CBLAS_INT *iwork = (CBLAS_INT *)malloc(liwork*sizeof(CBLAS_INT));
     if (iwork == NULL) { free(buf); return -105; }
+    
+    CBLAS_INT *isuppz = (CBLAS_INT *)malloc(2*n*sizeof(CBLAS_INT));
+    if (isuppz == NULL) { free(buf); free(iwork); return -108; }
 
     if constexpr (type_traits<T>::is_complex) {
         lrwork = _calc_lwork(tmp_rwork);
-        if (lrwork < 0) { free(buf); free(iwork); return -106; }
+        if (lrwork < 0) { free(buf); free(iwork); free(isuppz); return -106; }
         rwork = (real_type *)malloc(lrwork*sizeof(real_type));
-        if (rwork == NULL) { free(buf); free(iwork); return -107; }
+        if (rwork == NULL) { free(buf); free(iwork); free(isuppz); return -107; }
     }
 
     // partition the workspace
     T *data = &buf[0];
     T *work = &buf[n*n];
+    T *z_buf = &buf[n*n + lwork];  // eigenvectors buffer
 
     // --------------------------------------------------------------------
     // Main loop to traverse the slices
@@ -94,32 +101,18 @@ _reg_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_v,
         T *slice_ptr = compute_slice_ptr(idx, Am_data, ndim, shape, strides);
         copy_slice_F(data, slice_ptr, n, n, strides[ndim-2], strides[ndim-1]);
 
-        // Prepare output for eigenvectors if needed
-        T *v_buf = compute_v ? data : NULL;  // syevr/heevr overwrites input with eigenvectors
+        // Prepare output
         real_type *w_buf = ptr_W + idx * n;
-        
         CBLAS_INT m = 0;  // number of eigenvalues found
-        CBLAS_INT *isuppz = NULL;
-        if (compute_v) {
-            isuppz = (CBLAS_INT *)malloc(2*n*sizeof(CBLAS_INT));
-            if (isuppz == NULL) { 
-                free(buf); 
-                free(iwork); 
-                if (rwork) free(rwork);
-                return -108; 
-            }
-        }
 
         // compute eigenvalues (and eigenvectors if requested) for the slice
         if constexpr (type_traits<T>::is_complex) {
-            call_heevr(&jobz, "A", &uplo, &intn, data, &lda, NULL, NULL, NULL, NULL, NULL, &m,
-                       w_buf, v_buf, &lda, isuppz, work, &lwork, rwork, &lrwork, iwork, &liwork, &info);
+            call_heevr(&jobz, "A", &uplo, &intn, data, &lda, NULL, NULL, NULL, NULL, &abstol, &m,
+                       w_buf, z_buf, &ldz, isuppz, work, &lwork, rwork, &lrwork, iwork, &liwork, &info);
         } else {
-            call_syevr(&jobz, "A", &uplo, &intn, data, &lda, NULL, NULL, NULL, NULL, NULL, &m,
-                       w_buf, v_buf, &lda, isuppz, work, &lwork, iwork, &liwork, &info);
+            call_syevr(&jobz, "A", &uplo, &intn, data, &lda, NULL, NULL, NULL, NULL, &abstol, &m,
+                       w_buf, z_buf, &ldz, isuppz, work, &lwork, iwork, &liwork, &info);
         }
-
-        if (isuppz) free(isuppz);
 
         if(info != 0) {
             slice_status.lapack_info = (Py_ssize_t)info;
@@ -130,13 +123,14 @@ _reg_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_v,
 
         // copy eigenvectors if computed
         if (compute_v) {
-            copy_slice_F_to_C(ptr_v + idx*n*n, data, n, n, lda);
+            copy_slice_F_to_C(ptr_v + idx*n*n, z_buf, n, n, ldz);
         }
     }
 
  done:
     free(buf);
     free(iwork);
+    free(isuppz);
     if (rwork) free(rwork);
 
     return 0;
@@ -209,7 +203,7 @@ _gen_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArr
     if (liwork < 0) { return -103; }
 
     // allocate workspace
-    npy_intp bufsize = 2*n*n + lwork;  // space for A and B matrices
+    npy_intp bufsize = 2*n*n + lwork;  // space for A and B matrices + work
     T *buf = (T *)malloc(bufsize*sizeof(T));
     if (buf == NULL) { return -104; }
 
