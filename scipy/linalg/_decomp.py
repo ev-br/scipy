@@ -576,6 +576,14 @@ def eigh0(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
         drv_args.update({'uplo': uplo, 'jobz': _job})
 
         w, v, *other_args, info = drv(a=a1, b=b1, **drv_args, **lwork_args)
+        
+        # DEBUG: Print LAPACK output for type 2/3
+        if type in [2, 3]:
+            print(f"[PYTHON eigh0] driver={driver}, type={type}")
+            print(f"[PYTHON eigh0] w (first 5): {w[:5]}")
+            print(f"[PYTHON eigh0] v (first 5 of col 0, F-order): {v[:5, 0]}")
+            import sys
+            sys.stdout.flush()
 
     # m is always the first extra argument
     w = w[:other_args[0]] if subset else w
