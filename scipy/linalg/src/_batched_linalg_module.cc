@@ -620,10 +620,10 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
     PyObject *v_ret = NULL;
 
     // Get the input array with driver and range parameters
-    // Format: array, compute_v, lower, itype, driver, range, il, iu, vl, vu, [b_array]
-    // Only b_array is optional
+    // Format: array, compute_v, lower, itype, driver, range, il, iu, vl, vu, b_array
+    // b_array is always passed but can be None for standard eigenvalue problems
     PyObject *ap_Bm_obj = NULL;
-    if (!PyArg_ParseTuple(args, "O!pppssiidd|O!",
+    if (!PyArg_ParseTuple(args, "O!pppssiiddO",
             &PyArray_Type, (PyObject **)&ap_Am,
             &compute_v,
             &lower,
@@ -634,7 +634,7 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
             &iu,
             &vl,
             &vu,
-            &PyArray_Type, &ap_Bm_obj)
+            &ap_Bm_obj)
     ) {
         return NULL;
     }
@@ -642,10 +642,16 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
     // Extract single character from range string
     char range = range_str[0];
     
-    // Convert to PyArrayObject if provided
-    if (ap_Bm_obj != NULL) {
+    // Check if b_array is None (standard problem) or an array (generalized problem)
+    if (ap_Bm_obj != Py_None) {
+        // Generalized eigenvalue problem
+        if (!PyArray_Check(ap_Bm_obj)) {
+            PyErr_SetString(PyExc_TypeError, "b must be an array or None");
+            return NULL;
+        }
         ap_Bm = (PyArrayObject *)ap_Bm_obj;
     }
+    // else: ap_Bm remains NULL for standard eigenvalue problem
 
     // Check for dtype compatibility & array flags
     int typenum = PyArray_TYPE(ap_Am);

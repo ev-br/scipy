@@ -892,7 +892,7 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
         a1 = np.broadcast_to(a1, batch_shape + a1.shape[-2:])
         b1 = np.broadcast_to(b1, batch_shape + b1.shape[-2:])
         
-        # Call batched implementation
+        # Call batched implementation with b
         compute_v = not eigvals_only
         w, v, err_lst = _batched_linalg._eigh(a1, compute_v, lower, type,
                                               driver, range_char, il_fortran, iu_fortran, vl, vu, b1)
@@ -902,9 +902,9 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
     else:
         # Standard eigenvalue problem (b is None)
         compute_v = not eigvals_only
-        # For standard problem, we don't pass b at all
+        # Pass None for b to indicate standard eigenvalue problem
         w, v, err_lst = _batched_linalg._eigh(a1, compute_v, lower, type,
-                                              driver, range_char, il_fortran, iu_fortran, vl, vu)
+                                              driver, range_char, il_fortran, iu_fortran, vl, vu, None)
         
         if err_lst:
             _check_format_errors_warnings(f"{driver}", err_lst)
