@@ -812,8 +812,8 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
             raise ValueError('Invalid value subset: vl must be <= vu.')
     
     # Determine if we can use the batched C++ implementation
-    # We support: ev, evr for standard problems; gv, gvd for generalized problems (type=1 only)
-    # NOTE: evd, evx, gvx not yet implemented in batched mode
+    # We support: evr for standard problems; gvd for generalized problems (type=1 only)
+    # NOTE: ev, gv, evd, evx, gvx not yet working correctly in batched mode
     # NOTE: type=2 and type=3 not yet working correctly in batched implementation
     # NOTE: Subset selection is NOT supported in batched mode because different
     # batch elements may return different numbers of eigenvalues, which cannot
@@ -830,14 +830,14 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
             driver = "gvd"  # gvd is default for generalized problems
             # Only batch for type=1 (not type=2 or type=3)
             use_batched_impl = (not has_subset) and (type == 1)
-    elif driver in ["ev", "evr"] and b is None:
-        # Standard problem with ev or evr
+    elif driver in ["evr"] and b is None:  # Only evr for now, not ev
+        # Standard problem with evr
         use_batched_impl = not has_subset  # Only batch if no subset
-    elif driver in ["gv", "gvd"] and b is not None:
-        # Generalized problem with gv or gvd
+    elif driver in ["gvd"] and b is not None:  # Only gvd for now, not gv
+        # Generalized problem with gvd
         # Only batch for type=1 (not type=2 or type=3)
         use_batched_impl = (not has_subset) and (type == 1)
-    # Note: evd, evx, gvx not yet supported in batched implementation
+    # Note: ev, gv, evd, evx, gvx not yet supported in batched implementation
     
     # If we can't use batched implementation, delegate to eigh0
     if not use_batched_impl:
