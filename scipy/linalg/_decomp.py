@@ -802,6 +802,15 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
            (driver in ["ev", "evd", "gv", "gvd"]):
             raise ValueError(f'"{driver}" cannot compute subsets of eigenvalues')
     
+    # Validate subset selection parameters (basic checks)
+    if subset_by_index is not None and subset_by_value is not None:
+        raise ValueError('Either index or value subset can be requested, not both.')
+    
+    if subset_by_value is not None:
+        vl_check, vu_check = subset_by_value
+        if vl_check > vu_check:
+            raise ValueError('Invalid value subset: vl must be <= vu.')
+    
     # Determine if we can use the batched C++ implementation
     # We support: evr, evx for standard problems; gvd, gvx for generalized problems
     use_batched_impl = False
@@ -839,6 +848,16 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
     
     if len(a1.shape) < 2 or a1.shape[-1] != a1.shape[-2]:
         raise ValueError('expected square "a" matrix')
+    
+    n = a1.shape[-1]
+    
+    # Validate subset_by_index now that we know the matrix size
+    if subset_by_index is not None:
+        lo, hi = (int(x) for x in subset_by_index)
+        if not (0 <= lo <= hi < n):
+            raise ValueError('Requested eigenvalue indices are not valid. '
+                             f'Valid range is [0, {n-1}] and start <= end, but '
+                             f'start={lo}, end={hi} is given')
     
     # Also check if dtype is LAPACK compatible
     a1, overwrite_a = _normalize_lapack_dtype(a1, overwrite_a)
