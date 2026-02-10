@@ -3354,3 +3354,75 @@ class TestEighBatched:
         
         # Verify correctness
         assert_allclose(matrices[0] @ v[0], v[0] * w[0], rtol=1e-10, atol=1e-10)
+
+    @pytest.mark.parametrize('driver', ['ev', 'evd', 'evr', 'evx'])
+    def test_batched_empty_core_dims(self, driver):
+        """Test with empty core dimensions in batched inputs."""
+        # Batch of matrices with zero size core dimensions
+        matrices = np.empty((3, 2, 0, 0), dtype=np.float64)
+        w, v = eigh(matrices, driver=driver)
+        
+        assert w.shape == (3, 2, 0)
+        assert v.shape == (3, 2, 0, 0)
+        
+        # eigvals_only
+        w = eigh(matrices, driver=driver, eigvals_only=True)
+        assert w.shape == (3, 2, 0)
+    
+    @pytest.mark.parametrize('driver', ['gv', 'gvd', 'gvx'])
+    def test_batched_empty_generalized(self, driver):
+        """Test empty arrays for generalized eigenvalue problems."""
+        # Empty batch dimension
+        a = np.empty((0, 4, 4), dtype=np.float64)
+        b = np.empty((0, 4, 4), dtype=np.float64)
+        w, v = eigh(a, b, driver=driver)
+        
+        assert w.shape == (0, 4)
+        assert v.shape == (0, 4, 4)
+        
+        # Empty core dimensions
+        a = np.empty((2, 3, 0, 0), dtype=np.float64)
+        b = np.empty((2, 3, 0, 0), dtype=np.float64)
+        w, v = eigh(a, b, driver=driver)
+        
+        assert w.shape == (2, 3, 0)
+        assert v.shape == (2, 3, 0, 0)
+    
+    @pytest.mark.parametrize('driver', ['gv', 'gvd', 'gvx'])
+    @pytest.mark.parametrize('type_', [1, 2, 3])
+    def test_empty_core_generalized_all_types(self, driver, type_):
+        """Test empty core dimensions for all generalized types."""
+        a = np.empty((2, 0, 0), dtype=np.float64)
+        b = np.empty((2, 0, 0), dtype=np.float64)
+        w, v = eigh(a, b, driver=driver, type=type_)
+        
+        assert w.shape == (2, 0)
+        assert v.shape == (2, 0, 0)
+        assert w.dtype == np.float64
+        assert v.dtype == np.float64
+    
+    def test_empty_mixed_batch_and_core(self):
+        """Test combinations of empty batch and core dimensions."""
+        # Empty batch, non-empty core
+        a = np.empty((0, 5, 5), dtype=np.float64)
+        w, v = eigh(a)
+        assert w.shape == (0, 5)
+        assert v.shape == (0, 5, 5)
+        
+        # Non-empty batch, empty core
+        a = np.empty((3, 0, 0), dtype=np.float64)
+        w, v = eigh(a)
+        assert w.shape == (3, 0)
+        assert v.shape == (3, 0, 0)
+        
+        # Both empty
+        a = np.empty((0, 0, 0), dtype=np.float64)
+        w, v = eigh(a)
+        assert w.shape == (0, 0)
+        assert v.shape == (0, 0, 0)
+        
+        # Multiple batch dims, all empty
+        a = np.empty((0, 0, 5, 5), dtype=np.float64)
+        w, v = eigh(a)
+        assert w.shape == (0, 0, 5)
+        assert v.shape == (0, 0, 5, 5)
