@@ -284,348 +284,6 @@ def eig(a, b=None, left=False, right=True, overwrite_a=False,
     return w, vr
 
 
-@_apply_over_batch(('a', 2), ('b', 2))
-def eigh0(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
-          overwrite_b=False, type=1, check_finite=True, subset_by_index=None,
-          subset_by_value=None, driver=None):
-    """
-    Solve a standard or generalized eigenvalue problem for a complex
-    Hermitian or real symmetric matrix.
-
-    Find eigenvalues array ``w`` and optionally eigenvectors array ``v`` of
-    array ``a``, where ``b`` is positive definite such that for every
-    eigenvalue λ (i-th entry of w) and its eigenvector ``vi`` (i-th column of
-    ``v``) satisfies::
-
-                      a @ vi = λ * b @ vi
-        vi.conj().T @ a @ vi = λ
-        vi.conj().T @ b @ vi = 1
-
-    In the standard problem, ``b`` is assumed to be the identity matrix.
-
-    Parameters
-    ----------
-    a : (M, M) array_like
-        A complex Hermitian or real symmetric matrix whose eigenvalues and
-        eigenvectors will be computed.
-    b : (M, M) array_like, optional
-        A complex Hermitian or real symmetric definite positive matrix in.
-        If omitted, identity matrix is assumed.
-    lower : bool, optional
-        Whether the pertinent array data is taken from the lower or upper
-        triangle of ``a`` and, if applicable, ``b``. (Default: lower)
-    eigvals_only : bool, optional
-        Whether to calculate only eigenvalues and no eigenvectors.
-        (Default: both are calculated)
-    overwrite_a : bool, optional
-        Whether to overwrite data in ``a`` (may improve performance). Default is False.
-    overwrite_b : bool, optional
-        Whether to overwrite data in ``b`` (may improve performance). Default is False.
-    type : int, optional
-        For the generalized problems, this keyword specifies the problem type
-        to be solved for ``w`` and ``v`` (only takes 1, 2, 3 as possible
-        inputs)::
-
-            1 =>     a @ v = w @ b @ v
-            2 => a @ b @ v = w @ v
-            3 => b @ a @ v = w @ v
-
-        This keyword is ignored for standard problems.
-    check_finite : bool, optional
-        Whether to check that the input matrices contain only finite numbers.
-        Disabling may give a performance gain, but may result in problems
-        (crashes, non-termination) if the inputs do contain infinities or NaNs.
-    subset_by_index : iterable, optional
-        If provided, this two-element iterable defines the start and the end
-        indices of the desired eigenvalues (ascending order and 0-indexed).
-        To return only the second smallest to fifth smallest eigenvalues,
-        ``[1, 4]`` is used. ``[n-3, n-1]`` returns the largest three. Only
-        available with "evr", "evx", and "gvx" drivers. The entries are
-        directly converted to integers via ``int()``.
-    subset_by_value : iterable, optional
-        If provided, this two-element iterable defines the half-open interval
-        ``(a, b]`` that, if any, only the eigenvalues between these values
-        are returned. Only available with "evr", "evx", and "gvx" drivers. Use
-        ``np.inf`` for the unconstrained ends.
-    driver : str, optional
-        Defines which LAPACK driver should be used. Valid options are "ev",
-        "evd", "evr", "evx" for standard problems and "gv", "gvd", "gvx" for
-        generalized (where b is not None) problems. See the Notes section.
-        The default for standard problems is "evr". For generalized problems,
-        "gvd" is used for full set, and "gvx" for subset requested cases.
-
-    Returns
-    -------
-    w : (N,) ndarray
-        The N (N<=M) selected eigenvalues, in ascending order, each
-        repeated according to its multiplicity.
-    v : (M, N) ndarray
-        The normalized eigenvector corresponding to the eigenvalue ``w[i]`` is
-        the column ``v[:,i]``. Only returned if ``eigvals_only=False``.
-
-    Raises
-    ------
-    LinAlgError
-        If eigenvalue computation does not converge, an error occurred, or
-        b matrix is not definite positive. Note that if input matrices are
-        not symmetric or Hermitian, no error will be reported but results will
-        be wrong.
-
-    See Also
-    --------
-    eigvalsh : eigenvalues of symmetric or Hermitian arrays
-    eig : eigenvalues and right eigenvectors for non-symmetric arrays
-    eigh_tridiagonal : eigenvalues and right eigenvectors for
-        symmetric/Hermitian tridiagonal matrices
-
-    Notes
-    -----
-    This function does not check the input array for being Hermitian/symmetric
-    in order to allow for representing arrays with only their upper/lower
-    triangular parts. Also, note that even though not taken into account,
-    finiteness check applies to the whole array and unaffected by "lower"
-    keyword.
-
-    This function uses LAPACK drivers for computations in all possible keyword
-    combinations, prefixed with ``sy`` if arrays are real and ``he`` if
-    complex, e.g., a float array with "evr" driver is solved via
-    "syevr", complex arrays with "gvx" driver problem is solved via "hegvx"
-    etc.
-
-    As a brief summary, the slowest and the most robust driver is the
-    classical ``<sy/he>ev`` which uses symmetric QR. ``<sy/he>evr`` is seen as
-    the optimal choice for the most general cases. However, there are certain
-    occasions that ``<sy/he>evd`` computes faster at the expense of more
-    memory usage. ``<sy/he>evx``, while still being faster than ``<sy/he>ev``,
-    often performs worse than the rest except when very few eigenvalues are
-    requested for large arrays though there is still no performance guarantee.
-
-    Note that the underlying LAPACK algorithms are different depending on whether
-    `eigvals_only` is True or False --- thus the eigenvalues may differ
-    depending on whether eigenvectors are requested or not. The difference is
-    generally of the order of machine epsilon times the largest eigenvalue,
-    so is likely only visible for zero or nearly zero eigenvalues.
-
-    For the generalized problem, normalization with respect to the given
-    type argument::
-
-            type 1 and 3 :      v.conj().T @ a @ v = w
-            type 2       : inv(v).conj().T @ a @ inv(v) = w
-
-            type 1 or 2  :      v.conj().T @ b @ v  = I
-            type 3       : v.conj().T @ inv(b) @ v  = I
-
-
-    Examples
-    --------
-    >>> import numpy as np
-    >>> from scipy.linalg import eigh
-    >>> A = np.array([[6, 3, 1, 5], [3, 0, 5, 1], [1, 5, 6, 2], [5, 1, 2, 2]])
-    >>> w, v = eigh(A)
-    >>> np.allclose(A @ v - v @ np.diag(w), np.zeros((4, 4)))
-    True
-
-    Request only the eigenvalues
-
-    >>> w = eigh(A, eigvals_only=True)
-
-    Request eigenvalues that are less than 10.
-
-    >>> A = np.array([[34, -4, -10, -7, 2],
-    ...               [-4, 7, 2, 12, 0],
-    ...               [-10, 2, 44, 2, -19],
-    ...               [-7, 12, 2, 79, -34],
-    ...               [2, 0, -19, -34, 29]])
-    >>> eigh(A, eigvals_only=True, subset_by_value=[-np.inf, 10])
-    array([6.69199443e-07, 9.11938152e+00])
-
-    Request the second smallest eigenvalue and its eigenvector
-
-    >>> w, v = eigh(A, subset_by_index=[1, 1])
-    >>> w
-    array([9.11938152])
-    >>> v.shape  # only a single column is returned
-    (5, 1)
-
-    """
-    # set lower
-    uplo = 'L' if lower else 'U'
-    # Set job for Fortran routines
-    _job = 'N' if eigvals_only else 'V'
-
-    drv_str = [None, "ev", "evd", "evr", "evx", "gv", "gvd", "gvx"]
-    if driver not in drv_str:
-        raise ValueError('"{}" is unknown. Possible values are "None", "{}".'
-                         ''.format(driver, '", "'.join(drv_str[1:])))
-
-    a1 = _asarray_validated(a, check_finite=check_finite)
-    if len(a1.shape) != 2 or a1.shape[0] != a1.shape[1]:
-        raise ValueError('expected square "a" matrix')
-
-    # accommodate square empty matrices
-    if a1.size == 0:
-        w_n, v_n = eigh(np.eye(2, dtype=a1.dtype))
-
-        w = np.empty_like(a1, shape=(0,), dtype=w_n.dtype)
-        v = np.empty_like(a1, shape=(0, 0), dtype=v_n.dtype)
-        if eigvals_only:
-            return w
-        else:
-            return w, v
-
-    overwrite_a = overwrite_a or (_datacopied(a1, a))
-    cplx = True if iscomplexobj(a1) else False
-    n = a1.shape[0]
-    drv_args = {'overwrite_a': overwrite_a}
-
-    if b is not None:
-        b1 = _asarray_validated(b, check_finite=check_finite)
-        overwrite_b = overwrite_b or _datacopied(b1, b)
-        if len(b1.shape) != 2 or b1.shape[0] != b1.shape[1]:
-            raise ValueError('expected square "b" matrix')
-
-        if b1.shape != a1.shape:
-            raise ValueError(f"wrong b dimensions {b1.shape}, should be {a1.shape}")
-
-        if type not in [1, 2, 3]:
-            raise ValueError('"type" keyword only accepts 1, 2, and 3.')
-
-        cplx = True if iscomplexobj(b1) else (cplx or False)
-        drv_args.update({'overwrite_b': overwrite_b, 'itype': type})
-
-    subset = (subset_by_index is not None) or (subset_by_value is not None)
-
-    # Both subsets can't be given
-    if subset_by_index and subset_by_value:
-        raise ValueError('Either index or value subset can be requested.')
-
-    # Check indices if given
-    if subset_by_index:
-        lo, hi = (int(x) for x in subset_by_index)
-        if not (0 <= lo <= hi < n):
-            raise ValueError('Requested eigenvalue indices are not valid. '
-                             f'Valid range is [0, {n-1}] and start <= end, but '
-                             f'start={lo}, end={hi} is given')
-        # fortran is 1-indexed
-        drv_args.update({'range': 'I', 'il': lo + 1, 'iu': hi + 1})
-
-    if subset_by_value:
-        lo, hi = subset_by_value
-        if not (-inf <= lo < hi <= inf):
-            raise ValueError('Requested eigenvalue bounds are not valid. '
-                             'Valid range is (-inf, inf) and low < high, but '
-                             f'low={lo}, high={hi} is given')
-
-        drv_args.update({'range': 'V', 'vl': lo, 'vu': hi})
-
-    # fix prefix for lapack routines
-    pfx = 'he' if cplx else 'sy'
-
-    # decide on the driver if not given
-    # first early exit on incompatible choice
-    if driver:
-        if b is None and (driver in ["gv", "gvd", "gvx"]):
-            raise ValueError(f'{driver} requires input b array to be supplied '
-                             'for generalized eigenvalue problems.')
-        if (b is not None) and (driver in ['ev', 'evd', 'evr', 'evx']):
-            raise ValueError(f'"{driver}" does not accept input b array '
-                             'for standard eigenvalue problems.')
-        if subset and (driver in ["ev", "evd", "gv", "gvd"]):
-            raise ValueError(f'"{driver}" cannot compute subsets of eigenvalues')
-
-    # Default driver is evr and gvd
-    else:
-        driver = "evr" if b is None else ("gvx" if subset else "gvd")
-
-    lwork_spec = {
-                  'syevd': ['lwork', 'liwork'],
-                  'syevr': ['lwork', 'liwork'],
-                  'heevd': ['lwork', 'liwork', 'lrwork'],
-                  'heevr': ['lwork', 'lrwork', 'liwork'],
-                  }
-
-    if b is None:  # Standard problem
-        drv, drvlw = get_lapack_funcs((pfx + driver, pfx+driver+'_lwork'),
-                                      [a1])
-        clw_args = {'n': n, 'lower': lower}
-        if driver == 'evd':
-            clw_args.update({'compute_v': 0 if _job == "N" else 1})
-
-        lw = _compute_lwork(drvlw, **clw_args)
-        # Multiple lwork vars
-        if isinstance(lw, tuple):
-            lwork_args = dict(zip(lwork_spec[pfx+driver], lw))
-        else:
-            lwork_args = {'lwork': lw}
-
-        drv_args.update({'lower': lower, 'compute_v': 0 if _job == "N" else 1})
-        w, v, *other_args, info = drv(a=a1, **drv_args, **lwork_args)
-
-    else:  # Generalized problem
-        # 'gvd' doesn't have lwork query
-        if driver == "gvd":
-            drv = get_lapack_funcs(pfx + "gvd", [a1, b1])
-            lwork_args = {}
-        else:
-            drv, drvlw = get_lapack_funcs((pfx + driver, pfx+driver+'_lwork'),
-                                          [a1, b1])
-            # generalized drivers use uplo instead of lower
-            lw = _compute_lwork(drvlw, n, uplo=uplo)
-            lwork_args = {'lwork': lw}
-
-        drv_args.update({'uplo': uplo, 'jobz': _job})
-
-        w, v, *other_args, info = drv(a=a1, b=b1, **drv_args, **lwork_args)
-        
-        # DEBUG: Print LAPACK output for type 2/3
-        if type in [2, 3]:
-            import sys
-            sys.stdout.flush()
-
-    # m is always the first extra argument
-    w = w[:other_args[0]] if subset else w
-    v = v[:, :other_args[0]] if (subset and not eigvals_only) else v
-
-    # Check if we had a  successful exit
-    if info == 0:
-        if eigvals_only:
-            return w
-        else:
-            return w, v
-    else:
-        if info < -1:
-            raise LinAlgError(f'Illegal value in argument {-info} of internal '
-                              f'{drv.typecode + pfx + driver}')
-        elif info > n:
-            raise LinAlgError(f'The leading minor of order {info-n} of B is not '
-                              'positive definite. The factorization of B '
-                              'could not be completed and no eigenvalues '
-                              'or eigenvectors were computed.')
-        else:
-            drv_err = {'ev': 'The algorithm failed to converge; {} '
-                             'off-diagonal elements of an intermediate '
-                             'tridiagonal form did not converge to zero.',
-                       'evx': '{} eigenvectors failed to converge.',
-                       'evd': 'The algorithm failed to compute an eigenvalue '
-                              'while working on the submatrix lying in rows '
-                              'and columns {0}/{1} through mod({0},{1}).',
-                       'evr': 'Internal Error.'
-                       }
-            if driver in ['ev', 'gv']:
-                msg = drv_err['ev'].format(info)
-            elif driver in ['evx', 'gvx']:
-                msg = drv_err['evx'].format(info)
-            elif driver in ['evd', 'gvd']:
-                if eigvals_only:
-                    msg = drv_err['ev'].format(info)
-                else:
-                    msg = drv_err['evd'].format(info, n+1)
-            else:
-                msg = drv_err['evr']
-
-            raise LinAlgError(msg)
-
-
 def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
          overwrite_b=False, type=1, check_finite=True, subset_by_index=None,
          subset_by_value=None, driver=None):
@@ -816,44 +474,120 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
         if vl_check > vu_check:
             raise ValueError('Invalid value subset: vl must be <= vu.')
     
-    # Determine if we can use the batched C++ implementation
-    # We support all drivers (ev, evd, evr, evx, gv, gvd, gvx) in batched mode
-    # We support subset_by_index (fixed output size) in batched mode
-    # NOTE: subset_by_value is NOT supported in batched mode because different
-    # batch elements may return different numbers of eigenvalues, which cannot
-    # be represented in a single ndarray
-    use_batched_impl = False
+    # Validate and prepare inputs
+    a1 = _asarray_validated(a, check_finite=check_finite)
+    
+    if len(a1.shape) < 2 or a1.shape[-1] != a1.shape[-2]:
+        raise ValueError('expected square "a" matrix')
+    
+    # subset_by_value with batched input (ndim > 2) is not supported
+    # Reason: Different batch elements may return different numbers of eigenvalues
+    # (depending on eigenvalue distribution), which cannot be represented in a
+    # single ndarray without padding/masking. subset_by_index has fixed output
+    # size so it can be batched.
     has_subset_by_value = (subset_by_value is not None)
     has_subset_by_index = (subset_by_index is not None)
+    
+    if has_subset_by_value and a1.ndim > 2:
+        raise ValueError('subset_by_value is not supported with batched input '
+                         '(ndim > 2). Different batch elements may return '
+                         'different numbers of eigenvalues, which cannot be '
+                         'represented in a single ndarray. Use subset_by_index '
+                         'for batched subset selection (fixed output size).')
+    
+    # Determine if we use batched C++ implementation
+    # We support all drivers (ev, evd, evr, evx, gv, gvd, gvx) in batched mode
+    # We support subset_by_index (fixed output size) in batched mode
+    # We do NOT support subset_by_value in batched mode (variable output size)
+    use_batched_impl = not has_subset_by_value
     
     if driver is None:
         # Default drivers
         if b is None:
             driver = "evr"  # evr is default for standard problems
-            use_batched_impl = not has_subset_by_value  # Batch if no subset_by_value
         else:
             driver = "gvd"  # gvd is default for generalized problems
-            # Batch for all types (1, 2, 3) as long as there's no subset_by_value
-            use_batched_impl = (not has_subset_by_value)
-    elif driver in ["ev", "evd", "evr", "evx"] and b is None:
-        # Standard problem with ev, evd, evr, or evx
-        use_batched_impl = not has_subset_by_value  # Batch if no subset_by_value
-    elif driver in ["gv", "gvd", "gvx"] and b is not None:
-        # Generalized problem with gv, gvd, or gvx
-        # Batch for all types (1, 2, 3) as long as there's no subset_by_value
-        use_batched_impl = (not has_subset_by_value)
     
-    # If we can't use batched implementation, delegate to eigh0
-    if not use_batched_impl:
-        # When delegating with subset selection, let eigh0 choose the driver
-        driver_for_eigh0 = None if (has_subset_by_index or has_subset_by_value) else driver
-        return eigh0(a, b=b, lower=lower, eigvals_only=eigvals_only,
-                     overwrite_a=overwrite_a, overwrite_b=overwrite_b,
-                     type=type, check_finite=check_finite,
-                     subset_by_index=subset_by_index,
-                     subset_by_value=subset_by_value, driver=driver_for_eigh0)
+    # For subset_by_value with ndim==2, we need to use direct LAPACK call
+    # (not batched) because the output size is variable
+    if has_subset_by_value:
+        # Direct LAPACK call for subset_by_value (ndim==2 only, validated above)
+        # This is the only case where we don't use the batched C++ implementation
+        a1 = _asarray_validated(a, check_finite=check_finite)
+        
+        if len(a1.shape) != 2 or a1.shape[0] != a1.shape[1]:
+            raise ValueError('expected 2D square "a" matrix for subset_by_value')
+        
+        n = a1.shape[0]
+        a1, overwrite_a = _normalize_lapack_dtype(a1, overwrite_a)
+        a1, overwrite_a = _ensure_aligned_and_native(a1, overwrite_a)
+        
+        # Validate subset_by_value parameters
+        vl, vu = subset_by_value
+        if vl > vu:
+            raise ValueError('Invalid value subset: vl must be <= vu.')
+        
+        # Select appropriate driver for subset_by_value
+        if driver is None or driver in ["ev", "evd", "gv", "gvd"]:
+            # These drivers don't support subset selection, use default
+            driver = "gvx" if b is not None else "evr"
+        
+        # Validate driver supports subset selection
+        if driver not in ["evr", "evx", "gvx"]:
+            raise ValueError(f'"{driver}" does not support subset_by_value')
+        
+        # Prepare LAPACK driver
+        if b is not None:
+            b1 = _asarray_validated(b, check_finite=check_finite)
+            if len(b1.shape) != 2 or b1.shape[0] != b1.shape[1]:
+                raise ValueError('expected 2D square "b" matrix')
+            if a1.shape[0] != b1.shape[0]:
+                raise ValueError(f"wrong b dimensions {b1.shape}, should be {a1.shape}")
+            
+            a1, b1 = _ensure_dtype_cdsz(a1, b1)
+            overwrite_b = overwrite_b or (_datacopied(b1, b))
+            b1, overwrite_b = _ensure_aligned_and_native(b1, overwrite_b)
+            
+            if type not in [1, 2, 3]:
+                raise ValueError('"type" keyword only accepts 1, 2, 3.')
+            
+            # Call generalized eigenvalue solver with subset
+            drv = _compute_lwork(f"{_job_prefix(eigvals_only)}gvx")
+            drv_args = dict(compute_v=int(not eigvals_only),
+                           lower=lower, itype=type, vl=vl, vu=vu, il=1, iu=n)
+            lwork_args = _get_lwork_args(drv, a=a1, b=b1, **drv_args)
+            w, v, *other_args, info = drv(a=a1, b=b1, **drv_args, **lwork_args)
+        else:
+            # Standard eigenvalue problem
+            if driver == "evr":
+                drv = _compute_lwork(f"{_job_prefix(eigvals_only)}evr")
+                drv_args = dict(compute_v=int(not eigvals_only),
+                               lower=lower, range='V', vl=vl, vu=vu, il=1, iu=1)
+            else:  # evx
+                drv = _compute_lwork(f"{_job_prefix(eigvals_only)}evx")
+                drv_args = dict(compute_v=int(not eigvals_only),
+                               lower=lower, range='V', vl=vl, vu=vu, il=1, iu=n)
+            lwork_args = _get_lwork_args(drv, a=a1, **drv_args)
+            w, v, *other_args, info = drv(a=a1, **drv_args, **lwork_args)
+        
+        # Handle return values
+        if info < 0:
+            raise ValueError(f'illegal value in argument {-info} of internal {drv.typecode}{drv.prefix}')
+        if info > 0:
+            if b is not None:
+                raise LinAlgError("Leading minor of B is not positive definite")
+            else:
+                raise LinAlgError("Eigenvalue computation did not converge")
+        
+        # Slice to actual number of eigenvalues found
+        m = other_args[0] if other_args else len(w)
+        w = w[:m]
+        if not eigvals_only:
+            v = v[:, :m]
+            return w, v
+        return w
     
-    # Use batched implementation
+    # Use batched C++ implementation for all other cases
     # Validate and prepare inputs
     a1 = _asarray_validated(a, check_finite=check_finite)
     
@@ -893,11 +627,8 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
         il_fortran = il + 1
         iu_fortran = iu + 1
         vl, vu = 0.0, 0.0
-    elif subset_by_value is not None:
-        range_char = 'V'  # Single character string
-        vl, vu = subset_by_value
-        il_fortran, iu_fortran = 1, 1  # Unused for range='V'
     else:
+        # No subset selection (subset_by_value already handled above)
         range_char = 'A'  # Single character string
         il_fortran, iu_fortran = 1, 1
         vl, vu = 0.0, 0.0

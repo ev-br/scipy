@@ -3617,3 +3617,32 @@ class TestEighBatched:
             assert_array_almost_equal(w[i], w_full[i], decimal=10)
             # eigenvectors might have different signs, so compare abs
             assert_array_almost_equal(np.abs(v[i]), np.abs(v_full[i]), decimal=10)
+
+
+def test_subset_by_value_batched_not_supported():
+    """
+    Test that subset_by_value with batched input (ndim > 2) raises ValueError.
+    
+    subset_by_value can return different numbers of eigenvalues for different
+    batch elements (depending on eigenvalue distribution), which cannot be
+    represented in a single ndarray without padding or ragged arrays.
+    
+    subset_by_index has fixed output size and is supported with batching.
+    """
+    # Create batched matrices (3, 5, 5)
+    np.random.seed(42)
+    a = np.random.randn(3, 5, 5)
+    a = a + np.transpose(a, (0, 2, 1))  # Make symmetric
+    
+    # This should raise ValueError with clear message
+    with pytest.raises(ValueError, match="subset_by_value.*not supported.*batch"):
+        w = eigh(a, eigvals_only=True, subset_by_value=(-1.0, 1.0))
+    
+    # But subset_by_index with batched input should work
+    w = eigh(a, eigvals_only=True, subset_by_index=(1, 3))
+    assert w.shape == (3, 3)  # 3 batch elements, 3 eigenvalues each
+    
+    # And subset_by_value with single matrix (ndim=2) should work
+    w2d = eigh(a[0], eigvals_only=True, subset_by_value=(-1.0, 1.0))
+    assert w2d.ndim == 1  # Returns 1D array
+    assert len(w2d) >= 0  # Variable size depending on eigenvalues
