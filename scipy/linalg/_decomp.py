@@ -784,8 +784,35 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
     (5, 1)
 
     """
+    # Validate driver parameter first
+    drv_str = [None, "ev", "evd", "evr", "evx", "gv", "gvd", "gvx"]
+    if driver not in drv_str:
+        raise ValueError('"{}" is unknown. Possible values are "None", "{}".'
+                         ''.format(driver, '", "'.join(drv_str[1:])))
+    
+    # Check for driver/problem type incompatibilities
+    if driver:
+        if b is None and (driver in ["gv", "gvd", "gvx"]):
+            raise ValueError(f'{driver} requires input b array to be supplied '
+                             'for generalized eigenvalue problems.')
+        if (b is not None) and (driver in ['ev', 'evd', 'evr', 'evx']):
+            raise ValueError(f'"{driver}" does not accept input b array '
+                             'for standard eigenvalue problems.')
+        if (subset_by_index is not None or subset_by_value is not None) and \
+           (driver in ["ev", "evd", "gv", "gvd"]):
+            raise ValueError(f'"{driver}" cannot compute subsets of eigenvalues')
+    
     # If subset selection is requested, delegate to eigh0 which uses the decorator
     if subset_by_index is not None or subset_by_value is not None:
+        return eigh0(a, b=b, lower=lower, eigvals_only=eigvals_only,
+                     overwrite_a=overwrite_a, overwrite_b=overwrite_b,
+                     type=type, check_finite=check_finite,
+                     subset_by_index=subset_by_index,
+                     subset_by_value=subset_by_value, driver=driver)
+    
+    # If a non-default driver is specified, also use eigh0 since our batched
+    # implementation only supports the default drivers (evr/gvd)
+    if driver is not None:
         return eigh0(a, b=b, lower=lower, eigvals_only=eigvals_only,
                      overwrite_a=overwrite_a, overwrite_b=overwrite_b,
                      type=type, check_finite=check_finite,
