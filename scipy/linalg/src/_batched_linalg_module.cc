@@ -4,6 +4,7 @@
 #include "_linalg_svd.hh"
 #include "_linalg_lstsq.hh"
 #include "_linalg_eig.hh"
+#include "_linalg_eigh.hh"
 #include "_common_array_utils.hh"
 
 
@@ -597,6 +598,210 @@ fail:
 }
 
 
+static PyObject*
+_linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
+    PyArrayObject *ap_Am = NULL;
+    PyArrayObject *ap_Bm = NULL;
+    PyArrayObject *ap_w = NULL;
+    PyArrayObject *ap_v = NULL;
+    int compute_v = 1;
+    int lower = 1;
+    int itype = 1;
+    const char *driver = "evr";  // Default driver
+    const char *range_str = "A";  // Default to all eigenvalues
+    int il = 1, iu = 1;  // Index range (1-based, will be set properly if range='I')
+    double vl = 0.0, vu = 0.0;  // Value range (will be set properly if range='V')
+
+    int info = 0;
+    SliceStatusVec vec_status;
+
+    // return values
+    PyObject *ret_lst = NULL;
+    PyObject *v_ret = NULL;
+
+    // Get the input array with driver and range parameters
+    // Format: array, compute_v, lower, itype, driver, range, il, iu, vl, vu, b_array
+    // b_array is always passed but can be None for standard eigenvalue problems
+    PyObject *ap_Bm_obj = NULL;
+    if (!PyArg_ParseTuple(args, "O!ppissiiddO",
+            &PyArray_Type, (PyObject **)&ap_Am,
+            &compute_v,
+            &lower,
+            &itype,
+            &driver,
+            &range_str,
+            &il,
+            &iu,
+            &vl,
+            &vu,
+            &ap_Bm_obj)
+    ) {
+        return NULL;
+    }
+    
+    // Extract single character from range string
+    char range = range_str[0];
+    
+    // Check if b_array is None (standard problem) or an array (generalized problem)
+    if (ap_Bm_obj != Py_None) {
+        // Generalized eigenvalue problem
+        if (!PyArray_Check(ap_Bm_obj)) {
+            PyErr_SetString(PyExc_TypeError, "b must be an array or None");
+            return NULL;
+        }
+        ap_Bm = (PyArrayObject *)ap_Bm_obj;
+    }
+    // else: ap_Bm remains NULL for standard eigenvalue problem
+
+    // Check for dtype compatibility & array flags
+    int typenum = PyArray_TYPE(ap_Am);
+    bool dtype_ok = (typenum == NPY_FLOAT32)
+                     || (typenum == NPY_FLOAT64)
+                     || (typenum == NPY_COMPLEX64)
+                     || (typenum == NPY_COMPLEX128);
+    if(!dtype_ok || !PyArray_ISALIGNED(ap_Am)) {
+        PyErr_SetString(PyExc_TypeError, "Expected a real or complex array.");
+        return NULL;
+    }
+
+    // Basic checks of array dimensions
+    int ndim = PyArray_NDIM(ap_Am);
+    npy_intp *shape = PyArray_SHAPE(ap_Am);
+    if (ndim < 2) {
+        PyErr_SetString(PyExc_ValueError, "Expected at least a 2D array.");
+        return NULL;
+    }
+
+    npy_intp n = shape[ndim - 1];
+
+    if (PyArray_DIM(ap_Am, ndim-2) != n) {
+        PyErr_SetString(PyExc_ValueError, "Expected a square matrix");
+        return NULL;
+    }
+
+    // Determine the output size based on range parameter
+    npy_intp n_eigenvalues = n;  // Default: all eigenvalues
+    if (range_str[0] == 'I') {
+        // subset_by_index: fixed size = iu - il + 1
+        if (il < 1 || iu < il || iu > n) {
+            PyErr_SetString(PyExc_ValueError, "Invalid index range for subset selection");
+            return NULL;
+        }
+        n_eigenvalues = iu - il + 1;
+    } else if (range_str[0] == 'V') {
+        // subset_by_value: variable size, cannot predict
+        // This should be handled in Python, not here
+        PyErr_SetString(PyExc_ValueError, 
+            "subset_by_value not supported in batched mode (use Python fallback)");
+        return NULL;
+    }
+    // else range_str[0] == 'A': all eigenvalues (n_eigenvalues = n)
+    
+    // Allocate the output(s)
+    // For hermitian/symmetric problems, eigenvalues are always real
+    npy_intp shape_1[NPY_MAXDIMS];
+    for(int i=0; i<ndim-1; i++) {shape_1[i] = shape[i]; }
+    // Always allocate full size for LAPACK workspace, will slice later if needed
+    shape_1[ndim-1] = n;  // Full size for LAPACK
+
+    // eigenvalues - always real
+    int w_typenum = NPY_FLOAT32;
+    if (typenum == NPY_FLOAT64 || typenum == NPY_COMPLEX128) {
+        w_typenum = NPY_FLOAT64;
+    }
+
+    ap_w = (PyArrayObject *)PyArray_SimpleNew(ndim-1, shape_1, w_typenum);
+    if (ap_w == NULL) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    char uplo = lower ? 'L' : 'U';
+    char jobz = compute_v ? 'V' : 'N';
+    
+    // Convert il, iu to CBLAS_INT before any goto statements
+    CBLAS_INT cil = (CBLAS_INT)il;
+    CBLAS_INT ciu = (CBLAS_INT)iu;
+
+    if (compute_v) {
+        // eigenvectors shape: (..., n, n_eigenvalues)
+        npy_intp shape_v[NPY_MAXDIMS];
+        for(int i=0; i<ndim; i++) {shape_v[i] = shape[i]; }
+        shape_v[ndim-1] = n_eigenvalues;  // Last dimension is number of eigenvectors
+        
+        ap_v = (PyArrayObject *)PyArray_SimpleNew(ndim, shape_v, typenum);
+        if (ap_v == NULL) { PyErr_NoMemory(); goto fail; }
+    }
+
+    switch(typenum) {
+        case(NPY_FLOAT32):
+            info = _eigh<float>(ap_Am, ap_Bm, ap_w, ap_v, uplo, jobz, (CBLAS_INT)itype, 
+                               driver, range, cil, ciu, (float)vl, (float)vu, vec_status);
+            break;
+        case(NPY_FLOAT64):
+            info = _eigh<double>(ap_Am, ap_Bm, ap_w, ap_v, uplo, jobz, (CBLAS_INT)itype,
+                                driver, range, cil, ciu, vl, vu, vec_status);
+            break;
+        case(NPY_COMPLEX64):
+            info = _eigh<npy_complex64>(ap_Am, ap_Bm, ap_w, ap_v, uplo, jobz, (CBLAS_INT)itype,
+                                       driver, range, cil, ciu, (float)vl, (float)vu, vec_status);
+            break;
+        case(NPY_COMPLEX128):
+            info = _eigh<npy_complex128>(ap_Am, ap_Bm, ap_w, ap_v, uplo, jobz, (CBLAS_INT)itype,
+                                        driver, range, cil, ciu, vl, vu, vec_status);
+            break;
+        default:
+            PyErr_SetString(PyExc_RuntimeError, "Unknown array type.");
+            goto fail;
+    }
+
+    if (info < 0) {
+        // Either OOM or internal LAPACK error.
+        PyErr_SetString(PyExc_RuntimeError, "Memory error in scipy.linalg.eigh.");
+        goto fail;
+    }
+
+    // normal return
+    ret_lst = convert_vec_status(vec_status);
+
+    v_ret = (ap_v == NULL) ? Py_None : PyArray_Return(ap_v);
+    
+    // If subset selection was used, slice the eigenvalue array to return only selected values
+    PyObject *w_ret;
+    if (n_eigenvalues < n) {
+        // Create a slice object for [..., :n_eigenvalues]
+        npy_intp w_dims[NPY_MAXDIMS];
+        for (int i = 0; i < ndim-1; i++) {
+            w_dims[i] = PyArray_DIM(ap_w, i);
+        }
+        w_dims[ndim-2] = n_eigenvalues;  // Slice last dimension
+        
+        // Create a view with the sliced shape
+        PyArrayObject *ap_w_sliced = (PyArrayObject *)PyArray_SimpleNewFromData(
+            ndim-1, w_dims, PyArray_TYPE(ap_w), PyArray_DATA(ap_w));
+        if (ap_w_sliced == NULL) {
+            Py_DECREF(ap_w);
+            Py_XDECREF(v_ret);
+            return NULL;
+        }
+        // Make the sliced array own the data (transfer ownership from ap_w)
+        PyArray_ENABLEFLAGS(ap_w_sliced, NPY_ARRAY_OWNDATA);
+        PyArray_CLEARFLAGS(ap_w, NPY_ARRAY_OWNDATA);
+        w_ret = PyArray_Return(ap_w_sliced);
+        Py_DECREF(ap_w);  // Release original array
+    } else {
+        w_ret = PyArray_Return(ap_w);
+    }
+
+    return Py_BuildValue("NNN", w_ret, v_ret, ret_lst);
+
+fail:
+    Py_DECREF(ap_w);
+    Py_XDECREF(ap_v);
+    return NULL;
+}
+
+
 /*
  * Helper: convert a vector of slice error statuses to list of dicts
  */
@@ -646,6 +851,7 @@ static char doc_solve[] = ("Solve the linear system of equations.");
 static char doc_svd[] = ("SVD factorization.");
 static char doc_lstsq[] = ("linear least squares.");
 static char doc_eig[] = ("eigenvalue solver.");
+static char doc_eigh[] = ("hermitian/symmetric eigenvalue solver.");
 
 static struct PyMethodDef inv_module_methods[] = {
   {"_inv", _linalg_inv, METH_VARARGS, doc_inv},
@@ -653,6 +859,7 @@ static struct PyMethodDef inv_module_methods[] = {
   {"_svd", _linalg_svd, METH_VARARGS, doc_svd},
   {"_lstsq", _linalg_lstsq, METH_VARARGS, doc_lstsq},
   {"_eig", _linalg_eig, METH_VARARGS, doc_eig},
+  {"_eigh", _linalg_eigh, METH_VARARGS, doc_eigh},
   {NULL, NULL, 0, NULL}
 };
 
