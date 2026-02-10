@@ -701,7 +701,8 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
     // For hermitian/symmetric problems, eigenvalues are always real
     npy_intp shape_1[NPY_MAXDIMS];
     for(int i=0; i<ndim-1; i++) {shape_1[i] = shape[i]; }
-    shape_1[ndim-1] = n_eigenvalues;  // Last dimension is number of eigenvalues
+    // Always allocate full size for LAPACK workspace, will slice later if needed
+    shape_1[ndim-1] = n;  // Full size for LAPACK
 
     // eigenvalues - always real
     int w_typenum = NPY_FLOAT32;
@@ -764,8 +765,35 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
     ret_lst = convert_vec_status(vec_status);
 
     v_ret = (ap_v == NULL) ? Py_None : PyArray_Return(ap_v);
+    
+    // If subset selection was used, slice the eigenvalue array to return only selected values
+    PyObject *w_ret;
+    if (n_eigenvalues < n) {
+        // Create a slice object for [..., :n_eigenvalues]
+        npy_intp w_dims[NPY_MAXDIMS];
+        for (int i = 0; i < ndim-1; i++) {
+            w_dims[i] = PyArray_DIM(ap_w, i);
+        }
+        w_dims[ndim-2] = n_eigenvalues;  // Slice last dimension
+        
+        // Create a view with the sliced shape
+        PyArrayObject *ap_w_sliced = (PyArrayObject *)PyArray_SimpleNewFromData(
+            ndim-1, w_dims, PyArray_TYPE(ap_w), PyArray_DATA(ap_w));
+        if (ap_w_sliced == NULL) {
+            Py_DECREF(ap_w);
+            Py_XDECREF(v_ret);
+            return NULL;
+        }
+        // Make the sliced array own the data (transfer ownership from ap_w)
+        PyArray_ENABLEFLAGS(ap_w_sliced, NPY_ARRAY_OWNDATA);
+        PyArray_CLEARFLAGS(ap_w, NPY_ARRAY_OWNDATA);
+        w_ret = PyArray_Return(ap_w_sliced);
+        Py_DECREF(ap_w);  // Release original array
+    } else {
+        w_ret = PyArray_Return(ap_w);
+    }
 
-    return Py_BuildValue("NNN", PyArray_Return(ap_w), v_ret, ret_lst);
+    return Py_BuildValue("NNN", w_ret, v_ret, ret_lst);
 
 fail:
     Py_DECREF(ap_w);

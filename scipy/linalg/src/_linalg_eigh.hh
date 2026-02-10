@@ -255,8 +255,6 @@ _gen_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArr
           typename type_traits<T>::real_type vl, typename type_traits<T>::real_type vu,  // value range
           SliceStatusVec& vec_status)
 {
-    fprintf(stderr, "[C++ _gen_eigh START] itype=%d, driver=%s\n", (int)itype, driver);
-    fflush(stderr);
     using real_type = typename type_traits<T>::real_type;
     SliceStatus slice_status;
 
@@ -445,53 +443,12 @@ _gen_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArr
                 copy_slice_F_to_C(ptr_v + idx*n*n, data_A, n, n, lda);
             }
         } else if (use_gvd) {
-            if (idx == 0) {
-                fprintf(stderr, "[C++ _gen_eigh gvd] BEFORE LAPACK: itype=%d, n=%d, jobz=%c, uplo=%c\n", 
-                        (int)itype, (int)n, jobz, uplo);
-                fprintf(stderr, "  data_A[0:5]:");
-                for (int k = 0; k < std::min(5, (int)n); ++k) {
-                    if constexpr (type_traits<T>::is_complex) {
-                        fprintf(stderr, " (%.3f+%.3fj)", ((double*)&data_A[k])[0], ((double*)&data_A[k])[1]);
-                    } else {
-                        fprintf(stderr, " %.6f", data_A[k]);
-                    }
-                }
-                fprintf(stderr, "\n  data_B[0:5]:");
-                for (int k = 0; k < std::min(5, (int)n); ++k) {
-                    if constexpr (type_traits<T>::is_complex) {
-                        fprintf(stderr, " (%.3f+%.3fj)", ((double*)&data_B[k])[0], ((double*)&data_B[k])[1]);
-                    } else {
-                        fprintf(stderr, " %.6f", data_B[k]);
-                    }
-                }
-                fprintf(stderr, "\n");
-                fflush(stderr);
-            }
-            
             if constexpr (type_traits<T>::is_complex) {
                 call_hegvd(&itype, &jobz, &uplo, &intn, data_A, &lda, data_B, &ldb, w_buf,
                            work, &lwork, rwork, &lrwork, iwork, &liwork, &info);
             } else {
                 call_sygvd(&itype, &jobz, &uplo, &intn, data_A, &lda, data_B, &ldb, w_buf,
                            work, &lwork, iwork, &liwork, &info);
-            }
-            
-            if (idx == 0) {
-                fprintf(stderr, "[C++ _gen_eigh gvd] AFTER LAPACK: info=%d\n", (int)info);
-                fprintf(stderr, "  w_buf[0:5]:");
-                for (int k = 0; k < std::min(5, (int)n); ++k) {
-                    fprintf(stderr, " %.6f", w_buf[k]);
-                }
-                fprintf(stderr, "\n  data_A[0:5] (eigenvectors):");
-                for (int k = 0; k < std::min(5, (int)n); ++k) {
-                    if constexpr (type_traits<T>::is_complex) {
-                        fprintf(stderr, " (%.3f+%.3fj)", ((double*)&data_A[k])[0], ((double*)&data_A[k])[1]);
-                    } else {
-                        fprintf(stderr, " %.6f", data_A[k]);
-                    }
-                }
-                fprintf(stderr, "\n");
-                fflush(stderr);
             }
             
             // copy eigenvectors if computed (stored in data_A for gvd)

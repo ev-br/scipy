@@ -579,9 +579,6 @@ def eigh0(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
         
         # DEBUG: Print LAPACK output for type 2/3
         if type in [2, 3]:
-            print(f"[PYTHON eigh0] driver={driver}, type={type}")
-            print(f"[PYTHON eigh0] w (first 5): {w[:5]}")
-            print(f"[PYTHON eigh0] v (first 5 of col 0, F-order): {v[:5, 0]}")
             import sys
             sys.stdout.flush()
 
@@ -927,7 +924,6 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
         
         # Call batched implementation with b
         compute_v = not eigvals_only
-        print(f"[PYTHON eigh] Calling _batched_linalg._eigh with type={type}, driver={driver}")
         w, v, err_lst = _batched_linalg._eigh(a1, compute_v, lower, type,
                                               driver, range_char, il_fortran, iu_fortran, vl, vu, b1)
         
