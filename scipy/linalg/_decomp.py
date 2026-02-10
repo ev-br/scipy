@@ -812,36 +812,36 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
             raise ValueError('Invalid value subset: vl must be <= vu.')
     
     # Determine if we can use the batched C++ implementation
-    # We support: evr for standard problems; gvd for generalized problems (type=1 only)
-    # NOTE: ev, gv, evd, evx, gvx not yet working correctly in batched mode
-    # NOTE: type=2 and type=3 not yet working correctly in batched implementation
-    # NOTE: Subset selection is NOT supported in batched mode because different
+    # We support all drivers (ev, evd, evr, evx, gv, gvd, gvx) in batched mode
+    # We support subset_by_index (fixed output size) in batched mode
+    # NOTE: subset_by_value is NOT supported in batched mode because different
     # batch elements may return different numbers of eigenvalues, which cannot
     # be represented in a single ndarray
     use_batched_impl = False
-    has_subset = (subset_by_index is not None) or (subset_by_value is not None)
+    has_subset_by_value = (subset_by_value is not None)
+    has_subset_by_index = (subset_by_index is not None)
     
     if driver is None:
         # Default drivers
         if b is None:
             driver = "evr"  # evr is default for standard problems
-            use_batched_impl = not has_subset  # Only batch if no subset
+            use_batched_impl = not has_subset_by_value  # Batch if no subset_by_value
         else:
             driver = "gvd"  # gvd is default for generalized problems
-            # Batch for all types (1, 2, 3) as long as there's no subset selection
-            use_batched_impl = (not has_subset)
+            # Batch for all types (1, 2, 3) as long as there's no subset_by_value
+            use_batched_impl = (not has_subset_by_value)
     elif driver in ["ev", "evd", "evr", "evx"] and b is None:
         # Standard problem with ev, evd, evr, or evx
-        use_batched_impl = not has_subset  # Only batch if no subset
+        use_batched_impl = not has_subset_by_value  # Batch if no subset_by_value
     elif driver in ["gv", "gvd", "gvx"] and b is not None:
         # Generalized problem with gv, gvd, or gvx
-        # Batch for all types (1, 2, 3) as long as there's no subset selection
-        use_batched_impl = (not has_subset)
+        # Batch for all types (1, 2, 3) as long as there's no subset_by_value
+        use_batched_impl = (not has_subset_by_value)
     
     # If we can't use batched implementation, delegate to eigh0
     if not use_batched_impl:
         # When delegating with subset selection, let eigh0 choose the driver
-        driver_for_eigh0 = None if has_subset else driver
+        driver_for_eigh0 = None if (has_subset_by_index or has_subset_by_value) else driver
         return eigh0(a, b=b, lower=lower, eigvals_only=eigvals_only,
                      overwrite_a=overwrite_a, overwrite_b=overwrite_b,
                      type=type, check_finite=check_finite,

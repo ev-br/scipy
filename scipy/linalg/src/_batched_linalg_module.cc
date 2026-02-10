@@ -679,10 +679,29 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
         return NULL;
     }
 
+    // Determine the output size based on range parameter
+    npy_intp n_eigenvalues = n;  // Default: all eigenvalues
+    if (range_str[0] == 'I') {
+        // subset_by_index: fixed size = iu - il + 1
+        if (il < 1 || iu < il || iu > n) {
+            PyErr_SetString(PyExc_ValueError, "Invalid index range for subset selection");
+            return NULL;
+        }
+        n_eigenvalues = iu - il + 1;
+    } else if (range_str[0] == 'V') {
+        // subset_by_value: variable size, cannot predict
+        // This should be handled in Python, not here
+        PyErr_SetString(PyExc_ValueError, 
+            "subset_by_value not supported in batched mode (use Python fallback)");
+        return NULL;
+    }
+    // else range_str[0] == 'A': all eigenvalues (n_eigenvalues = n)
+    
     // Allocate the output(s)
     // For hermitian/symmetric problems, eigenvalues are always real
     npy_intp shape_1[NPY_MAXDIMS];
-    for(int i=0; i<ndim; i++) {shape_1[i] = shape[i]; }
+    for(int i=0; i<ndim-1; i++) {shape_1[i] = shape[i]; }
+    shape_1[ndim-1] = n_eigenvalues;  // Last dimension is number of eigenvalues
 
     // eigenvalues - always real
     int w_typenum = NPY_FLOAT32;
@@ -704,7 +723,12 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
     CBLAS_INT ciu = (CBLAS_INT)iu;
 
     if (compute_v) {
-        ap_v = (PyArrayObject *)PyArray_SimpleNew(ndim, shape, typenum);
+        // eigenvectors shape: (..., n, n_eigenvalues)
+        npy_intp shape_v[NPY_MAXDIMS];
+        for(int i=0; i<ndim; i++) {shape_v[i] = shape[i]; }
+        shape_v[ndim-1] = n_eigenvalues;  // Last dimension is number of eigenvectors
+        
+        ap_v = (PyArrayObject *)PyArray_SimpleNew(ndim, shape_v, typenum);
         if (ap_v == NULL) { PyErr_NoMemory(); goto fail; }
     }
 
