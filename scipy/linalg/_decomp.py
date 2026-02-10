@@ -836,11 +836,13 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
     
     # If we can't use batched implementation, delegate to eigh0
     if not use_batched_impl:
+        # When delegating with subset selection, let eigh0 choose the driver
+        driver_for_eigh0 = None if has_subset else driver
         return eigh0(a, b=b, lower=lower, eigvals_only=eigvals_only,
                      overwrite_a=overwrite_a, overwrite_b=overwrite_b,
                      type=type, check_finite=check_finite,
                      subset_by_index=subset_by_index,
-                     subset_by_value=subset_by_value, driver=driver)
+                     subset_by_value=subset_by_value, driver=driver_for_eigh0)
     
     # Use batched implementation
     # Validate and prepare inputs
