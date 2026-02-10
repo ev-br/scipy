@@ -76,6 +76,7 @@ _reg_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_v,
             // query LWORK, LRWORK, LIWORK for complex types
             call_heevr(&jobz, &range, &uplo, &intn, NULL, &lda, &vl, &vu, &il, &iu, &abstol, NULL, NULL, NULL, &ldz, NULL,
                        &tmp_work, &lwork, &tmp_rwork, &lrwork, &tmp_iwork, &liwork, &info);
+            lrwork = _calc_lwork(tmp_rwork);
         } else {
             // query LWORK, LIWORK for real types
             call_syevr(&jobz, &range, &uplo, &intn, NULL, &lda, &vl, &vu, &il, &iu, &abstol, NULL, NULL, NULL, &ldz, NULL,
@@ -135,9 +136,7 @@ _reg_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_v,
     }
 
     if constexpr (type_traits<T>::is_complex) {
-        if (use_evr) {
-            lrwork = _calc_lwork(tmp_rwork);
-        }
+        // lrwork should be set by workspace query for ev (line 68), evr (line 79), evx (line 93)
         if (lrwork < 0) { free(buf); if(iwork) free(iwork); if(isuppz) free(isuppz); if(ifail) free(ifail); return -106; }
         rwork = (real_type *)malloc(lrwork*sizeof(real_type));
         if (rwork == NULL) { free(buf); if(iwork) free(iwork); if(isuppz) free(isuppz); if(ifail) free(ifail); return -107; }
@@ -297,6 +296,7 @@ _gen_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArr
             // query LWORK, LRWORK, LIWORK for complex types
             call_hegvd(&itype, &jobz, &uplo, &intn, NULL, &lda, NULL, &ldb, NULL,
                        &tmp_work, &lwork, &tmp_rwork, &lrwork, &tmp_iwork, &liwork, &info);
+            lrwork = _calc_lwork(tmp_rwork);
         } else {
             // query LWORK, LIWORK for real types
             call_sygvd(&itype, &jobz, &uplo, &intn, NULL, &lda, NULL, &ldb, NULL,
