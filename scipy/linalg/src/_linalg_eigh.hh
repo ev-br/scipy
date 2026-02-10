@@ -425,6 +425,23 @@ _gen_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArr
             
             // copy eigenvectors if computed (stored in data_A for gv)
             if (compute_v) {
+                // DEBUG: print itype and first few eigenvalues/eigenvectors
+                if (idx == 0 && (itype == 2 || itype == 3)) {
+                    fprintf(stderr, "DEBUG gv: itype=%d, n=%d\n", (int)itype, (int)n);
+                    fprintf(stderr, "  eigenvalues: ");
+                    for (int k = 0; k < std::min(5, (int)n); ++k) {
+                        fprintf(stderr, "%.6f ", w_buf[k]);
+                    }
+                    fprintf(stderr, "\n  first eigenvector (F-order): ");
+                    for (int k = 0; k < std::min(5, (int)n); ++k) {
+                        if constexpr (type_traits<T>::is_complex) {
+                            fprintf(stderr, "(%.4f,%.4f) ", data_A[k].real(), data_A[k].imag());
+                        } else {
+                            fprintf(stderr, "%.6f ", data_A[k]);
+                        }
+                    }
+                    fprintf(stderr, "\n");
+                }
                 copy_slice_F_to_C(ptr_v + idx*n*n, data_A, n, n, lda);
             }
         } else if (use_gvd) {
@@ -438,6 +455,23 @@ _gen_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArr
             
             // copy eigenvectors if computed (stored in data_A for gvd)
             if (compute_v) {
+                // DEBUG: print itype and first few eigenvalues/eigenvectors
+                if (idx == 0 && (itype == 2 || itype == 3)) {
+                    fprintf(stderr, "DEBUG gvd: itype=%d, n=%d\n", (int)itype, (int)n);
+                    fprintf(stderr, "  eigenvalues: ");
+                    for (int k = 0; k < std::min(5, (int)n); ++k) {
+                        fprintf(stderr, "%.6f ", w_buf[k]);
+                    }
+                    fprintf(stderr, "\n  first eigenvector (F-order): ");
+                    for (int k = 0; k < std::min(5, (int)n); ++k) {
+                        if constexpr (type_traits<T>::is_complex) {
+                            fprintf(stderr, "(%.4f,%.4f) ", data_A[k].real(), data_A[k].imag());
+                        } else {
+                            fprintf(stderr, "%.6f ", data_A[k]);
+                        }
+                    }
+                    fprintf(stderr, "\n");
+                }
                 copy_slice_F_to_C(ptr_v + idx*n*n, data_A, n, n, lda);
             }
         } else if (use_gvx) {
