@@ -100,7 +100,8 @@ _reg_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_v,
             // query LWORK for complex types (no liwork for evx)
             call_heevx(&jobz, &range, &uplo, &intn, NULL, &lda, &vl, &vu, &il, &iu, &abstol, NULL, NULL, NULL, &ldz,
                        &tmp_work, &lwork, &tmp_rwork, NULL, NULL, &info);
-            lrwork = _calc_lwork(tmp_rwork);
+            // For heevx, rwork size is fixed: max(1, 7*N)
+            lrwork = (n > 0) ? 7*n : 1;
         } else {
             // query LWORK for real types
             call_syevx(&jobz, &range, &uplo, &intn, NULL, &lda, &vl, &vu, &il, &iu, &abstol, NULL, NULL, NULL, &ldz,
