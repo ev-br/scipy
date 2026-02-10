@@ -40,6 +40,7 @@ _reg_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_v,
 
     // Determine which driver we're using
     bool use_ev = (strcmp(driver, "ev") == 0);
+    bool use_evd = (strcmp(driver, "evd") == 0);
     bool use_evr = (strcmp(driver, "evr") == 0);
     bool use_evx = (strcmp(driver, "evx") == 0);
 
@@ -70,6 +71,16 @@ _reg_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_v,
         } else {
             // query LWORK for real types
             call_syev(&jobz, &uplo, &intn, NULL, &lda, NULL, &tmp_work, &lwork, &info);
+        }
+    } else if (use_evd) {
+        // Query workspace for syevd/heevd
+        if constexpr (type_traits<T>::is_complex) {
+            // query LWORK, LRWORK, LIWORK for complex types
+            call_heevd(&jobz, &uplo, &intn, NULL, &lda, NULL, &tmp_work, &lwork, &tmp_rwork, &lrwork, &tmp_iwork, &liwork, &info);
+            lrwork = _calc_lwork(tmp_rwork);
+        } else {
+            // query LWORK, LIWORK for real types
+            call_syevd(&jobz, &uplo, &intn, NULL, &lda, NULL, &tmp_work, &lwork, &tmp_iwork, &liwork, &info);
         }
     } else if (use_evr) {
         // Query workspace for syevr/heevr
@@ -107,10 +118,10 @@ _reg_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_v,
     
     if (use_ev) {
         liwork = 0;  // ev doesn't use iwork
+    } else if (use_evd || use_evr) {
+        liwork = (CBLAS_INT)tmp_iwork;
     } else if (use_evx) {
         liwork = 5 * n;  // evx specific
-    } else {
-        liwork = (CBLAS_INT)tmp_iwork;
     }
     if (liwork < 0) { return -103; }
 
@@ -172,6 +183,20 @@ _reg_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_v,
             }
             m = n;  // ev computes all eigenvalues
             // For ev, eigenvectors are in data, need to copy to z_buf
+            if (compute_v) {
+                for (npy_intp i = 0; i < n*n; i++) {
+                    z_buf[i] = data[i];
+                }
+            }
+        } else if (use_evd) {
+            // For evd driver, eigenvalues/eigenvectors are computed in-place
+            if constexpr (type_traits<T>::is_complex) {
+                call_heevd(&jobz, &uplo, &intn, data, &lda, w_buf, work, &lwork, rwork, &lrwork, iwork, &liwork, &info);
+            } else {
+                call_syevd(&jobz, &uplo, &intn, data, &lda, w_buf, work, &lwork, iwork, &liwork, &info);
+            }
+            m = n;  // evd computes all eigenvalues
+            // For evd, eigenvectors are in data, need to copy to z_buf
             if (compute_v) {
                 for (npy_intp i = 0; i < n*n; i++) {
                     z_buf[i] = data[i];

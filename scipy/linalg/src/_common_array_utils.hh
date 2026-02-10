@@ -268,6 +268,12 @@ void BLAS_FUNC(dsyev)(char *jobz, char *uplo, CBLAS_INT *n, double *a, CBLAS_INT
 void BLAS_FUNC(cheev)(char *jobz, char *uplo, CBLAS_INT *n, c64_t *a, CBLAS_INT *lda, float *w, c64_t *work, CBLAS_INT *lwork, float *rwork, CBLAS_INT *info);
 void BLAS_FUNC(zheev)(char *jobz, char *uplo, CBLAS_INT *n, c128_t *a, CBLAS_INT *lda, double *w, c128_t *work, CBLAS_INT *lwork, double *rwork, CBLAS_INT *info);
 
+/* ?SYEVD/?HEEVD - symmetric/hermitian eigenvalue problem using divide-and-conquer */
+void BLAS_FUNC(ssyevd)(char *jobz, char *uplo, CBLAS_INT *n, float *a, CBLAS_INT *lda, float *w, float *work, CBLAS_INT *lwork, CBLAS_INT *iwork, CBLAS_INT *liwork, CBLAS_INT *info);
+void BLAS_FUNC(dsyevd)(char *jobz, char *uplo, CBLAS_INT *n, double *a, CBLAS_INT *lda, double *w, double *work, CBLAS_INT *lwork, CBLAS_INT *iwork, CBLAS_INT *liwork, CBLAS_INT *info);
+void BLAS_FUNC(cheevd)(char *jobz, char *uplo, CBLAS_INT *n, c64_t *a, CBLAS_INT *lda, float *w, c64_t *work, CBLAS_INT *lwork, float *rwork, CBLAS_INT *lrwork, CBLAS_INT *iwork, CBLAS_INT *liwork, CBLAS_INT *info);
+void BLAS_FUNC(zheevd)(char *jobz, char *uplo, CBLAS_INT *n, c128_t *a, CBLAS_INT *lda, double *w, c128_t *work, CBLAS_INT *lwork, double *rwork, CBLAS_INT *lrwork, CBLAS_INT *iwork, CBLAS_INT *liwork, CBLAS_INT *info);
+
 /* ?SYEVR/?HEEVR - symmetric/hermitian eigenvalue problem using RRR algorithm */
 void BLAS_FUNC(ssyevr)(char *jobz, char *range, char *uplo, CBLAS_INT *n, float *a, CBLAS_INT *lda, float *vl, float *vu, CBLAS_INT *il, CBLAS_INT *iu, float *abstol, CBLAS_INT *m, float *w, float *z, CBLAS_INT *ldz, CBLAS_INT *isuppz, float *work, CBLAS_INT *lwork, CBLAS_INT *iwork, CBLAS_INT *liwork, CBLAS_INT *info);
 void BLAS_FUNC(dsyevr)(char *jobz, char *range, char *uplo, CBLAS_INT *n, double *a, CBLAS_INT *lda, double *vl, double *vu, CBLAS_INT *il, CBLAS_INT *iu, double *abstol, CBLAS_INT *m, double *w, double *z, CBLAS_INT *ldz, CBLAS_INT *isuppz, double *work, CBLAS_INT *lwork, CBLAS_INT *iwork, CBLAS_INT *liwork, CBLAS_INT *info);
@@ -945,6 +951,30 @@ call_heev(char *jobz, char *uplo, CBLAS_INT *n, TYPE *a, CBLAS_INT *lda, RTYPE *
 
 GEN_HEEV(c, npy_complex64, float)
 GEN_HEEV(z, npy_complex128, double)
+
+
+/* Wrappers for ?SYEVD (real symmetric eigenvalue problem, divide-and-conquer) */
+#define GEN_SYEVD(PREFIX, TYPE) \
+inline void \
+call_syevd(char *jobz, char *uplo, CBLAS_INT *n, TYPE *a, CBLAS_INT *lda, TYPE *w, TYPE *work, CBLAS_INT *lwork, CBLAS_INT *iwork, CBLAS_INT *liwork, CBLAS_INT *info) \
+{ \
+    BLAS_FUNC(PREFIX ## syevd)(jobz, uplo, n, a, lda, w, work, lwork, iwork, liwork, info); \
+};
+
+GEN_SYEVD(s, float)
+GEN_SYEVD(d, double)
+
+
+/* Wrappers for ?HEEVD (complex hermitian eigenvalue problem, divide-and-conquer) */
+#define GEN_HEEVD(PREFIX, TYPE, RTYPE) \
+inline void \
+call_heevd(char *jobz, char *uplo, CBLAS_INT *n, TYPE *a, CBLAS_INT *lda, RTYPE *w, TYPE *work, CBLAS_INT *lwork, RTYPE *rwork, CBLAS_INT *lrwork, CBLAS_INT *iwork, CBLAS_INT *liwork, CBLAS_INT *info) \
+{ \
+    BLAS_FUNC(PREFIX ## heevd)(jobz, uplo, n, a, lda, w, work, lwork, rwork, lrwork, iwork, liwork, info); \
+};
+
+GEN_HEEVD(c, npy_complex64, float)
+GEN_HEEVD(z, npy_complex128, double)
 
 
 /* Wrappers for ?SYEVR (real symmetric eigenvalue problem, RRR algorithm) */

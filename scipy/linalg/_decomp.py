@@ -830,14 +830,14 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
             driver = "gvd"  # gvd is default for generalized problems
             # Only batch for type=1 (not type=2 or type=3)
             use_batched_impl = (not has_subset) and (type == 1)
-    elif driver in ["ev", "evr"] and b is None:
-        # Standard problem with ev or evr
+    elif driver in ["ev", "evd", "evr"] and b is None:
+        # Standard problem with ev, evd, or evr
         use_batched_impl = not has_subset  # Only batch if no subset
     elif driver in ["gv", "gvd"] and b is not None:
         # Generalized problem with gv or gvd
         # Only batch for type=1 (not type=2 or type=3)
         use_batched_impl = (not has_subset) and (type == 1)
-    # Note: evd, evx, gvx not yet supported in batched implementation
+    # Note: evx, gvx not yet supported in batched implementation
     
     # If we can't use batched implementation, delegate to eigh0
     if not use_batched_impl:
