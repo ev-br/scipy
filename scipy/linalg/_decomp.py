@@ -857,18 +857,18 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
     
     # Prepare subset selection parameters
     if subset_by_index is not None:
-        range_char = 'I'
+        range_char = 'I'  # Single character string
         il, iu = subset_by_index
         # Convert to 1-based indexing for LAPACK
         il_fortran = il + 1
         iu_fortran = iu + 1
         vl, vu = 0.0, 0.0
     elif subset_by_value is not None:
-        range_char = 'V'
+        range_char = 'V'  # Single character string
         vl, vu = subset_by_value
         il_fortran, iu_fortran = 1, 1  # Unused for range='V'
     else:
-        range_char = 'A'
+        range_char = 'A'  # Single character string
         il_fortran, iu_fortran = 1, 1
         vl, vu = 0.0, 0.0
     

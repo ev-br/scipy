@@ -608,7 +608,7 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
     int lower = 1;
     int itype = 1;
     const char *driver = "evr";  // Default driver
-    char range = 'A';  // Default to all eigenvalues
+    const char *range_str = "A";  // Default to all eigenvalues
     int il = 1, iu = 1;  // Index range (1-based, will be set properly if range='I')
     double vl = 0.0, vu = 0.0;  // Value range (will be set properly if range='V')
 
@@ -619,17 +619,17 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
     PyObject *ret_lst = NULL;
     PyObject *v_ret = NULL;
 
-    // Get the input array with optional driver and range parameters
-    // Format: array, compute_v, lower, itype, [driver], [range], [il], [iu], [vl], [vu], [b_array]
-    // Note: driver through b_array are all optional
+    // Get the input array with driver and range parameters
+    // Format: array, compute_v, lower, itype, driver, range, il, iu, vl, vu, [b_array]
+    // Only b_array is optional
     PyObject *ap_Bm_obj = NULL;
-    if (!PyArg_ParseTuple(args, "O!ppp|sciddO!",
+    if (!PyArg_ParseTuple(args, "O!pppssiidd|O!",
             &PyArray_Type, (PyObject **)&ap_Am,
             &compute_v,
             &lower,
             &itype,
             &driver,
-            &range,
+            &range_str,
             &il,
             &iu,
             &vl,
@@ -638,6 +638,9 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
     ) {
         return NULL;
     }
+    
+    // Extract single character from range string
+    char range = range_str[0];
     
     // Convert to PyArrayObject if provided
     if (ap_Bm_obj != NULL) {
