@@ -682,15 +682,15 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
 
     char uplo = lower ? 'L' : 'U';
     char jobz = compute_v ? 'V' : 'N';
+    
+    // Convert il, iu to CBLAS_INT before any goto statements
+    CBLAS_INT cil = (CBLAS_INT)il;
+    CBLAS_INT ciu = (CBLAS_INT)iu;
 
     if (compute_v) {
         ap_v = (PyArrayObject *)PyArray_SimpleNew(ndim, shape, typenum);
         if (ap_v == NULL) { PyErr_NoMemory(); goto fail; }
     }
-    
-    // Convert il, iu to CBLAS_INT
-    CBLAS_INT cil = (CBLAS_INT)il;
-    CBLAS_INT ciu = (CBLAS_INT)iu;
 
     switch(typenum) {
         case(NPY_FLOAT32):
