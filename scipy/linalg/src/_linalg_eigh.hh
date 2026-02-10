@@ -435,7 +435,7 @@ _gen_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArr
                     fprintf(stderr, "\n  first eigenvector (F-order): ");
                     for (int k = 0; k < std::min(5, (int)n); ++k) {
                         if constexpr (type_traits<T>::is_complex) {
-                            fprintf(stderr, "(%.4f,%.4f) ", data_A[k].real(), data_A[k].imag());
+                            fprintf(stderr, "(%.4f,%.4f) ", data_A[k].real, data_A[k].imag);
                         } else {
                             fprintf(stderr, "%.6f ", data_A[k]);
                         }
@@ -465,7 +465,7 @@ _gen_eigh(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArr
                     fprintf(stderr, "\n  first eigenvector (F-order): ");
                     for (int k = 0; k < std::min(5, (int)n); ++k) {
                         if constexpr (type_traits<T>::is_complex) {
-                            fprintf(stderr, "(%.4f,%.4f) ", data_A[k].real(), data_A[k].imag());
+                            fprintf(stderr, "(%.4f,%.4f) ", data_A[k].real, data_A[k].imag);
                         } else {
                             fprintf(stderr, "%.6f ", data_A[k]);
                         }
