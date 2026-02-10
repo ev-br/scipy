@@ -607,6 +607,10 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
     int compute_v = 1;
     int lower = 1;
     int itype = 1;
+    const char *driver = "evr";  // Default driver
+    char range = 'A';  // Default to all eigenvalues
+    int il = 1, iu = 1;  // Index range (1-based, will be set properly if range='I')
+    double vl = 0.0, vu = 0.0;  // Value range (will be set properly if range='V')
 
     int info = 0;
     SliceStatusVec vec_status;
@@ -615,13 +619,20 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
     PyObject *ret_lst = NULL;
     PyObject *v_ret = NULL;
 
-    // Get the input array
-    if (!PyArg_ParseTuple(args, "O!p|ppO!",
+    // Get the input array with optional driver and range parameters
+    // Format: array, compute_v, lower, itype, [b_array], [driver], [range], [il], [iu], [vl], [vu]
+    if (!PyArg_ParseTuple(args, "O!p|ppO!scidd",
             &PyArray_Type, (PyObject **)&ap_Am,
             &compute_v,
             &lower,
             &itype,
-            &PyArray_Type, (PyObject **)&ap_Bm)
+            &PyArray_Type, (PyObject **)&ap_Bm,
+            &driver,
+            &range,
+            &il,
+            &iu,
+            &vl,
+            &vu)
     ) {
         return NULL;
     }
@@ -676,19 +687,27 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
         ap_v = (PyArrayObject *)PyArray_SimpleNew(ndim, shape, typenum);
         if (ap_v == NULL) { PyErr_NoMemory(); goto fail; }
     }
+    
+    // Convert il, iu to CBLAS_INT
+    CBLAS_INT cil = (CBLAS_INT)il;
+    CBLAS_INT ciu = (CBLAS_INT)iu;
 
     switch(typenum) {
         case(NPY_FLOAT32):
-            info = _eigh<float>(ap_Am, ap_Bm, ap_w, ap_v, uplo, jobz, (CBLAS_INT)itype, vec_status);
+            info = _eigh<float>(ap_Am, ap_Bm, ap_w, ap_v, uplo, jobz, (CBLAS_INT)itype, 
+                               driver, range, cil, ciu, (float)vl, (float)vu, vec_status);
             break;
         case(NPY_FLOAT64):
-            info = _eigh<double>(ap_Am, ap_Bm, ap_w, ap_v, uplo, jobz, (CBLAS_INT)itype, vec_status);
+            info = _eigh<double>(ap_Am, ap_Bm, ap_w, ap_v, uplo, jobz, (CBLAS_INT)itype,
+                                driver, range, cil, ciu, vl, vu, vec_status);
             break;
         case(NPY_COMPLEX64):
-            info = _eigh<npy_complex64>(ap_Am, ap_Bm, ap_w, ap_v, uplo, jobz, (CBLAS_INT)itype, vec_status);
+            info = _eigh<npy_complex64>(ap_Am, ap_Bm, ap_w, ap_v, uplo, jobz, (CBLAS_INT)itype,
+                                       driver, range, cil, ciu, (float)vl, (float)vu, vec_status);
             break;
         case(NPY_COMPLEX128):
-            info = _eigh<npy_complex128>(ap_Am, ap_Bm, ap_w, ap_v, uplo, jobz, (CBLAS_INT)itype, vec_status);
+            info = _eigh<npy_complex128>(ap_Am, ap_Bm, ap_w, ap_v, uplo, jobz, (CBLAS_INT)itype,
+                                        driver, range, cil, ciu, vl, vu, vec_status);
             break;
         default:
             PyErr_SetString(PyExc_RuntimeError, "Unknown array type.");

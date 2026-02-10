@@ -802,24 +802,38 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
            (driver in ["ev", "evd", "gv", "gvd"]):
             raise ValueError(f'"{driver}" cannot compute subsets of eigenvalues')
     
-    # If subset selection is requested, delegate to eigh0 which uses the decorator
-    if subset_by_index is not None or subset_by_value is not None:
+    # Determine if we can use the batched C++ implementation
+    # We support: evr, evx for standard problems; gvd, gvx for generalized problems
+    use_batched_impl = False
+    
+    if driver is None:
+        # Default drivers: evr for standard (with or without subset), gvd for generalized (no subset)
+        if b is None:
+            driver = "evr"  # evr supports subset selection
+            use_batched_impl = True
+        elif subset_by_index is None and subset_by_value is None:
+            driver = "gvd"
+            use_batched_impl = True
+        else:
+            # Generalized with subset: use gvx
+            driver = "gvx"
+            use_batched_impl = True
+    elif driver in ["evr", "evx"] and b is None:
+        # Standard problem with evr or evx
+        use_batched_impl = True
+    elif driver in ["gvd", "gvx"] and b is not None:
+        # Generalized problem with gvd or gvx
+        use_batched_impl = True
+    
+    # If we can't use batched implementation, delegate to eigh0
+    if not use_batched_impl:
         return eigh0(a, b=b, lower=lower, eigvals_only=eigvals_only,
                      overwrite_a=overwrite_a, overwrite_b=overwrite_b,
                      type=type, check_finite=check_finite,
                      subset_by_index=subset_by_index,
                      subset_by_value=subset_by_value, driver=driver)
     
-    # If a non-default driver is specified, also use eigh0 since our batched
-    # implementation only supports the default drivers (evr/gvd)
-    if driver is not None:
-        return eigh0(a, b=b, lower=lower, eigvals_only=eigvals_only,
-                     overwrite_a=overwrite_a, overwrite_b=overwrite_b,
-                     type=type, check_finite=check_finite,
-                     subset_by_index=subset_by_index,
-                     subset_by_value=subset_by_value, driver=driver)
-    
-    # Otherwise, use batched implementation
+    # Use batched implementation
     # Validate and prepare inputs
     a1 = _asarray_validated(a, check_finite=check_finite)
     
@@ -840,6 +854,23 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
             return w
         else:
             return w, v
+    
+    # Prepare subset selection parameters
+    if subset_by_index is not None:
+        range_char = 'I'
+        il, iu = subset_by_index
+        # Convert to 1-based indexing for LAPACK
+        il_fortran = il + 1
+        iu_fortran = iu + 1
+        vl, vu = 0.0, 0.0
+    elif subset_by_value is not None:
+        range_char = 'V'
+        vl, vu = subset_by_value
+        il_fortran, iu_fortran = 1, 1  # Unused for range='V'
+    else:
+        range_char = 'A'
+        il_fortran, iu_fortran = 1, 1
+        vl, vu = 0.0, 0.0
     
     if b is not None:
         b1 = _asarray_validated(b, check_finite=check_finite)
@@ -863,17 +894,19 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
         
         # Call batched implementation
         compute_v = not eigvals_only
-        w, v, err_lst = _batched_linalg._eigh(a1, compute_v, lower, type, b1)
+        w, v, err_lst = _batched_linalg._eigh(a1, compute_v, lower, type, b1, 
+                                              driver, range_char, il_fortran, iu_fortran, vl, vu)
         
         if err_lst:
-            _check_format_errors_warnings("hegvd/sygvd", err_lst)
+            _check_format_errors_warnings(f"{driver}", err_lst)
     else:
         # Standard eigenvalue problem
         compute_v = not eigvals_only
-        w, v, err_lst = _batched_linalg._eigh(a1, compute_v, lower, type)
+        w, v, err_lst = _batched_linalg._eigh(a1, compute_v, lower, type, None,
+                                              driver, range_char, il_fortran, iu_fortran, vl, vu)
         
         if err_lst:
-            _check_format_errors_warnings("heevr/syevr", err_lst)
+            _check_format_errors_warnings(f"{driver}", err_lst)
     
     if eigvals_only:
         return w
