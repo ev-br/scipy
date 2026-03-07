@@ -1,16 +1,16 @@
 #include "gs.h"
 
 
-void smgs(int n, int k, float* V, int ldv, float* vnew, const int* indices) {
-    int ione = 1;
+void smgs(CBLAS_INT n, CBLAS_INT k, float* V, CBLAS_INT ldv, float* vnew, const CBLAS_INT* indices) {
+    CBLAS_INT ione = 1;
 
     // Check for quick return
     if ((k < 0) || (n <= 0)) { return; }
 
     // Process each block specified in indices array
-    int idx = 0;
-    int start = indices[idx];
-    int end = indices[idx + 1];
+    CBLAS_INT idx = 0;
+    CBLAS_INT start = indices[idx];
+    CBLAS_INT end = indices[idx + 1];
 
     /**
      * PROPACK encodes sentinels in 1-index specific way.
@@ -19,7 +19,7 @@ void smgs(int n, int k, float* V, int ldv, float* vnew, const int* indices) {
      */
     while ((start <= k) && ((start < end) || ((start == 0) && (end == 0) && (idx == 0)))) {
         // Orthogonalize against columns [start, end] (0-indexed)
-        for (int i = start; i <= end; i++) {
+        for (CBLAS_INT i = start; i <= end; i++) {
             // Compute projection coefficient: coef = V(:,i)' * vnew
             float coef = sdot_(&n, &V[i * ldv], &ione, vnew, &ione);
 
@@ -35,16 +35,16 @@ void smgs(int n, int k, float* V, int ldv, float* vnew, const int* indices) {
 }
 
 
-void dmgs(int n, int k, double* V, int ldv, double* vnew, const int* indices) {
-    int ione = 1;
+void dmgs(CBLAS_INT n, CBLAS_INT k, double* V, CBLAS_INT ldv, double* vnew, const CBLAS_INT* indices) {
+    CBLAS_INT ione = 1;
 
     // Check for quick return
     if ((k < 0) || (n <= 0)) { return; }
 
     // Process each block specified in indices array
-    int idx = 0;
-    int start = indices[idx];
-    int end = indices[idx + 1];
+    CBLAS_INT idx = 0;
+    CBLAS_INT start = indices[idx];
+    CBLAS_INT end = indices[idx + 1];
 
     /**
      * PROPACK encodes sentinels in 1-index specific way.
@@ -53,7 +53,7 @@ void dmgs(int n, int k, double* V, int ldv, double* vnew, const int* indices) {
      */
     while ((start <= k) && ((start < end) || ((start == 0) && (end == 0) && (idx == 0)))) {
         // Orthogonalize against columns [start, end] (0-indexed)
-        for (int i = start; i <= end; i++) {
+        for (CBLAS_INT i = start; i <= end; i++) {
             // Compute projection coefficient: coef = V(:,i)' * vnew
             double coef = ddot_(&n, &V[i * ldv], &ione, vnew, &ione);
 
@@ -69,20 +69,20 @@ void dmgs(int n, int k, double* V, int ldv, double* vnew, const int* indices) {
 }
 
 
-void cmgs(int n, int k, PROPACK_CPLXF_TYPE* V, int ldv, PROPACK_CPLXF_TYPE* vnew, const int* indices) {
-    int ione = 1;
+void cmgs(CBLAS_INT n, CBLAS_INT k, PROPACK_CPLXF_TYPE* V, CBLAS_INT ldv, PROPACK_CPLXF_TYPE* vnew, const CBLAS_INT* indices) {
+    CBLAS_INT ione = 1;
 
     // Check for quick return
     if ((k < 0) || (n <= 0)) { return; }
 
     // Process each block specified in indices array
-    int idx = 0;
-    int start = indices[idx];
-    int end = indices[idx + 1];
+    CBLAS_INT idx = 0;
+    CBLAS_INT start = indices[idx];
+    CBLAS_INT end = indices[idx + 1];
 
     while ((start <= k) && ((start < end) || ((start == 0) && (end == 0) && (idx == 0)))) {
         // Orthogonalize against columns [start, end] (0-indexed)
-        for (int i = start; i <= end; i++) {
+        for (CBLAS_INT i = start; i <= end; i++) {
             // Compute projection coefficient: coef = V(:,i)^H * vnew (conjugate dot product)
             PROPACK_CPLXF_TYPE coef = cdotc_(&n, &V[i * ldv], &ione, vnew, &ione);
 
@@ -98,20 +98,20 @@ void cmgs(int n, int k, PROPACK_CPLXF_TYPE* V, int ldv, PROPACK_CPLXF_TYPE* vnew
 }
 
 
-void zmgs(int n, int k, PROPACK_CPLX_TYPE* V, int ldv, PROPACK_CPLX_TYPE* vnew, const int* indices) {
-    int ione = 1;
+void zmgs(CBLAS_INT n, CBLAS_INT k, PROPACK_CPLX_TYPE* V, CBLAS_INT ldv, PROPACK_CPLX_TYPE* vnew, const CBLAS_INT* indices) {
+    CBLAS_INT ione = 1;
 
     // Check for quick return
     if ((k < 0) || (n <= 0)) { return; }
 
     // Process each block specified in indices array
-    int idx = 0;
-    int start = indices[idx];
-    int end = indices[idx + 1];
+    CBLAS_INT idx = 0;
+    CBLAS_INT start = indices[idx];
+    CBLAS_INT end = indices[idx + 1];
 
     while ((start <= k) && ((start < end) || ((start == 0) && (end == 0) && (idx == 0)))) {
         // Orthogonalize against columns [start, end] (0-indexed)
-        for (int i = start; i <= end; i++) {
+        for (CBLAS_INT i = start; i <= end; i++) {
             // Compute projection coefficient: coef = V(:,i)^H * vnew (conjugate dot product)
             PROPACK_CPLX_TYPE coef = zdotc_(&n, &V[i * ldv], &ione, vnew, &ione);
 
@@ -127,8 +127,8 @@ void zmgs(int n, int k, PROPACK_CPLX_TYPE* V, int ldv, PROPACK_CPLX_TYPE* vnew, 
 }
 
 
-void scgs(int n, int k, float* V, int ldv, float* vnew, const int* indices, float* work) {
-    int ione = 1;
+void scgs(CBLAS_INT n, CBLAS_INT k, float* V, CBLAS_INT ldv, float* vnew, const CBLAS_INT* indices, float* work) {
+    CBLAS_INT ione = 1;
     float one = 1.0f;
     float zero = 0.0f;
     float neg_one = -1.0f;
@@ -137,13 +137,13 @@ void scgs(int n, int k, float* V, int ldv, float* vnew, const int* indices, floa
     if ((k < 0) || (n <= 0)) { return; }
 
     // Process each block specified in indices array
-    int idx = 0;
-    int start = indices[idx];
-    int end = indices[idx + 1];
+    CBLAS_INT idx = 0;
+    CBLAS_INT start = indices[idx];
+    CBLAS_INT end = indices[idx + 1];
 
     while (start < k && start >= 0 && start <= end) {
         // Block size
-        int block_size = end - start + 1;
+        CBLAS_INT block_size = end - start + 1;
 
         // Compute all projection coefficients for this block: work = V_block^T * vnew
         sgemv_("T", &n, &block_size, &one, &V[start * ldv], &ldv, vnew, &ione, &zero, work, &ione);
@@ -158,8 +158,8 @@ void scgs(int n, int k, float* V, int ldv, float* vnew, const int* indices, floa
 }
 
 
-void dcgs(int n, int k, double* V, int ldv, double* vnew, const int* indices, double* work) {
-    int ione = 1;
+void dcgs(CBLAS_INT n, CBLAS_INT k, double* V, CBLAS_INT ldv, double* vnew, const CBLAS_INT* indices, double* work) {
+    CBLAS_INT ione = 1;
     double one = 1.0;
     double zero = 0.0;
     double neg_one = -1.0;
@@ -168,13 +168,13 @@ void dcgs(int n, int k, double* V, int ldv, double* vnew, const int* indices, do
     if ((k < 0) || (n <= 0)) { return; }
 
     // Process each block specified in indices array
-    int idx = 0;
-    int start = indices[idx];
-    int end = indices[idx + 1];
+    CBLAS_INT idx = 0;
+    CBLAS_INT start = indices[idx];
+    CBLAS_INT end = indices[idx + 1];
 
     while (start < k && start >= 0 && start <= end) {
         // Block size
-        int block_size = end - start + 1;
+        CBLAS_INT block_size = end - start + 1;
 
         // Compute all projection coefficients for this block: work = V_block^T * vnew
         dgemv_("T", &n, &block_size, &one, &V[start * ldv], &ldv, vnew, &ione, &zero, work, &ione);
@@ -189,8 +189,8 @@ void dcgs(int n, int k, double* V, int ldv, double* vnew, const int* indices, do
 }
 
 
-void ccgs(int n, int k, PROPACK_CPLXF_TYPE* V, int ldv, PROPACK_CPLXF_TYPE* vnew, const int* indices, PROPACK_CPLXF_TYPE* work) {
-    int ione = 1;
+void ccgs(CBLAS_INT n, CBLAS_INT k, PROPACK_CPLXF_TYPE* V, CBLAS_INT ldv, PROPACK_CPLXF_TYPE* vnew, const CBLAS_INT* indices, PROPACK_CPLXF_TYPE* work) {
+    CBLAS_INT ione = 1;
     PROPACK_CPLXF_TYPE one = PROPACK_cplxf(1.0f, 0.0f);
     PROPACK_CPLXF_TYPE zero = PROPACK_cplxf(0.0f, 0.0f);
     PROPACK_CPLXF_TYPE neg_one = PROPACK_cplxf(-1.0f, 0.0f);
@@ -199,13 +199,13 @@ void ccgs(int n, int k, PROPACK_CPLXF_TYPE* V, int ldv, PROPACK_CPLXF_TYPE* vnew
     if ((k < 0) || (n <= 0)) { return; }
 
     // Process each block specified in indices array
-    int idx = 0;
-    int start = indices[idx];
-    int end = indices[idx + 1];
+    CBLAS_INT idx = 0;
+    CBLAS_INT start = indices[idx];
+    CBLAS_INT end = indices[idx + 1];
 
     while (start < k && start >= 0 && start <= end) {
         // Block size
-        int block_size = end - start + 1;
+        CBLAS_INT block_size = end - start + 1;
 
         // Compute all projection coefficients for this block: work = V_block^H * vnew
         cgemv_("C", &n, &block_size, &one, &V[start * ldv], &ldv, vnew, &ione, &zero, work, &ione);
@@ -220,8 +220,8 @@ void ccgs(int n, int k, PROPACK_CPLXF_TYPE* V, int ldv, PROPACK_CPLXF_TYPE* vnew
 }
 
 
-void zcgs(int n, int k, PROPACK_CPLX_TYPE* V, int ldv, PROPACK_CPLX_TYPE* vnew, const int* indices, PROPACK_CPLX_TYPE* work) {
-    int ione = 1;
+void zcgs(CBLAS_INT n, CBLAS_INT k, PROPACK_CPLX_TYPE* V, CBLAS_INT ldv, PROPACK_CPLX_TYPE* vnew, const CBLAS_INT* indices, PROPACK_CPLX_TYPE* work) {
+    CBLAS_INT ione = 1;
     PROPACK_CPLX_TYPE one = PROPACK_cplx(1.0, 0.0);
     PROPACK_CPLX_TYPE zero = PROPACK_cplx(0.0, 0.0);
     PROPACK_CPLX_TYPE neg_one = PROPACK_cplx(-1.0, 0.0);
@@ -230,13 +230,13 @@ void zcgs(int n, int k, PROPACK_CPLX_TYPE* V, int ldv, PROPACK_CPLX_TYPE* vnew, 
     if ((k < 0) || (n <= 0)) { return; }
 
     // Process each block specified in indices array
-    int idx = 0;
-    int start = indices[idx];
-    int end = indices[idx + 1];
+    CBLAS_INT idx = 0;
+    CBLAS_INT start = indices[idx];
+    CBLAS_INT end = indices[idx + 1];
 
     while (start < k && start >= 0 && start <= end) {
         // Block size
-        int block_size = end - start + 1;
+        CBLAS_INT block_size = end - start + 1;
 
         // Compute all projection coefficients for this block: work = V_block^H * vnew
         zgemv_("C", &n, &block_size, &one, &V[start * ldv], &ldv, vnew, &ione, &zero, work, &ione);
@@ -251,14 +251,14 @@ void zcgs(int n, int k, PROPACK_CPLX_TYPE* V, int ldv, PROPACK_CPLX_TYPE* vnew, 
 }
 
 
-void sreorth(int n, int k, float* V, int ldv, float* vnew, float* normvnew, const int* indices, float alpha, float* work, int iflag) {
-    const int NTRY = 5;
-    int ione = 1;
+void sreorth(CBLAS_INT n, CBLAS_INT k, float* V, CBLAS_INT ldv, float* vnew, float* normvnew, const CBLAS_INT* indices, float alpha, float* work, CBLAS_INT iflag) {
+    const CBLAS_INT NTRY = 5;
+    CBLAS_INT ione = 1;
 
     // Check for quick return
     if ((k < 0) || (n <= 0)) { return; }
 
-    for (int itry = 0; itry < NTRY; itry++)
+    for (CBLAS_INT itry = 0; itry < NTRY; itry++)
     {
         float normvnew_0 = *normvnew;
 
@@ -274,18 +274,18 @@ void sreorth(int n, int k, float* V, int ldv, float* vnew, float* normvnew, cons
 
     // vnew is numerically in span(V) => return vnew = (0,0,...,0)^T
     *normvnew = 0.0f;
-    for (int i = 0; i < n; i++) { vnew[i] = 0.0f; }
+    for (CBLAS_INT i = 0; i < n; i++) { vnew[i] = 0.0f; }
 }
 
 
-void dreorth(int n, int k, double* V, int ldv, double* vnew, double* normvnew, const int* indices, double alpha, double* work, int iflag) {
-    const int NTRY = 5;
-    int ione = 1;
+void dreorth(CBLAS_INT n, CBLAS_INT k, double* V, CBLAS_INT ldv, double* vnew, double* normvnew, const CBLAS_INT* indices, double alpha, double* work, CBLAS_INT iflag) {
+    const CBLAS_INT NTRY = 5;
+    CBLAS_INT ione = 1;
 
     // Check for quick return
     if ((k < 0) || (n <= 0)) { return; }
 
-    for (int itry = 0; itry < NTRY; itry++)
+    for (CBLAS_INT itry = 0; itry < NTRY; itry++)
     {
         double normvnew_0 = *normvnew;
 
@@ -302,18 +302,18 @@ void dreorth(int n, int k, double* V, int ldv, double* vnew, double* normvnew, c
 
     // vnew is numerically in span(V) => return vnew = (0,0,...,0)^T
     *normvnew = 0.0;
-    for (int i = 0; i < n; i++) { vnew[i] = 0.0; }
+    for (CBLAS_INT i = 0; i < n; i++) { vnew[i] = 0.0; }
 }
 
 
-void creorth(int n, int k, PROPACK_CPLXF_TYPE* V, int ldv, PROPACK_CPLXF_TYPE* vnew, float* normvnew, const int* indices, float alpha, PROPACK_CPLXF_TYPE* work, int iflag) {
-    const int NTRY = 5;
-    int ione = 1;
+void creorth(CBLAS_INT n, CBLAS_INT k, PROPACK_CPLXF_TYPE* V, CBLAS_INT ldv, PROPACK_CPLXF_TYPE* vnew, float* normvnew, const CBLAS_INT* indices, float alpha, PROPACK_CPLXF_TYPE* work, CBLAS_INT iflag) {
+    const CBLAS_INT NTRY = 5;
+    CBLAS_INT ione = 1;
 
     // Check for quick return
     if ((k < 0) || (n <= 0)) { return; }
 
-    for (int itry = 0; itry < NTRY; itry++)
+    for (CBLAS_INT itry = 0; itry < NTRY; itry++)
     {
         float normvnew_0 = *normvnew;
 
@@ -330,18 +330,18 @@ void creorth(int n, int k, PROPACK_CPLXF_TYPE* V, int ldv, PROPACK_CPLXF_TYPE* v
 
     // vnew is numerically in span(V) => return vnew = (0,0,...,0)^T
     *normvnew = 0.0f;
-    for (int i = 0; i < n; i++) { vnew[i] = PROPACK_cplxf(0.0f, 0.0f); }
+    for (CBLAS_INT i = 0; i < n; i++) { vnew[i] = PROPACK_cplxf(0.0f, 0.0f); }
 }
 
 
-void zreorth(int n, int k, PROPACK_CPLX_TYPE* V, int ldv, PROPACK_CPLX_TYPE* vnew, double* normvnew, const int* indices, double alpha, PROPACK_CPLX_TYPE* work, int iflag) {
-    const int NTRY = 5;
-    int ione = 1;
+void zreorth(CBLAS_INT n, CBLAS_INT k, PROPACK_CPLX_TYPE* V, CBLAS_INT ldv, PROPACK_CPLX_TYPE* vnew, double* normvnew, const CBLAS_INT* indices, double alpha, PROPACK_CPLX_TYPE* work, CBLAS_INT iflag) {
+    const CBLAS_INT NTRY = 5;
+    CBLAS_INT ione = 1;
 
     // Check for quick return
     if ((k < 0) || (n <= 0)) { return; }
 
-    for (int itry = 0; itry < NTRY; itry++)
+    for (CBLAS_INT itry = 0; itry < NTRY; itry++)
     {
         double normvnew_0 = *normvnew;
 
@@ -358,5 +358,5 @@ void zreorth(int n, int k, PROPACK_CPLX_TYPE* V, int ldv, PROPACK_CPLX_TYPE* vne
 
     // vnew is numerically in span(V) => return vnew = (0,0,...,0)^T
     *normvnew = 0.0;
-    for (int i = 0; i < n; i++) { vnew[i] = PROPACK_cplx(0.0, 0.0); }
+    for (CBLAS_INT i = 0; i < n; i++) { vnew[i] = PROPACK_cplx(0.0, 0.0); }
 }

@@ -21,10 +21,10 @@
 
 
 // Function pointer typedefs for aprod callbacks
-typedef void (*PROPACK_aprod_s)(int transa, int m, int n, float* x, float* y, float* dparm, int* iparm);
-typedef void (*PROPACK_aprod_d)(int transa, int m, int n, double* x, double* y, double* dparm, int* iparm);
-typedef void (*PROPACK_aprod_c)(int transa, int m, int n, PROPACK_CPLXF_TYPE* x, PROPACK_CPLXF_TYPE* y, PROPACK_CPLXF_TYPE* cparm, int* iparm);
-typedef void (*PROPACK_aprod_z)(int transa, int m, int n, PROPACK_CPLX_TYPE* x, PROPACK_CPLX_TYPE* y, PROPACK_CPLX_TYPE* zparm, int* iparm);
+typedef void (*PROPACK_aprod_s)(CBLAS_INT transa, CBLAS_INT m, CBLAS_INT n, float* x, float* y, float* dparm, CBLAS_INT* iparm);
+typedef void (*PROPACK_aprod_d)(CBLAS_INT transa, CBLAS_INT m, CBLAS_INT n, double* x, double* y, double* dparm, CBLAS_INT* iparm);
+typedef void (*PROPACK_aprod_c)(CBLAS_INT transa, CBLAS_INT m, CBLAS_INT n, PROPACK_CPLXF_TYPE* x, PROPACK_CPLXF_TYPE* y, PROPACK_CPLXF_TYPE* cparm, CBLAS_INT* iparm);
+typedef void (*PROPACK_aprod_z)(CBLAS_INT transa, CBLAS_INT m, CBLAS_INT n, PROPACK_CPLX_TYPE* x, PROPACK_CPLX_TYPE* y, PROPACK_CPLX_TYPE* zparm, CBLAS_INT* iparm);
 
 
 #endif

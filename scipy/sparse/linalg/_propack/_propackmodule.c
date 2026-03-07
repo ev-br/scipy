@@ -9,6 +9,7 @@
 #define PY_SSIZE_T_CLEAN
 #include "Python.h"
 #include "numpy/arrayobject.h"
+#include "npy_cblas.h"    /* from scipy/_build_utils/src */
 #include "PROPACK/include/propack/propack.h"
 #include "ccallback.h"
 #include <stdint.h>
@@ -28,7 +29,7 @@ static SCIPY_TLS propack_callback_t* current_propack_callback = NULL;
 
 
 static void
-propack_callback_s_thunk(int transa, int m, int n, float* x, float* y, float* dparm, int* iparm)
+propack_callback_s_thunk(CBLAS_INT transa, CBLAS_INT m, CBLAS_INT n, float* x, float* y, float* dparm, CBLAS_INT* iparm)
 {
     // Silence unused parameter warnings for dparm/iparm
     (void)dparm; (void)iparm;
@@ -82,7 +83,7 @@ propack_callback_s_thunk(int transa, int m, int n, float* x, float* y, float* dp
 
 
 static void
-propack_callback_d_thunk(int transa, int m, int n, double* x, double* y, double* dparm, int* iparm)
+propack_callback_d_thunk(CBLAS_INT transa, CBLAS_INT m, CBLAS_INT n, double* x, double* y, double* dparm, CBLAS_INT* iparm)
 {
     // Silence unused parameter warnings for dparm/iparm
     (void)dparm; (void)iparm;
@@ -137,7 +138,7 @@ propack_callback_d_thunk(int transa, int m, int n, double* x, double* y, double*
 
 
 static void
-propack_callback_c_thunk(int transa, int m, int n, PROPACK_CPLXF_TYPE* x, PROPACK_CPLXF_TYPE* y, PROPACK_CPLXF_TYPE* dparm, int* iparm)
+propack_callback_c_thunk(CBLAS_INT transa, CBLAS_INT m, CBLAS_INT n, PROPACK_CPLXF_TYPE* x, PROPACK_CPLXF_TYPE* y, PROPACK_CPLXF_TYPE* dparm, CBLAS_INT* iparm)
 {
     // Silence unused parameter warnings for dparm/iparm
     (void)dparm; (void)iparm;
@@ -192,7 +193,7 @@ propack_callback_c_thunk(int transa, int m, int n, PROPACK_CPLXF_TYPE* x, PROPAC
 
 
 static void
-propack_callback_z_thunk(int transa, int m, int n, PROPACK_CPLX_TYPE* x, PROPACK_CPLX_TYPE* y, PROPACK_CPLX_TYPE* dparm, int* iparm)
+propack_callback_z_thunk(CBLAS_INT transa, CBLAS_INT m, CBLAS_INT n, PROPACK_CPLX_TYPE* x, PROPACK_CPLX_TYPE* y, PROPACK_CPLX_TYPE* dparm, CBLAS_INT* iparm)
 {
     // Silence unused parameter warnings for dparm/iparm
     (void)dparm; (void)iparm;
@@ -255,7 +256,7 @@ static PyObject*
 propack_slansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
 {
 
-    int jobu, jobv, k, kmax, m, n, propack_info;
+    CBLAS_INT jobu, jobv, k, kmax, m, n, propack_info;
     float tol;
     PyObject* py_aprod;
     PyArrayObject *U, *V, *sigma, *bnd, *work, *iwork, *doption, *ioption, *dparm, *iparm, *ap_rng_state;
@@ -306,12 +307,12 @@ propack_slansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
         (float*)PyArray_DATA(V), PyArray_DIM(V, 0),       // V matrix and leading dimension
         tol,                                              // tolerance
         (float*)PyArray_DATA(work), PyArray_SIZE(work),   // main workspace
-        (int*)PyArray_DATA(iwork),                        // integer workspace
+        (CBLAS_INT*)PyArray_DATA(iwork),                  // integer workspace
         (float*)PyArray_DATA(doption),                    // float options array
-        (int*)PyArray_DATA(ioption),                      // integer options array
+        (CBLAS_INT*)PyArray_DATA(ioption),                // integer options array
         &propack_info,                                    // return code
         (float*)PyArray_DATA(dparm),                      // float parameter array (unused)
-        (int*)PyArray_DATA(iparm),                        // integer parameter array (unused)
+        (CBLAS_INT*)PyArray_DATA(iparm),                  // integer parameter array (unused)
         (uint64_t*)PyArray_DATA(ap_rng_state)             // random number state
     );
 
@@ -327,7 +328,7 @@ static PyObject*
 propack_dlansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
 {
 
-    int jobu, jobv, k, kmax, m, n, propack_info;
+    CBLAS_INT jobu, jobv, k, kmax, m, n, propack_info;
     double tol;
     PyObject* py_aprod;
     PyArrayObject *U, *V, *sigma, *bnd, *work, *iwork, *doption, *ioption, *dparm, *iparm, *ap_rng_state;
@@ -376,12 +377,12 @@ propack_dlansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
         (double*)PyArray_DATA(V), PyArray_DIM(V, 0),      // V matrix and leading dimension
         tol,                                              // tolerance
         (double*)PyArray_DATA(work), PyArray_SIZE(work),  // main workspace
-        (int*)PyArray_DATA(iwork),                        // integer workspace
+        (CBLAS_INT*)PyArray_DATA(iwork),                        // integer workspace
         (double*)PyArray_DATA(doption),                   // double options array
-        (int*)PyArray_DATA(ioption),                      // integer options array
+        (CBLAS_INT*)PyArray_DATA(ioption),                      // integer options array
         &propack_info,                                    // return code
         (double*)PyArray_DATA(dparm),                     // double parameter array (unused)
-        (int*)PyArray_DATA(iparm),                        // integer parameter array (unused)
+        (CBLAS_INT*)PyArray_DATA(iparm),                        // integer parameter array (unused)
         (uint64_t*)PyArray_DATA(ap_rng_state)             // random number state
     );
 
@@ -397,7 +398,7 @@ static PyObject*
 propack_clansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
 {
 
-    int jobu, jobv, k, kmax, m, n, propack_info;
+    CBLAS_INT jobu, jobv, k, kmax, m, n, propack_info;
     float tol;
     PyObject* py_aprod;
     PyArrayObject *U, *V, *sigma, *bnd, *work, *cwork, *iwork, *doption, *ioption, *dparm, *iparm, *ap_rng_state;
@@ -448,12 +449,12 @@ propack_clansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
         tol,                                                           // tolerance
         (float*)PyArray_DATA(work), PyArray_SIZE(work),                // main workspace
         (PROPACK_CPLXF_TYPE*)PyArray_DATA(cwork), PyArray_SIZE(cwork), // main workspace
-        (int*)PyArray_DATA(iwork),                                     // integer workspace
+        (CBLAS_INT*)PyArray_DATA(iwork),                                     // integer workspace
         (float*)PyArray_DATA(doption),                                 // float options array
-        (int*)PyArray_DATA(ioption),                                   // integer options array
+        (CBLAS_INT*)PyArray_DATA(ioption),                                   // integer options array
         &propack_info,                                                 // return code
         (PROPACK_CPLXF_TYPE*)PyArray_DATA(dparm),                      // double parameter array (unused)
-        (int*)PyArray_DATA(iparm),                                     // integer parameter array (unused)
+        (CBLAS_INT*)PyArray_DATA(iparm),                                     // integer parameter array (unused)
         (uint64_t*)PyArray_DATA(ap_rng_state)                          // random number state
     );
 
@@ -469,7 +470,7 @@ static PyObject*
 propack_zlansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
 {
 
-    int jobu, jobv, k, kmax, m, n, propack_info;
+    CBLAS_INT jobu, jobv, k, kmax, m, n, propack_info;
     double tol;
     PyObject* py_aprod;
     PyArrayObject *U, *V, *sigma, *bnd, *work, *cwork, *iwork, *doption, *ioption, *dparm, *iparm, *ap_rng_state;
@@ -520,12 +521,12 @@ propack_zlansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
         tol,                                                           // tolerance
         (double*)PyArray_DATA(work), PyArray_SIZE(work),               // main workspace
         (PROPACK_CPLX_TYPE*)PyArray_DATA(cwork), PyArray_SIZE(cwork),  // main workspace
-        (int*)PyArray_DATA(iwork),                                     // integer workspace
+        (CBLAS_INT*)PyArray_DATA(iwork),                                     // integer workspace
         (double*)PyArray_DATA(doption),                                // double options array
-        (int*)PyArray_DATA(ioption),                                   // integer options array
+        (CBLAS_INT*)PyArray_DATA(ioption),                                   // integer options array
         &propack_info,                                                 // return code
         (PROPACK_CPLX_TYPE*)PyArray_DATA(dparm),                       // double parameter array (unused)
-        (int*)PyArray_DATA(iparm),                                     // integer parameter array (unused)
+        (CBLAS_INT*)PyArray_DATA(iparm),                                     // integer parameter array (unused)
         (uint64_t*)PyArray_DATA(ap_rng_state)                          // random number state
     );
 
@@ -542,7 +543,7 @@ static PyObject*
 propack_slansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args)
 {
 
-    int which, jobu, jobv, m, n, shifts, neig, maxiter, propack_info;
+    CBLAS_INT which, jobu, jobv, m, n, shifts, neig, maxiter, propack_info;
     float tol;
     PyObject* py_aprod;
     PyArrayObject *U, *sigma, *bnd, *V, *work, *iwork, *doption, *ioption, *sparm, *iparm, *ap_rng_state;
@@ -565,7 +566,7 @@ propack_slansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args)
     }
 
     if (!PyCallable_Check(py_aprod)) {PyErr_SetString(PyExc_TypeError, "scipy.sparse.linalg: Callback argument must be a callable."); return NULL; }
-    int dim = shifts + neig;
+    CBLAS_INT dim = shifts + neig;
 
     propack_callback_t aprod_callback;
     aprod_callback.py_func = py_aprod;
@@ -593,12 +594,12 @@ propack_slansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args)
         (float*)PyArray_DATA(V), PyArray_DIM(V, 0),       // V matrix and leading dimension
         tol,                                              // tolerance
         (float*)PyArray_DATA(work), PyArray_SIZE(work),   // main workspace
-        (int*)PyArray_DATA(iwork),                        // integer workspace
+        (CBLAS_INT*)PyArray_DATA(iwork),                        // integer workspace
         (float*)PyArray_DATA(doption),                    // float options array
-        (int*)PyArray_DATA(ioption),                      // integer options array
+        (CBLAS_INT*)PyArray_DATA(ioption),                      // integer options array
         &propack_info,                                    // return code
         (float*)PyArray_DATA(sparm),                      // float parameter array (unused)
-        (int*)PyArray_DATA(iparm),                        // integer parameter array (unused)
+        (CBLAS_INT*)PyArray_DATA(iparm),                        // integer parameter array (unused)
         (uint64_t*)PyArray_DATA(ap_rng_state)             // random number state
     );
 
@@ -614,7 +615,7 @@ static PyObject*
 propack_dlansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args)
 {
 
-    int which, jobu, jobv, m, n, shifts, neig, maxiter, propack_info;
+    CBLAS_INT which, jobu, jobv, m, n, shifts, neig, maxiter, propack_info;
     double tol;
     PyObject* py_aprod;
     PyArrayObject *U, *sigma, *bnd, *V, *work, *iwork, *doption, *ioption, *sparm, *iparm, *ap_rng_state;
@@ -637,7 +638,7 @@ propack_dlansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args)
     }
 
     if (!PyCallable_Check(py_aprod)) {PyErr_SetString(PyExc_TypeError, "scipy.sparse.linalg: Callback argument must be a callable."); return NULL; }
-    int dim = shifts + neig;
+    CBLAS_INT dim = shifts + neig;
     propack_callback_t aprod_callback;
     aprod_callback.py_func = py_aprod;
     Py_XINCREF(py_aprod);
@@ -664,12 +665,12 @@ propack_dlansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args)
         (double*)PyArray_DATA(V), PyArray_DIM(V, 0),       // V matrix and leading dimension
         tol,                                               // tolerance
         (double*)PyArray_DATA(work), PyArray_SIZE(work),   // main workspace
-        (int*)PyArray_DATA(iwork),                         // integer workspace
+        (CBLAS_INT*)PyArray_DATA(iwork),                         // integer workspace
         (double*)PyArray_DATA(doption),                    // double options array
-        (int*)PyArray_DATA(ioption),                       // integer options array
+        (CBLAS_INT*)PyArray_DATA(ioption),                       // integer options array
         &propack_info,                                     // return code
         (double*)PyArray_DATA(sparm),                      // double parameter array (unused)
-        (int*)PyArray_DATA(iparm),                         // integer parameter array (unused)
+        (CBLAS_INT*)PyArray_DATA(iparm),                         // integer parameter array (unused)
         (uint64_t*)PyArray_DATA(ap_rng_state)              // random number state
     );
 
@@ -685,7 +686,7 @@ propack_dlansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args)
 static PyObject*
 propack_clansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args) {
 
-    int which, jobu, jobv, m, n, shifts, neig, maxiter, propack_info;
+    CBLAS_INT which, jobu, jobv, m, n, shifts, neig, maxiter, propack_info;
     float tol;
     PyObject* py_aprod;
     PyArrayObject *U, *sigma, *bnd, *V, *work, *cwork, *iwork, *doption, *ioption, *cparm, *iparm, *ap_rng_state;
@@ -709,7 +710,7 @@ propack_clansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args) {
     }
 
     if (!PyCallable_Check(py_aprod)) {PyErr_SetString(PyExc_TypeError, "scipy.sparse.linalg: Callback argument must be a callable."); return NULL; }
-    int dim = shifts + neig;
+    CBLAS_INT dim = shifts + neig;
     propack_callback_t aprod_callback;
     aprod_callback.py_func = py_aprod;
     Py_XINCREF(py_aprod);
@@ -738,12 +739,12 @@ propack_clansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args) {
         tol,                                                           // tolerance
         (float*)PyArray_DATA(work), PyArray_SIZE(work),                // float workspace
         (PROPACK_CPLXF_TYPE*)PyArray_DATA(cwork), PyArray_SIZE(cwork), // float complex workspace
-        (int*)PyArray_DATA(iwork),                                     // integer workspace
+        (CBLAS_INT*)PyArray_DATA(iwork),                                     // integer workspace
         (float*)PyArray_DATA(doption),                                 // float options array
-        (int*)PyArray_DATA(ioption),                                   // integer options array
+        (CBLAS_INT*)PyArray_DATA(ioption),                                   // integer options array
         &propack_info,                                                 // return code
         (PROPACK_CPLXF_TYPE*)PyArray_DATA(cparm),                      // float parameter array (unused)
-        (int*)PyArray_DATA(iparm),                                     // integer parameter array (unused)
+        (CBLAS_INT*)PyArray_DATA(iparm),                                     // integer parameter array (unused)
         (uint64_t*)PyArray_DATA(ap_rng_state)                          // random number state
     );
 
@@ -758,7 +759,7 @@ propack_clansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args) {
 static PyObject*
 propack_zlansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args) {
 
-    int which, jobu, jobv, m, n, shifts, neig, maxiter, propack_info;
+    CBLAS_INT which, jobu, jobv, m, n, shifts, neig, maxiter, propack_info;
     double tol;
     PyObject* py_aprod;
     PyArrayObject *U, *sigma, *bnd, *V, *work, *cwork, *iwork, *doption, *ioption, *zparm, *iparm, *ap_rng_state;
@@ -782,7 +783,7 @@ propack_zlansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args) {
     }
 
     if (!PyCallable_Check(py_aprod)) {PyErr_SetString(PyExc_TypeError, "scipy.sparse.linalg: Callback argument must be a callable."); return NULL; }
-    int dim = shifts + neig;
+    CBLAS_INT dim = shifts + neig;
     propack_callback_t aprod_callback;
     aprod_callback.py_func = py_aprod;
     Py_XINCREF(py_aprod);
@@ -811,12 +812,12 @@ propack_zlansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args) {
         tol,                                                           // tolerance
         (double*)PyArray_DATA(work), PyArray_SIZE(work),               // double workspace
         (PROPACK_CPLX_TYPE*)PyArray_DATA(cwork), PyArray_SIZE(cwork),  // double complex workspace
-        (int*)PyArray_DATA(iwork),                                     // integer workspace
+        (CBLAS_INT*)PyArray_DATA(iwork),                                     // integer workspace
         (double*)PyArray_DATA(doption),                                // double options array
-        (int*)PyArray_DATA(ioption),                                   // integer options array
+        (CBLAS_INT*)PyArray_DATA(ioption),                                   // integer options array
         &propack_info,                                                 // return code
         (PROPACK_CPLX_TYPE*)PyArray_DATA(zparm),                       // double parameter array (unused)
-        (int*)PyArray_DATA(iparm),                                     // integer parameter array (unused)
+        (CBLAS_INT*)PyArray_DATA(iparm),                                     // integer parameter array (unused)
         (uint64_t*)PyArray_DATA(ap_rng_state)                          // random number state
     );
 
