@@ -163,6 +163,8 @@ def _svdp(A, k, which='LM', irl_mode=True, kmax=None,
     aprod = _AProd(A)
     typ = aprod.dtype.char
 
+    breakpoint()
+
     int_dtype = np.int64 if HAS_ILP64 else np.int32
 
     try:

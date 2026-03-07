@@ -386,12 +386,12 @@ propack_dlansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
         jobu, jobv,                                       // whether to compute U, V
         m, n, k, kmax,                                    // matrix and algorithm dimensions
         (PROPACK_aprod_d)propack_callback_d_thunk,        // Py callback function
-        (double*)PyArray_DATA(U), PyArray_DIM(U, 0),      // U matrix and leading dimension
+        (double*)PyArray_DATA(U), (CBLAS_INT)PyArray_DIM(U, 0),      // U matrix and leading dimension
         (double*)PyArray_DATA(sigma),                     // singular values output
         (double*)PyArray_DATA(bnd),                       // error bounds output
-        (double*)PyArray_DATA(V), PyArray_DIM(V, 0),      // V matrix and leading dimension
+        (double*)PyArray_DATA(V), (CBLAS_INT)PyArray_DIM(V, 0),      // V matrix and leading dimension
         tol,                                              // tolerance
-        (double*)PyArray_DATA(work), PyArray_SIZE(work),  // main workspace
+        (double*)PyArray_DATA(work), (CBLAS_INT)PyArray_SIZE(work),  // main workspace
         (CBLAS_INT*)PyArray_DATA(iwork),                        // integer workspace
         (double*)PyArray_DATA(doption),                   // double options array
         (CBLAS_INT*)PyArray_DATA(ioption),                      // integer options array
