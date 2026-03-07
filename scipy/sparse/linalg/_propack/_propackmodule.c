@@ -65,9 +65,9 @@ propack_callback_s_thunk(int transa, int m, int n, float* x, float* y, float* dp
         return;
     }
 
-    PyTuple_SetItem(current_propack_callback->args_tuple, 0, PyLong_FromLong(transa));
-    PyTuple_SetItem(current_propack_callback->args_tuple, 1, PyLong_FromLong(m));
-    PyTuple_SetItem(current_propack_callback->args_tuple, 2, PyLong_FromLong(n));
+    PyTuple_SetItem(current_propack_callback->args_tuple, 0, PyLong_FromSsize_t((Py_ssize_t)transa));
+    PyTuple_SetItem(current_propack_callback->args_tuple, 1, PyLong_FromSsize_t((Py_ssize_t)m));
+    PyTuple_SetItem(current_propack_callback->args_tuple, 2, PyLong_FromSsize_t((Py_ssize_t)n));
     PyTuple_SetItem(current_propack_callback->args_tuple, 3, py_x);
     PyTuple_SetItem(current_propack_callback->args_tuple, 4, py_y);
 
@@ -120,9 +120,9 @@ propack_callback_d_thunk(int transa, int m, int n, double* x, double* y, double*
         return;
     }
 
-    PyTuple_SetItem(current_propack_callback->args_tuple, 0, PyLong_FromLong(transa));
-    PyTuple_SetItem(current_propack_callback->args_tuple, 1, PyLong_FromLong(m));
-    PyTuple_SetItem(current_propack_callback->args_tuple, 2, PyLong_FromLong(n));
+    PyTuple_SetItem(current_propack_callback->args_tuple, 0, PyLong_FromSsize_t((Py_ssize_t)transa));
+    PyTuple_SetItem(current_propack_callback->args_tuple, 1, PyLong_FromSsize_t((Py_ssize_t)m));
+    PyTuple_SetItem(current_propack_callback->args_tuple, 2, PyLong_FromSsize_t((Py_ssize_t)n));
     PyTuple_SetItem(current_propack_callback->args_tuple, 3, py_x);
     PyTuple_SetItem(current_propack_callback->args_tuple, 4, py_y);
 
@@ -175,9 +175,9 @@ propack_callback_c_thunk(int transa, int m, int n, PROPACK_CPLXF_TYPE* x, PROPAC
         return;
     }
 
-    PyTuple_SetItem(current_propack_callback->args_tuple, 0, PyLong_FromLong(transa));
-    PyTuple_SetItem(current_propack_callback->args_tuple, 1, PyLong_FromLong(m));
-    PyTuple_SetItem(current_propack_callback->args_tuple, 2, PyLong_FromLong(n));
+    PyTuple_SetItem(current_propack_callback->args_tuple, 0, PyLong_FromSsize_t((Py_ssize_t)transa));
+    PyTuple_SetItem(current_propack_callback->args_tuple, 1, PyLong_FromSsize_t((Py_ssize_t)m));
+    PyTuple_SetItem(current_propack_callback->args_tuple, 2, PyLong_FromSsize_t((Py_ssize_t)n));
     PyTuple_SetItem(current_propack_callback->args_tuple, 3, py_x);
     PyTuple_SetItem(current_propack_callback->args_tuple, 4, py_y);
 
@@ -230,9 +230,9 @@ propack_callback_z_thunk(int transa, int m, int n, PROPACK_CPLX_TYPE* x, PROPACK
         return;
     }
 
-    PyTuple_SetItem(current_propack_callback->args_tuple, 0, PyLong_FromLong(transa));
-    PyTuple_SetItem(current_propack_callback->args_tuple, 1, PyLong_FromLong(m));
-    PyTuple_SetItem(current_propack_callback->args_tuple, 2, PyLong_FromLong(n));
+    PyTuple_SetItem(current_propack_callback->args_tuple, 0, PyLong_FromSsize_t((Py_ssize_t)transa));
+    PyTuple_SetItem(current_propack_callback->args_tuple, 1, PyLong_FromSsize_t((Py_ssize_t)m));
+    PyTuple_SetItem(current_propack_callback->args_tuple, 2, PyLong_FromSsize_t((Py_ssize_t)n));
     PyTuple_SetItem(current_propack_callback->args_tuple, 3, py_x);
     PyTuple_SetItem(current_propack_callback->args_tuple, 4, py_y);
 

@@ -1,5 +1,5 @@
-#include "../include/propack/propack.h"
 #include "common.h"
+#include "../include/propack/propack.h"
 #include "gemm_overwrite.h"
 
 /**

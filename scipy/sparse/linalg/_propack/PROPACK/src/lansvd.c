@@ -1,3 +1,4 @@
+#include "blaslapack_declarations.h"
 #include "../include/propack/propack.h"
 
 #include <float.h>
@@ -7,7 +8,6 @@
 #include "getu0.h"
 #include "lanbpro.h"
 #include "ritzvec.h"
-#include "blaslapack_declarations.h"
 
 
 static inline int int_min(const int a, const int b) { return a < b ? a : b; }

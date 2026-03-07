@@ -1,7 +1,7 @@
-#include <math.h>
-#include <float.h>
 #include "lanbpro.h"
 
+#include <math.h>
+#include <float.h>
 
 static inline int int_min(const int a, const int b) { return a < b ? a : b; }
 static inline int int_max(const int a, const int b) { return a > b ? a : b; }
