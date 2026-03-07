@@ -70,9 +70,9 @@ void sbsvdstep(const CBLAS_INT jobu, const CBLAS_INT jobv, CBLAS_INT m, CBLAS_IN
     for (CBLAS_INT i = 0; i < k-1; i++) {
         if (i > 0)
         {
-            slartg_(&x, &y, &c, &s, &E[i-1]);
+            BLAS_FUNC(slartg)(&x, &y, &c, &s, &E[i-1]);
         } else {
-            slartg_(&x, &y, &c, &s, &r);
+            BLAS_FUNC(slartg)(&x, &y, &c, &s, &r);
         }
         x = c*D[i] + s*E[i];
         E[i] = -s*D[i] + c*E[i];
@@ -82,10 +82,10 @@ void sbsvdstep(const CBLAS_INT jobu, const CBLAS_INT jobv, CBLAS_INT m, CBLAS_IN
 
         if ((jobu) && (m > 0))
         {
-            srot_(&m, &U[i*ldu], &int1, &U[(i+1)*ldu], &int1, &c, &s);
+            BLAS_FUNC(srot)(&m, &U[i*ldu], &int1, &U[(i+1)*ldu], &int1, &c, &s);
         }
 
-        slartg_(&x, &y, &c, &s, &D[i]);
+        BLAS_FUNC(slartg)(&x, &y, &c, &s, &D[i]);
         x = c*E[i] + s*D[i+1];
         D[i+1] = -s*E[i] + c*D[i+1];
         E[i] = x;
@@ -94,18 +94,18 @@ void sbsvdstep(const CBLAS_INT jobu, const CBLAS_INT jobv, CBLAS_INT m, CBLAS_IN
 
         if ((jobv) && (n > 0))
         {
-            srot_(&n, &V[i*ldv], &int1, &V[(i+1)*ldv], &int1, &c, &s);
+            BLAS_FUNC(srot)(&n, &V[i*ldv], &int1, &V[(i+1)*ldv], &int1, &c, &s);
         }
     }
 
-    slartg_(&x, &y, &c, &s, &E[k-2]);
+    BLAS_FUNC(slartg)(&x, &y, &c, &s, &E[k-2]);
     x = c*D[k-1] + s*E[k-1];
     E[k-1] = -s*D[k-1] + c*E[k-1];
     D[k-1] = x;
 
     if ((jobu) && (m > 0))
     {
-        srot_(&m, &U[(k-1)*ldu], &int1, &U[k*ldu], &int1, &c, &s);
+        BLAS_FUNC(srot)(&m, &U[(k-1)*ldu], &int1, &U[k*ldu], &int1, &c, &s);
     }
 
     return;
@@ -122,11 +122,11 @@ void sbdqr(const CBLAS_INT ignorelast, const CBLAS_INT jobq, const CBLAS_INT n, 
     {
         // Reset Qt to the identity matrix.
         CBLAS_INT nplus1 = n + 1;
-        slaset_("A", &nplus1, &nplus1, &flt0, &flt1, Qt, &ldq);
+        BLAS_FUNC(slaset)("A", &nplus1, &nplus1, &flt0, &flt1, Qt, &ldq);
     }
     for (CBLAS_INT i = 0; i < n-1; i++)
     {
-        slartg_(&D[i], &E[i], &cs, &sn, &r);
+        BLAS_FUNC(slartg)(&D[i], &E[i], &cs, &sn, &r);
         D[i] = r;
         E[i]   = sn*D[i+1];
         D[i+1] = cs*D[i+1];
@@ -144,7 +144,7 @@ void sbdqr(const CBLAS_INT ignorelast, const CBLAS_INT jobq, const CBLAS_INT n, 
     }
     if (!ignorelast)
     {
-        slartg_(&D[n-1], &E[n-1], &cs, &sn, &r);
+        BLAS_FUNC(slartg)(&D[n-1], &E[n-1], &cs, &sn, &r);
         D[n-1] = r;
         E[n-1] = 0.0f;
         *c1 = sn;
@@ -364,9 +364,9 @@ void dbsvdstep(const CBLAS_INT jobu, const CBLAS_INT jobv, CBLAS_INT m, CBLAS_IN
     for (CBLAS_INT i = 0; i < k-1; i++) {
         if (i > 0)
         {
-            dlartg_(&x, &y, &c, &s, &E[i-1]);
+            BLAS_FUNC(dlartg)(&x, &y, &c, &s, &E[i-1]);
         } else {
-            dlartg_(&x, &y, &c, &s, &r);
+            BLAS_FUNC(dlartg)(&x, &y, &c, &s, &r);
         }
         x = c*D[i] + s*E[i];
         E[i] = -s*D[i] + c*E[i];
@@ -376,10 +376,10 @@ void dbsvdstep(const CBLAS_INT jobu, const CBLAS_INT jobv, CBLAS_INT m, CBLAS_IN
 
         if ((jobu) && (m > 0))
         {
-            drot_(&m, &U[i*ldu], &int1, &U[(i+1)*ldu], &int1, &c, &s);
+            BLAS_FUNC(drot)(&m, &U[i*ldu], &int1, &U[(i+1)*ldu], &int1, &c, &s);
         }
 
-        dlartg_(&x, &y, &c, &s, &D[i]);
+        BLAS_FUNC(dlartg)(&x, &y, &c, &s, &D[i]);
         x = c*E[i] + s*D[i+1];
         D[i+1] = -s*E[i] + c*D[i+1];
         E[i] = x;
@@ -388,18 +388,18 @@ void dbsvdstep(const CBLAS_INT jobu, const CBLAS_INT jobv, CBLAS_INT m, CBLAS_IN
 
         if ((jobv) && (n > 0))
         {
-            drot_(&n, &V[i*ldv], &int1, &V[(i+1)*ldv], &int1, &c, &s);
+            BLAS_FUNC(drot)(&n, &V[i*ldv], &int1, &V[(i+1)*ldv], &int1, &c, &s);
         }
     }
 
-    dlartg_(&x, &y, &c, &s, &E[k-2]);
+    BLAS_FUNC(dlartg)(&x, &y, &c, &s, &E[k-2]);
     x = c*D[k-1] + s*E[k-1];
     E[k-1] = -s*D[k-1] + c*E[k-1];
     D[k-1] = x;
 
     if ((jobu) && (m > 0))
     {
-        drot_(&m, &U[(k-1)*ldu], &int1, &U[k*ldu], &int1, &c, &s);
+        BLAS_FUNC(drot)(&m, &U[(k-1)*ldu], &int1, &U[k*ldu], &int1, &c, &s);
     }
 
     return;
@@ -416,11 +416,11 @@ void dbdqr(const CBLAS_INT ignorelast, const CBLAS_INT jobq, const CBLAS_INT n, 
     {
         // Reset Qt to the identity matrix.
         CBLAS_INT nplus1 = n + 1;
-        dlaset_("A", &nplus1, &nplus1, &dbl0, &dbl1, Qt, &ldq);
+        BLAS_FUNC(dlaset)("A", &nplus1, &nplus1, &dbl0, &dbl1, Qt, &ldq);
     }
     for (CBLAS_INT i = 0; i < n-1; i++)
     {
-        dlartg_(&D[i], &E[i], &cs, &sn, &r);
+        BLAS_FUNC(dlartg)(&D[i], &E[i], &cs, &sn, &r);
         D[i] = r;
         E[i]   = sn*D[i+1];
         D[i+1] = cs*D[i+1];
@@ -438,7 +438,7 @@ void dbdqr(const CBLAS_INT ignorelast, const CBLAS_INT jobq, const CBLAS_INT n, 
     }
     if (!ignorelast)
     {
-        dlartg_(&D[n-1], &E[n-1], &cs, &sn, &r);
+        BLAS_FUNC(dlartg)(&D[n-1], &E[n-1], &cs, &sn, &r);
         D[n-1] = r;
         E[n-1] = 0.0;
         *c1 = sn;

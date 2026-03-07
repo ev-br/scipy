@@ -4,6 +4,7 @@ import numpy as np
 
 from scipy.sparse.linalg import aslinearoperator
 from scipy.linalg import LinAlgError
+from scipy.linalg.lapack import HAS_ILP64
 
 from . import _propack  # type: ignore[attr-defined]
 
@@ -162,6 +163,8 @@ def _svdp(A, k, which='LM', irl_mode=True, kmax=None,
     aprod = _AProd(A)
     typ = aprod.dtype.char
 
+    int_dtype = np.int64 if HAS_ILP64 else np.int32
+
     try:
         lansvd_irl = _lansvd_irl_dict[typ]
         lansvd = _lansvd_dict[typ]
@@ -234,7 +237,7 @@ def _svdp(A, k, which='LM', irl_mode=True, kmax=None,
     else:
         doption = np.array((delta, eta, anorm), dtype=typ.lower())
 
-    ioption = np.array((int(bool(cgs)), int(bool(elr))), dtype='i')
+    ioption = np.array((int(bool(cgs)), int(bool(elr))), dtype=int_dtype)
 
     # PROPACK uses a few LAPACK functions that require sufficiently large
     # work arrays to utilize BLAS level 3 operations. In almost all relevant
@@ -252,11 +255,11 @@ def _svdp(A, k, which='LM', irl_mode=True, kmax=None,
         lwork = m + n + 9*kmax + 2*kmax**2 + 4 + max(m + n, 4*kmax + 4)
         liwork = 2*kmax + 2
     work = np.empty(lwork, dtype=typ.lower())
-    iwork = np.empty(liwork, dtype=np.int32)
+    iwork = np.empty(liwork, dtype=int_dtype)
 
     # dummy arguments: these are passed to aprod, and not used in this wrapper
     dparm = np.empty(1, dtype=typ.lower())
-    iparm = np.empty(1, dtype=np.int32)
+    iparm = np.empty(1, dtype=int_dtype)
 
     if typ.isupper():
         zwork = np.empty(m + n + kmax, dtype=typ)

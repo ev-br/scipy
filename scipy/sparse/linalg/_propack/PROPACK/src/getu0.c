@@ -24,13 +24,13 @@ void sgetu0(CBLAS_INT transa, CBLAS_INT m, CBLAS_INT n, CBLAS_INT j, CBLAS_INT n
         for (CBLAS_INT i = 0; i < rsize; i++) { work[i] = random_float(rng_state); }
 
         // Compute norm of random vector
-        float nrm = snrm2_(&rsize, work, &ione);
+        float nrm = BLAS_FUNC(snrm2)(&rsize, work, &ione);
 
         // Apply matrix operation: u0 = Op(A) * work
         aprod(transa, m, n, work, u0, dparm, iparm);
 
         // Compute norm of result and estimate operator norm
-        *u0norm = snrm2_(&usize, u0, &ione);
+        *u0norm = BLAS_FUNC(snrm2)(&usize, u0, &ione);
         *anormest = *u0norm / nrm;
 
         // Orthogonalize against existing vectors if j >= 1
@@ -76,13 +76,13 @@ void dgetu0(CBLAS_INT transa, CBLAS_INT m, CBLAS_INT n, CBLAS_INT j, CBLAS_INT n
         for (CBLAS_INT i = 0; i < rsize; i++) { work[i] = random_double(rng_state); }
 
         // Compute norm of random vector
-        double nrm = dnrm2_(&rsize, work, &ione);
+        double nrm = BLAS_FUNC(dnrm2)(&rsize, work, &ione);
 
         // Apply matrix operation: u0 = Op(A) * work
         aprod(transa, m, n, work, u0, dparm, iparm);
 
         // Compute norm of result and estimate operator norm
-        *u0norm = dnrm2_(&usize, u0, &ione);
+        *u0norm = BLAS_FUNC(dnrm2)(&usize, u0, &ione);
         *anormest = *u0norm / nrm;
 
         // Orthogonalize against existing vectors if j >= 1
@@ -131,13 +131,13 @@ void cgetu0(CBLAS_INT transa, CBLAS_INT m, CBLAS_INT n, CBLAS_INT j, CBLAS_INT n
         }
 
         // Compute norm of random vector
-        float nrm = scnrm2_(&rsize, work, &ione);
+        float nrm = BLAS_FUNC(scnrm2)(&rsize, work, &ione);
 
         // Apply matrix operation: u0 = Op(A) * work
         aprod(transa, m, n, work, u0, cparm, iparm);
 
         // Compute norm of result and estimate operator norm
-        *u0norm = scnrm2_(&usize, u0, &ione);
+        *u0norm = BLAS_FUNC(scnrm2)(&usize, u0, &ione);
         *anormest = *u0norm / nrm;
 
         // Orthogonalize against existing vectors if j >= 1
@@ -186,13 +186,13 @@ void zgetu0(CBLAS_INT transa, CBLAS_INT m, CBLAS_INT n, CBLAS_INT j, CBLAS_INT n
         }
 
         // Compute norm of random vector
-        double nrm = dznrm2_(&rsize, work, &ione);
+        double nrm = BLAS_FUNC(dznrm2)(&rsize, work, &ione);
 
         // Apply matrix operation: u0 = Op(A) * work
         aprod(transa, m, n, work, u0, zparm, iparm);
 
         // Compute norm of result and estimate operator norm
-        *u0norm = dznrm2_(&usize, u0, &ione);
+        *u0norm = BLAS_FUNC(dznrm2)(&usize, u0, &ione);
         *anormest = *u0norm / nrm;
 
         // Orthogonalize against existing vectors if j >= 1

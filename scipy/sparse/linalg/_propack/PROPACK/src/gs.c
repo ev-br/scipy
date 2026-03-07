@@ -21,11 +21,11 @@ void smgs(CBLAS_INT n, CBLAS_INT k, float* V, CBLAS_INT ldv, float* vnew, const 
         // Orthogonalize against columns [start, end] (0-indexed)
         for (CBLAS_INT i = start; i <= end; i++) {
             // Compute projection coefficient: coef = V(:,i)' * vnew
-            float coef = sdot_(&n, &V[i * ldv], &ione, vnew, &ione);
+            float coef = BLAS_FUNC(sdot)(&n, &V[i * ldv], &ione, vnew, &ione);
 
             // Orthogonalize: vnew = vnew - coef * V(:,i)
             float neg_coef = -coef;
-            saxpy_(&n, &neg_coef, &V[i * ldv], &ione, vnew, &ione);
+            BLAS_FUNC(saxpy)(&n, &neg_coef, &V[i * ldv], &ione, vnew, &ione);
         }
 
         idx += 2;  // Move to next block
@@ -55,11 +55,11 @@ void dmgs(CBLAS_INT n, CBLAS_INT k, double* V, CBLAS_INT ldv, double* vnew, cons
         // Orthogonalize against columns [start, end] (0-indexed)
         for (CBLAS_INT i = start; i <= end; i++) {
             // Compute projection coefficient: coef = V(:,i)' * vnew
-            double coef = ddot_(&n, &V[i * ldv], &ione, vnew, &ione);
+            double coef = BLAS_FUNC(ddot)(&n, &V[i * ldv], &ione, vnew, &ione);
 
             // Orthogonalize: vnew = vnew - coef * V(:,i)
             double neg_coef = -coef;
-            daxpy_(&n, &neg_coef, &V[i * ldv], &ione, vnew, &ione);
+            BLAS_FUNC(daxpy)(&n, &neg_coef, &V[i * ldv], &ione, vnew, &ione);
         }
 
         idx += 2;  // Move to next block
@@ -84,11 +84,11 @@ void cmgs(CBLAS_INT n, CBLAS_INT k, PROPACK_CPLXF_TYPE* V, CBLAS_INT ldv, PROPAC
         // Orthogonalize against columns [start, end] (0-indexed)
         for (CBLAS_INT i = start; i <= end; i++) {
             // Compute projection coefficient: coef = V(:,i)^H * vnew (conjugate dot product)
-            PROPACK_CPLXF_TYPE coef = cdotc_(&n, &V[i * ldv], &ione, vnew, &ione);
+            PROPACK_CPLXF_TYPE coef = BLAS_FUNC(cdotc)(&n, &V[i * ldv], &ione, vnew, &ione);
 
             // Orthogonalize: vnew = vnew - coef * V(:,i)
             PROPACK_CPLXF_TYPE neg_coef = PROPACK_cplxf(-crealf(coef), -cimagf(coef));
-            caxpy_(&n, &neg_coef, &V[i * ldv], &ione, vnew, &ione);
+            BLAS_FUNC(caxpy)(&n, &neg_coef, &V[i * ldv], &ione, vnew, &ione);
         }
 
         idx += 2;  // Move to next block
@@ -113,11 +113,11 @@ void zmgs(CBLAS_INT n, CBLAS_INT k, PROPACK_CPLX_TYPE* V, CBLAS_INT ldv, PROPACK
         // Orthogonalize against columns [start, end] (0-indexed)
         for (CBLAS_INT i = start; i <= end; i++) {
             // Compute projection coefficient: coef = V(:,i)^H * vnew (conjugate dot product)
-            PROPACK_CPLX_TYPE coef = zdotc_(&n, &V[i * ldv], &ione, vnew, &ione);
+            PROPACK_CPLX_TYPE coef = BLAS_FUNC(zdotc)(&n, &V[i * ldv], &ione, vnew, &ione);
 
             // Orthogonalize: vnew = vnew - coef * V(:,i)
             PROPACK_CPLX_TYPE neg_coef = PROPACK_cplx(-creal(coef), -cimag(coef));
-            zaxpy_(&n, &neg_coef, &V[i * ldv], &ione, vnew, &ione);
+            BLAS_FUNC(zaxpy)(&n, &neg_coef, &V[i * ldv], &ione, vnew, &ione);
         }
 
         idx += 2;  // Move to next block
@@ -146,10 +146,10 @@ void scgs(CBLAS_INT n, CBLAS_INT k, float* V, CBLAS_INT ldv, float* vnew, const 
         CBLAS_INT block_size = end - start + 1;
 
         // Compute all projection coefficients for this block: work = V_block^T * vnew
-        sgemv_("T", &n, &block_size, &one, &V[start * ldv], &ldv, vnew, &ione, &zero, work, &ione);
+        BLAS_FUNC(sgemv)("T", &n, &block_size, &one, &V[start * ldv], &ldv, vnew, &ione, &zero, work, &ione);
 
         // Orthogonalize: vnew = vnew - V_block * work
-        sgemv_("N", &n, &block_size, &neg_one, &V[start * ldv], &ldv, work, &ione, &one, vnew, &ione);
+        BLAS_FUNC(sgemv)("N", &n, &block_size, &neg_one, &V[start * ldv], &ldv, work, &ione, &one, vnew, &ione);
 
         idx += 2;  // Move to next block
         start = indices[idx];
@@ -177,10 +177,10 @@ void dcgs(CBLAS_INT n, CBLAS_INT k, double* V, CBLAS_INT ldv, double* vnew, cons
         CBLAS_INT block_size = end - start + 1;
 
         // Compute all projection coefficients for this block: work = V_block^T * vnew
-        dgemv_("T", &n, &block_size, &one, &V[start * ldv], &ldv, vnew, &ione, &zero, work, &ione);
+        BLAS_FUNC(dgemv)("T", &n, &block_size, &one, &V[start * ldv], &ldv, vnew, &ione, &zero, work, &ione);
 
         // Orthogonalize: vnew = vnew - V_block * work
-        dgemv_("N", &n, &block_size, &neg_one, &V[start * ldv], &ldv, work, &ione, &one, vnew, &ione);
+        BLAS_FUNC(dgemv)("N", &n, &block_size, &neg_one, &V[start * ldv], &ldv, work, &ione, &one, vnew, &ione);
 
         idx += 2;  // Move to next block
         start = indices[idx];
@@ -208,10 +208,10 @@ void ccgs(CBLAS_INT n, CBLAS_INT k, PROPACK_CPLXF_TYPE* V, CBLAS_INT ldv, PROPAC
         CBLAS_INT block_size = end - start + 1;
 
         // Compute all projection coefficients for this block: work = V_block^H * vnew
-        cgemv_("C", &n, &block_size, &one, &V[start * ldv], &ldv, vnew, &ione, &zero, work, &ione);
+        BLAS_FUNC(cgemv)("C", &n, &block_size, &one, &V[start * ldv], &ldv, vnew, &ione, &zero, work, &ione);
 
         // Orthogonalize: vnew = vnew - V_block * work
-        cgemv_("N", &n, &block_size, &neg_one, &V[start * ldv], &ldv, work, &ione, &one, vnew, &ione);
+        BLAS_FUNC(cgemv)("N", &n, &block_size, &neg_one, &V[start * ldv], &ldv, work, &ione, &one, vnew, &ione);
 
         idx += 2;  // Move to next block
         start = indices[idx];
@@ -239,10 +239,10 @@ void zcgs(CBLAS_INT n, CBLAS_INT k, PROPACK_CPLX_TYPE* V, CBLAS_INT ldv, PROPACK
         CBLAS_INT block_size = end - start + 1;
 
         // Compute all projection coefficients for this block: work = V_block^H * vnew
-        zgemv_("C", &n, &block_size, &one, &V[start * ldv], &ldv, vnew, &ione, &zero, work, &ione);
+        BLAS_FUNC(zgemv)("C", &n, &block_size, &one, &V[start * ldv], &ldv, vnew, &ione, &zero, work, &ione);
 
         // Orthogonalize: vnew = vnew - V_block * work
-        zgemv_("N", &n, &block_size, &neg_one, &V[start * ldv], &ldv, work, &ione, &one, vnew, &ione);
+        BLAS_FUNC(zgemv)("N", &n, &block_size, &neg_one, &V[start * ldv], &ldv, work, &ione, &one, vnew, &ione);
 
         idx += 2;  // Move to next block
         start = indices[idx];
@@ -268,7 +268,7 @@ void sreorth(CBLAS_INT n, CBLAS_INT k, float* V, CBLAS_INT ldv, float* vnew, flo
             smgs(n, k, V, ldv, vnew, indices);
         }
 
-        *normvnew = snrm2_(&n, vnew, &ione);
+        *normvnew = BLAS_FUNC(snrm2)(&n, vnew, &ione);
         if (*normvnew > alpha * normvnew_0) { return; }
     }
 
@@ -295,7 +295,7 @@ void dreorth(CBLAS_INT n, CBLAS_INT k, double* V, CBLAS_INT ldv, double* vnew, d
             dmgs(n, k, V, ldv, vnew, indices);
         }
 
-        *normvnew = dnrm2_(&n, vnew, &ione);
+        *normvnew = BLAS_FUNC(dnrm2)(&n, vnew, &ione);
 
         if (*normvnew > alpha * normvnew_0) { return; }
     }
@@ -323,7 +323,7 @@ void creorth(CBLAS_INT n, CBLAS_INT k, PROPACK_CPLXF_TYPE* V, CBLAS_INT ldv, PRO
             cmgs(n, k, V, ldv, vnew, indices);
         }
 
-        *normvnew = scnrm2_(&n, vnew, &ione);
+        *normvnew = BLAS_FUNC(scnrm2)(&n, vnew, &ione);
 
         if (*normvnew > alpha * normvnew_0) { return; }
     }
@@ -351,7 +351,7 @@ void zreorth(CBLAS_INT n, CBLAS_INT k, PROPACK_CPLX_TYPE* V, CBLAS_INT ldv, PROP
             zmgs(n, k, V, ldv, vnew, indices);
         }
 
-        *normvnew = dznrm2_(&n, vnew, &ione);
+        *normvnew = BLAS_FUNC(dznrm2)(&n, vnew, &ione);
 
         if (*normvnew > alpha * normvnew_0) { return; }
     }

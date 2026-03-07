@@ -57,7 +57,7 @@ void slansvd_irl(CBLAS_INT which, CBLAS_INT jobu, CBLAS_INT jobv, CBLAS_INT m, C
     for (i = 0; i < 8 * dim + 3 + 2 * dim * dim; i++) { work[i] = 0.0f; }
 
     // Set up random starting vector if none is provided by the user
-    rnorm = snrm2_(&m, &U[0], &int1);
+    rnorm = BLAS_FUNC(snrm2)(&m, &U[0], &int1);
     if (rnorm == 0.0f)
     {
         sgetu0(0, m, n, 0, 1, &U[0], &rnorm, U, ldu, aprod, dparm, iparm, &ierr, ioption[0], &anorm, &work[iwrk], rng_state);
@@ -77,8 +77,8 @@ void slansvd_irl(CBLAS_INT which, CBLAS_INT jobu, CBLAS_INT jobv, CBLAS_INT m, C
         kold = k;
 
         // Compute and analyze SVD(B) and error bounds
-        scopy_(&dim, &work[ialpha], &int1, &work[ialpha1], &int1);
-        scopy_(&dim, &work[ibeta], &int1, &work[ibeta1], &int1);
+        BLAS_FUNC(scopy)(&dim, &work[ialpha], &int1, &work[ialpha1], &int1);
+        BLAS_FUNC(scopy)(&dim, &work[ibeta], &int1, &work[ibeta1], &int1);
 
         // Zero out bounds array
         for (i = 0; i < dim + 1; i++) { work[ibnd + i] = 0.0f; }
@@ -88,7 +88,7 @@ void slansvd_irl(CBLAS_INT which, CBLAS_INT jobu, CBLAS_INT jobv, CBLAS_INT m, C
               &work[ibnd + dim - 1], &work[ibnd + dim], &work[ip], dim + 1);
 
         // SVD of bidiagonal matrix
-        sbdsqr_("U", &dim, &int0, &int1, &int0, &work[ialpha1], &work[ibeta1], work, &int1,
+        BLAS_FUNC(sbdsqr)("U", &dim, &int0, &int1, &int0, &work[ialpha1], &work[ibeta1], work, &int1,
                 &work[ibnd], &int1, work, &int1, &work[iwrk], &lapinfo);
 
         // Update anorm estimate
@@ -239,8 +239,8 @@ void slansvd_irl(CBLAS_INT which, CBLAS_INT jobu, CBLAS_INT jobv, CBLAS_INT m, C
     // Calculate singular vectors if requested
     if ((nconv >= *neig || *info > 0) && (jobu || jobv))
     {
-        scopy_(&dim, &work[ialpha], &int1, &work[ialpha1], &int1);
-        scopy_(&dim, &work[ibeta], &int1, &work[ibeta1], &int1);
+        BLAS_FUNC(scopy)(&dim, &work[ialpha], &int1, &work[ialpha1], &int1);
+        BLAS_FUNC(scopy)(&dim, &work[ibeta], &int1, &work[ibeta1], &int1);
         lwrk = lwrk + dim * dim + (dim + 1) * (dim + 1);
         sritzvec(which, jobu, jobv, m, n, nconv, dim, &work[ialpha1], &work[ibeta1], U, ldu, V, ldv, &work[ip], lwrk, iwork);
     }
@@ -293,7 +293,7 @@ void dlansvd_irl(CBLAS_INT which, CBLAS_INT jobu, CBLAS_INT jobv, CBLAS_INT m, C
     for (i = 0; i < 8 * dim + 3 + 2 * dim * dim; i++) { work[i] = 0.0; }
 
     // Set up random starting vector if none is provided by the user
-    rnorm = dnrm2_(&m, &U[0], &int1);
+    rnorm = BLAS_FUNC(dnrm2)(&m, &U[0], &int1);
     if (rnorm == 0.0)
     {
         dgetu0(0, m, n, 0, 1, &U[0], &rnorm, U, ldu, aprod, dparm, iparm, &ierr, ioption[0], &anorm, &work[iwrk], rng_state);
@@ -312,8 +312,8 @@ void dlansvd_irl(CBLAS_INT which, CBLAS_INT jobu, CBLAS_INT jobv, CBLAS_INT m, C
         kold = k;
 
         // Compute and analyze SVD(B) and error bounds
-        dcopy_(&dim, &work[ialpha], &int1, &work[ialpha1], &int1);
-        dcopy_(&dim, &work[ibeta], &int1, &work[ibeta1], &int1);
+        BLAS_FUNC(dcopy)(&dim, &work[ialpha], &int1, &work[ialpha1], &int1);
+        BLAS_FUNC(dcopy)(&dim, &work[ibeta], &int1, &work[ibeta1], &int1);
 
         // Zero out bounds array
         for (i = 0; i < dim + 1; i++) { work[ibnd + i] = 0.0; }
@@ -322,7 +322,7 @@ void dlansvd_irl(CBLAS_INT which, CBLAS_INT jobu, CBLAS_INT jobv, CBLAS_INT m, C
         dbdqr((dim == int_min(m, n)), 0, dim, &work[ialpha1], &work[ibeta1], &work[ibnd + dim - 1], &work[ibnd + dim], &work[ip], dim + 1);
 
         // SVD of bidiagonal matrix
-        dbdsqr_("U", &dim, &int0, &int1, &int0, &work[ialpha1], &work[ibeta1], work, &int1, &work[ibnd], &int1, work, &int1, &work[iwrk], &lapinfo);
+        BLAS_FUNC(dbdsqr)("U", &dim, &int0, &int1, &int0, &work[ialpha1], &work[ibeta1], work, &int1, &work[ibnd], &int1, work, &int1, &work[iwrk], &lapinfo);
 
         // Update anorm estimate
         if (dim > 5)
@@ -472,8 +472,8 @@ void dlansvd_irl(CBLAS_INT which, CBLAS_INT jobu, CBLAS_INT jobv, CBLAS_INT m, C
     // Calculate singular vectors if requested
     if ((nconv >= *neig || *info > 0) && (jobu || jobv))
     {
-        dcopy_(&dim, &work[ialpha], &int1, &work[ialpha1], &int1);
-        dcopy_(&dim, &work[ibeta], &int1, &work[ibeta1], &int1);
+        BLAS_FUNC(dcopy)(&dim, &work[ialpha], &int1, &work[ialpha1], &int1);
+        BLAS_FUNC(dcopy)(&dim, &work[ibeta], &int1, &work[ibeta1], &int1);
         lwrk = lwrk + dim * dim + (dim + 1) * (dim + 1);
         dritzvec(which, jobu, jobv, m, n, nconv, dim, &work[ialpha1], &work[ibeta1], U, ldu, V, ldv, &work[ip], lwrk, iwork);
     }
@@ -527,7 +527,7 @@ void clansvd_irl(CBLAS_INT which, CBLAS_INT jobu, CBLAS_INT jobv, CBLAS_INT m, C
     for (i = 0; i < 8 * dim + 3 + 2 * dim * dim; i++) { work[i] = 0.0f; }
 
     // Set up random starting vector if none is provided by the user
-    rnorm = scnrm2_(&m, U, &int1);
+    rnorm = BLAS_FUNC(scnrm2)(&m, U, &int1);
     if (rnorm == 0.0f)
     {
         cgetu0(0, m, n, 0, 1, U, &rnorm, U, ldu, aprod, cparm, iparm, &ierr, ioption[0], &anorm, cwork, rng_state);
@@ -546,8 +546,8 @@ void clansvd_irl(CBLAS_INT which, CBLAS_INT jobu, CBLAS_INT jobv, CBLAS_INT m, C
         kold = k;
 
         // Compute and analyze SVD(B) and error bounds
-        scopy_(&dim, &work[ialpha], &int1, &work[ialpha1], &int1);
-        scopy_(&dim, &work[ibeta], &int1, &work[ibeta1], &int1);
+        BLAS_FUNC(scopy)(&dim, &work[ialpha], &int1, &work[ialpha1], &int1);
+        BLAS_FUNC(scopy)(&dim, &work[ibeta], &int1, &work[ibeta1], &int1);
 
         // Zero out bounds array
         for (i = 0; i < dim + 1; i++) { work[ibnd + i] = 0.0f; }
@@ -556,7 +556,7 @@ void clansvd_irl(CBLAS_INT which, CBLAS_INT jobu, CBLAS_INT jobv, CBLAS_INT m, C
         sbdqr((dim == int_min(m, n)), 0, dim, &work[ialpha1], &work[ibeta1], &work[ibnd + dim - 1], &work[ibnd + dim], &work[ip], dim + 1);
 
         // SVD of bidiagonal matrix
-        sbdsqr_("U", &dim, &int0, &int1, &int0, &work[ialpha1], &work[ibeta1], work, &int1, &work[ibnd], &int1, work, &int1, &work[iwrk], &lapinfo);
+        BLAS_FUNC(sbdsqr)("U", &dim, &int0, &int1, &int0, &work[ialpha1], &work[ibeta1], work, &int1, &work[ibnd], &int1, work, &int1, &work[iwrk], &lapinfo);
 
         // Update anorm estimate
         if (dim > 5)
@@ -703,8 +703,8 @@ void clansvd_irl(CBLAS_INT which, CBLAS_INT jobu, CBLAS_INT jobv, CBLAS_INT m, C
     // Calculate singular vectors if requested
     if ((nconv >= *neig || *info > 0) && (jobu || jobv))
     {
-        scopy_(&dim, &work[ialpha], &int1, &work[ialpha1], &int1);
-        scopy_(&dim, &work[ibeta], &int1, &work[ibeta1], &int1);
+        BLAS_FUNC(scopy)(&dim, &work[ialpha], &int1, &work[ialpha1], &int1);
+        BLAS_FUNC(scopy)(&dim, &work[ibeta], &int1, &work[ibeta1], &int1);
         lwrk = lwrk + dim * dim + (dim + 1) * (dim + 1);
         critzvec(which, jobu, jobv, m, n, nconv, dim, &work[ialpha1], &work[ibeta1], U, ldu, V, ldv, &work[ip], lwrk, cwork, lcwork, iwork);
     }
@@ -758,7 +758,7 @@ void zlansvd_irl(CBLAS_INT which, CBLAS_INT jobu, CBLAS_INT jobv, CBLAS_INT m, C
     for (i = 0; i < 8 * dim + 3 + 2 * dim * dim; i++) { work[i] = 0.0; }
 
     // Set up random starting vector if none is provided by the user
-    rnorm = dznrm2_(&m, U, &int1);
+    rnorm = BLAS_FUNC(dznrm2)(&m, U, &int1);
     if (rnorm == 0.0)
     {
         zgetu0(0, m, n, 0, 1, U, &rnorm, U, ldu, aprod, zparm, iparm, &ierr, ioption[0], &anorm, zwork, rng_state);
@@ -777,8 +777,8 @@ void zlansvd_irl(CBLAS_INT which, CBLAS_INT jobu, CBLAS_INT jobv, CBLAS_INT m, C
         kold = k;
 
         // Compute and analyze SVD(B) and error bounds
-        dcopy_(&dim, &work[ialpha], &int1, &work[ialpha1], &int1);
-        dcopy_(&dim, &work[ibeta], &int1, &work[ibeta1], &int1);
+        BLAS_FUNC(dcopy)(&dim, &work[ialpha], &int1, &work[ialpha1], &int1);
+        BLAS_FUNC(dcopy)(&dim, &work[ibeta], &int1, &work[ibeta1], &int1);
 
         // Zero out bounds array
         for (i = 0; i < dim + 1; i++) { work[ibnd + i] = 0.0; }
@@ -787,7 +787,7 @@ void zlansvd_irl(CBLAS_INT which, CBLAS_INT jobu, CBLAS_INT jobv, CBLAS_INT m, C
         dbdqr((dim == int_min(m, n)), 0, dim, &work[ialpha1], &work[ibeta1], &work[ibnd + dim - 1], &work[ibnd + dim], &work[ip], dim + 1);
 
         // SVD of bidiagonal matrix
-        dbdsqr_("U", &dim, &int0, &int1, &int0, &work[ialpha1], &work[ibeta1], work, &int1, &work[ibnd], &int1, work, &int1, &work[iwrk], &lapinfo);
+        BLAS_FUNC(dbdsqr)("U", &dim, &int0, &int1, &int0, &work[ialpha1], &work[ibeta1], work, &int1, &work[ibnd], &int1, work, &int1, &work[iwrk], &lapinfo);
 
         // Update anorm estimate
         if (dim > 5)
@@ -937,8 +937,8 @@ void zlansvd_irl(CBLAS_INT which, CBLAS_INT jobu, CBLAS_INT jobv, CBLAS_INT m, C
     // Calculate singular vectors if requested
     if ((nconv >= *neig || *info > 0) && (jobu || jobv))
     {
-        dcopy_(&dim, &work[ialpha], &int1, &work[ialpha1], &int1);
-        dcopy_(&dim, &work[ibeta], &int1, &work[ibeta1], &int1);
+        BLAS_FUNC(dcopy)(&dim, &work[ialpha], &int1, &work[ialpha1], &int1);
+        BLAS_FUNC(dcopy)(&dim, &work[ibeta], &int1, &work[ibeta1], &int1);
         lwrk = lwrk + dim * dim + (dim + 1) * (dim + 1);
         zritzvec(which, jobu, jobv, m, n, nconv, dim, &work[ialpha1], &work[ibeta1], U, ldu, V, ldv, &work[ip], lwrk, zwork, lzwork, iwork);
     }
