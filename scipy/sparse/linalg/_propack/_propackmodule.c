@@ -257,12 +257,13 @@ propack_slansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
 {
 
     CBLAS_INT jobu, jobv, k, kmax, m, n, propack_info;
+    Py_ssize_t jobu_, jobv_, k_, kmax_, m_, n_;
     float tol;
     PyObject* py_aprod;
     PyArrayObject *U, *V, *sigma, *bnd, *work, *iwork, *doption, *ioption, *dparm, *iparm, *ap_rng_state;
 
-    if (!PyArg_ParseTuple(args, "iiiiiifOO!O!O!O!O!O!O!O!O!O!O!",
-                          &jobu, &jobv, &m, &n, &k, &kmax,                       // iiiiii
+    if (!PyArg_ParseTuple(args, "nnnnnnfOO!O!O!O!O!O!O!O!O!O!O!",
+                          &jobu_, &jobv_, &m_, &n_, &k_, &kmax_,                 // iiiiii
                           &tol,                                                  // f
                           &py_aprod,                                             // O
                           &PyArray_Type, &U,                                     // O!
@@ -281,8 +282,14 @@ propack_slansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
         return NULL;
     }
 
-    if (!PyCallable_Check(py_aprod)) {PyErr_SetString(PyExc_TypeError, "scipy.sparse.linalg: Callback argument must be a callable."); return NULL; }
+    jobu = (CBLAS_INT)jobu_;
+    jobv = (CBLAS_INT)jobv_;
+    k = (CBLAS_INT)k_;
+    kmax = (CBLAS_INT)kmax_;
+    m = (CBLAS_INT)m_;
+    n = (CBLAS_INT)n_;
 
+    if (!PyCallable_Check(py_aprod)) {PyErr_SetString(PyExc_TypeError, "scipy.sparse.linalg: Callback argument must be a callable."); return NULL; }
     propack_callback_t aprod_callback;
     aprod_callback.py_func = py_aprod;
     Py_XINCREF(py_aprod);
@@ -319,7 +326,7 @@ propack_slansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
     current_propack_callback = NULL;
     Py_XDECREF(py_aprod);
     Py_XDECREF(args_tuple);
-    return Py_BuildValue("i", propack_info);
+    return Py_BuildValue("n", (Py_ssize_t)propack_info);
 
 }
 
@@ -328,13 +335,14 @@ static PyObject*
 propack_dlansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
 {
 
+    Py_ssize_t jobu_, jobv_, k_, kmax_, m_, n_; 
     CBLAS_INT jobu, jobv, k, kmax, m, n, propack_info;
     double tol;
     PyObject* py_aprod;
     PyArrayObject *U, *V, *sigma, *bnd, *work, *iwork, *doption, *ioption, *dparm, *iparm, *ap_rng_state;
 
-    if (!PyArg_ParseTuple(args, "iiiiiidOO!O!O!O!O!O!O!O!O!O!O!",
-                          &jobu, &jobv, &m, &n, &k, &kmax,                       // iiiiii
+    if (!PyArg_ParseTuple(args, "nnnnnndOO!O!O!O!O!O!O!O!O!O!O!",
+                          &jobu_, &jobv_, &m_, &n_, &k_, &kmax_,                 // iiiiii
                           &tol,                                                  // d
                           &py_aprod,                                             // O
                           &PyArray_Type, &U,                                     // O!
@@ -352,6 +360,13 @@ propack_dlansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
     {
         return NULL;
     }
+
+    jobu = (CBLAS_INT)jobu_;
+    jobv = (CBLAS_INT)jobv_;
+    k = (CBLAS_INT)k_;
+    kmax = (CBLAS_INT)kmax_;
+    m = (CBLAS_INT)m_;
+    n = (CBLAS_INT)n_;
 
     if (!PyCallable_Check(py_aprod)) {PyErr_SetString(PyExc_TypeError, "scipy.sparse.linalg: Callback argument must be a callable."); return NULL; }
     propack_callback_t aprod_callback;
@@ -389,7 +404,7 @@ propack_dlansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
     current_propack_callback = NULL;
     Py_XDECREF(py_aprod);
     Py_XDECREF(args_tuple);
-    return Py_BuildValue("i", propack_info);
+    return Py_BuildValue("n", (Py_ssize_t)propack_info);
 
 }
 
@@ -397,14 +412,14 @@ propack_dlansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
 static PyObject*
 propack_clansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
 {
-
+    Py_ssize_t jobu_, jobv_, k_, kmax_, m_, n_; 
     CBLAS_INT jobu, jobv, k, kmax, m, n, propack_info;
     float tol;
     PyObject* py_aprod;
     PyArrayObject *U, *V, *sigma, *bnd, *work, *cwork, *iwork, *doption, *ioption, *dparm, *iparm, *ap_rng_state;
 
-    if (!PyArg_ParseTuple(args, "iiiiiifOO!O!O!O!O!O!O!O!O!O!O!O!",
-                          &jobu, &jobv, &m, &n, &k, &kmax,                       // iiiiii
+    if (!PyArg_ParseTuple(args, "nnnnnnfOO!O!O!O!O!O!O!O!O!O!O!O!",
+                          &jobu_, &jobv_, &m_, &n_, &k_, &kmax_,                 // iiiiii
                           &tol,                                                  // f
                           &py_aprod,                                             // O
                           &PyArray_Type, &U,                                     // O!
@@ -423,6 +438,13 @@ propack_clansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
     {
         return NULL;
     }
+
+    jobu = (CBLAS_INT)jobu_;
+    jobv = (CBLAS_INT)jobv_;
+    k = (CBLAS_INT)k_;
+    kmax = (CBLAS_INT)kmax_;
+    m = (CBLAS_INT)m_;
+    n = (CBLAS_INT)n_;
 
     if (!PyCallable_Check(py_aprod)) {PyErr_SetString(PyExc_TypeError, "scipy.sparse.linalg: Callback argument must be a callable."); return NULL; }
     propack_callback_t aprod_callback;
@@ -461,7 +483,7 @@ propack_clansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
     current_propack_callback = NULL;
     Py_XDECREF(py_aprod);
     Py_XDECREF(args_tuple);
-    return Py_BuildValue("i", propack_info);
+    return Py_BuildValue("n", (Py_ssize_t)propack_info);
 
 }
 
@@ -470,13 +492,14 @@ static PyObject*
 propack_zlansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
 {
 
+    Py_ssize_t jobu_, jobv_, k_, kmax_, m_, n_;
     CBLAS_INT jobu, jobv, k, kmax, m, n, propack_info;
     double tol;
     PyObject* py_aprod;
     PyArrayObject *U, *V, *sigma, *bnd, *work, *cwork, *iwork, *doption, *ioption, *dparm, *iparm, *ap_rng_state;
 
-    if (!PyArg_ParseTuple(args, "iiiiiidOO!O!O!O!O!O!O!O!O!O!O!O!",
-                          &jobu, &jobv, &m, &n, &k, &kmax,                       // iiiiii
+    if (!PyArg_ParseTuple(args, "nnnnnndOO!O!O!O!O!O!O!O!O!O!O!O!",
+                          &jobu_, &jobv_, &m_, &n_, &k_, &kmax_,                 // iiiiii
                           &tol,                                                  // d
                           &py_aprod,                                             // O
                           &PyArray_Type, &U,                                     // O!
@@ -495,6 +518,13 @@ propack_zlansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
     {
         return NULL;
     }
+
+    jobu = (CBLAS_INT)jobu_;
+    jobv = (CBLAS_INT)jobv_;
+    k = (CBLAS_INT)k_;
+    kmax = (CBLAS_INT)kmax_;
+    m = (CBLAS_INT)m_;
+    n = (CBLAS_INT)n_;
 
     if (!PyCallable_Check(py_aprod)) {PyErr_SetString(PyExc_TypeError, "scipy.sparse.linalg: Callback argument must be a callable."); return NULL; }
     propack_callback_t aprod_callback;
@@ -533,7 +563,7 @@ propack_zlansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
     current_propack_callback = NULL;
     Py_XDECREF(py_aprod);
     Py_XDECREF(args_tuple);
-    return Py_BuildValue("i", propack_info);
+    return Py_BuildValue("n", (Py_ssize_t)propack_info);
 
 }
 
@@ -543,13 +573,14 @@ static PyObject*
 propack_slansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args)
 {
 
+    Py_ssize_t which_, jobu_, jobv_, m_, n_, shifts_, neig_, maxiter_;
     CBLAS_INT which, jobu, jobv, m, n, shifts, neig, maxiter, propack_info;
     float tol;
     PyObject* py_aprod;
     PyArrayObject *U, *sigma, *bnd, *V, *work, *iwork, *doption, *ioption, *sparm, *iparm, *ap_rng_state;
 
     if (!PyArg_ParseTuple(args, "iiiiiiiifOO!O!O!O!O!O!O!O!O!O!O!",
-                         &which, &jobu, &jobv, &m, &n, &shifts, &neig, &maxiter, &tol,
+                         &which_, &jobu_, &jobv_, &m_, &n_, &shifts_, &neig_, &maxiter_, &tol,
                          &py_aprod,
                          &PyArray_Type, &U,
                          &PyArray_Type, &sigma,
@@ -564,6 +595,15 @@ propack_slansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args)
                          &PyArray_Type, &ap_rng_state)) {
         return NULL;
     }
+
+    which = (CBLAS_INT)which_;
+    jobu = (CBLAS_INT)jobu_;
+    jobv = (CBLAS_INT)jobv_;
+    shifts = (CBLAS_INT)shifts_;
+    neig = (CBLAS_INT)neig_;
+    maxiter = (CBLAS_INT)maxiter_;
+    m = (CBLAS_INT)m_;
+    n = (CBLAS_INT)n_;
 
     if (!PyCallable_Check(py_aprod)) {PyErr_SetString(PyExc_TypeError, "scipy.sparse.linalg: Callback argument must be a callable."); return NULL; }
     CBLAS_INT dim = shifts + neig;
@@ -606,7 +646,7 @@ propack_slansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args)
     current_propack_callback = NULL;
     Py_XDECREF(py_aprod);
     Py_XDECREF(args_tuple);
-    return Py_BuildValue("i", propack_info);
+    return Py_BuildValue("n", (Py_ssize_t)propack_info);
 
 }
 
@@ -615,13 +655,14 @@ static PyObject*
 propack_dlansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args)
 {
 
+    Py_ssize_t which_, jobu_, jobv_, m_, n_, shifts_, neig_, maxiter_;
     CBLAS_INT which, jobu, jobv, m, n, shifts, neig, maxiter, propack_info;
     double tol;
     PyObject* py_aprod;
     PyArrayObject *U, *sigma, *bnd, *V, *work, *iwork, *doption, *ioption, *sparm, *iparm, *ap_rng_state;
 
-    if (!PyArg_ParseTuple(args, "iiiiiiiidOO!O!O!O!O!O!O!O!O!O!O!",
-                         &which, &jobu, &jobv, &m, &n, &shifts, &neig, &maxiter, &tol,
+    if (!PyArg_ParseTuple(args, "nnnnnnnndOO!O!O!O!O!O!O!O!O!O!O!",
+                         &which_, &jobu_, &jobv_, &m_, &n_, &shifts_, &neig_, &maxiter_, &tol,
                          &py_aprod,
                          &PyArray_Type, &U,
                          &PyArray_Type, &sigma,
@@ -636,6 +677,15 @@ propack_dlansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args)
                          &PyArray_Type, &ap_rng_state)) {
         return NULL;
     }
+
+    which = (CBLAS_INT)which_;
+    jobu = (CBLAS_INT)jobu_;
+    jobv = (CBLAS_INT)jobv_;
+    shifts = (CBLAS_INT)shifts_;
+    neig = (CBLAS_INT)neig_;
+    maxiter = (CBLAS_INT)maxiter_;
+    m = (CBLAS_INT)m_;
+    n = (CBLAS_INT)n_;
 
     if (!PyCallable_Check(py_aprod)) {PyErr_SetString(PyExc_TypeError, "scipy.sparse.linalg: Callback argument must be a callable."); return NULL; }
     CBLAS_INT dim = shifts + neig;
@@ -677,7 +727,7 @@ propack_dlansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args)
     current_propack_callback = NULL;
     Py_XDECREF(py_aprod);
     Py_XDECREF(args_tuple);
-    return Py_BuildValue("i", propack_info);
+    return Py_BuildValue("n", (Py_ssize_t)propack_info);
 
 }
 
@@ -686,13 +736,14 @@ propack_dlansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args)
 static PyObject*
 propack_clansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args) {
 
+    Py_ssize_t which_, jobu_, jobv_, m_, n_, shifts_, neig_, maxiter_;
     CBLAS_INT which, jobu, jobv, m, n, shifts, neig, maxiter, propack_info;
     float tol;
     PyObject* py_aprod;
     PyArrayObject *U, *sigma, *bnd, *V, *work, *cwork, *iwork, *doption, *ioption, *cparm, *iparm, *ap_rng_state;
 
-    if (!PyArg_ParseTuple(args, "iiiiiiiifOO!O!O!O!O!O!O!O!O!O!O!O!",
-                         &which, &jobu, &jobv, &m, &n, &shifts, &neig, &maxiter, &tol,
+    if (!PyArg_ParseTuple(args, "nnnnnnnnfOO!O!O!O!O!O!O!O!O!O!O!O!",
+                         &which_, &jobu_, &jobv_, &m_, &n_, &shifts_, &neig_, &maxiter_, &tol,
                          &py_aprod,
                          &PyArray_Type, &U,
                          &PyArray_Type, &sigma,
@@ -708,6 +759,15 @@ propack_clansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args) {
                          &PyArray_Type, &ap_rng_state)) {
         return NULL;
     }
+
+    which = (CBLAS_INT)which_;
+    jobu = (CBLAS_INT)jobu_;
+    jobv = (CBLAS_INT)jobv_;
+    shifts = (CBLAS_INT)shifts_;
+    neig = (CBLAS_INT)neig_;
+    maxiter = (CBLAS_INT)maxiter_;
+    m = (CBLAS_INT)m_;
+    n = (CBLAS_INT)n_;
 
     if (!PyCallable_Check(py_aprod)) {PyErr_SetString(PyExc_TypeError, "scipy.sparse.linalg: Callback argument must be a callable."); return NULL; }
     CBLAS_INT dim = shifts + neig;
@@ -751,7 +811,7 @@ propack_clansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args) {
     current_propack_callback = NULL;
     Py_XDECREF(py_aprod);
     Py_XDECREF(args_tuple);
-    return Py_BuildValue("i", propack_info);
+    return Py_BuildValue("n", (Py_ssize_t)propack_info);
 }
 
 
@@ -759,13 +819,14 @@ propack_clansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args) {
 static PyObject*
 propack_zlansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args) {
 
+    Py_ssize_t which_, jobu_, jobv_, m_, n_, shifts_, neig_, maxiter_; 
     CBLAS_INT which, jobu, jobv, m, n, shifts, neig, maxiter, propack_info;
     double tol;
     PyObject* py_aprod;
     PyArrayObject *U, *sigma, *bnd, *V, *work, *cwork, *iwork, *doption, *ioption, *zparm, *iparm, *ap_rng_state;
 
-    if (!PyArg_ParseTuple(args, "iiiiiiiidOO!O!O!O!O!O!O!O!O!O!O!O!",
-                         &which, &jobu, &jobv, &m, &n, &shifts, &neig, &maxiter, &tol,
+    if (!PyArg_ParseTuple(args, "nnnnnnnndOO!O!O!O!O!O!O!O!O!O!O!O!",
+                         &which_, &jobu_, &jobv_, &m_, &n_, &shifts_, &neig_, &maxiter_, &tol,
                          &py_aprod,
                          &PyArray_Type, &U,
                          &PyArray_Type, &sigma,
@@ -781,6 +842,15 @@ propack_zlansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args) {
                          &PyArray_Type, &ap_rng_state)) {
         return NULL;
     }
+
+    which = (CBLAS_INT)which_;
+    jobu = (CBLAS_INT)jobu_;
+    jobv = (CBLAS_INT)jobv_;
+    shifts = (CBLAS_INT)shifts_;
+    neig = (CBLAS_INT)neig_;
+    maxiter = (CBLAS_INT)maxiter_;
+    m = (CBLAS_INT)m_;
+    n = (CBLAS_INT)n_;
 
     if (!PyCallable_Check(py_aprod)) {PyErr_SetString(PyExc_TypeError, "scipy.sparse.linalg: Callback argument must be a callable."); return NULL; }
     CBLAS_INT dim = shifts + neig;
@@ -824,7 +894,7 @@ propack_zlansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args) {
     current_propack_callback = NULL;
     Py_XDECREF(py_aprod);
     Py_XDECREF(args_tuple);
-    return Py_BuildValue("i", propack_info);
+    return Py_BuildValue("n", (Py_ssize_t)propack_info);
 }
 
 
