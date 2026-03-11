@@ -493,3 +493,17 @@ def get_blas_funcs(names, arrays=(), dtype=None, ilp64=False):
         return _get_funcs(names, arrays, dtype,
                           "BLAS", _fblas_64, None, "fblas_64", None,
                           _blas_alias, ilp64=True)
+
+
+import functools
+
+# block the wrappers
+for name, obj in list(globals().items()):
+    if name[0] in 'sdcz' and not name.startswith('_'):
+
+        @functools.wraps(obj)
+        def _wrapper(*args, __n=name, **kwds):
+            raise ValueError(f"{__n} call")
+
+        globals()[name] = _wrapper
+
