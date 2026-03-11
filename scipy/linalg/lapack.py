@@ -1143,14 +1143,14 @@ def _ensure_aligned_and_native(a, overwrite_a):
     return a, overwrite_a
 
 
-import functools
+import functools as _functools
 
 # block the wrappers
-for name, obj in list(globals().items()):
-    if name[0] in 'sdcz' and not name.startswith('_'):
+for _name, _obj in list(globals().items()):
+    if _name[0] in 'sdcz' and not _name.startswith('_'):
 
-        @functools.wraps(obj)
-        def _wrapper(*args, __n=name, **kwds):
+        @_functools.wraps(_obj)
+        def _wrapper(*args, __n=_name, **kwds):
             raise ValueError(f"{__n} call")
 
-        globals()[name] = _wrapper
+        globals()[_name] = _wrapper
