@@ -960,16 +960,21 @@ def get_lapack_funcs(names, arrays=(), dtype=None, ilp64="preferred"):
     funcs : list
         List containing the found function(s).
 
+    Raises
+    ------
+    RuntimeError
+        If the requested LP64/ILP64 variant is not available.
+
+    See Also
+    --------
+    get_blas_funcs : a similar routine for selecting BLAS functions.
+
     Notes
     -----
-    This routine automatically chooses between Fortran/C
-    interfaces. Fortran code is used whenever possible for arrays with
-    column major order. In all other cases, C code is preferred.
-
     In LAPACK, the naming convention is that all functions start with a
     type prefix, which depends on the type of the principal
-    matrix. These can be one of {'s', 'd', 'c', 'z'} for the NumPy
-    types {float32, float64, complex64, complex128} respectively, and
+    matrix. These can be one of ``{'s', 'd', 'c', 'z'}`` for the NumPy
+    types ``{float32, float64, complex64, complex128}`` respectively, and
     are stored in attribute ``typecode`` of the returned functions.
 
     Examples
@@ -982,13 +987,27 @@ def get_lapack_funcs(names, arrays=(), dtype=None, ilp64="preferred"):
     >>> import scipy.linalg as LA
     >>> rng = np.random.default_rng()
 
-    >>> a = rng.random((3,2))
+    >>> a = rng.random((3, 2))
     >>> x_lange = LA.get_lapack_funcs('lange', (a,))
     >>> x_lange.typecode
     'd'
-    >>> x_lange = LA.get_lapack_funcs('lange',(a*1j,))
+    >>> x_lange = LA.get_lapack_funcs('lange', (a*1j,))
     >>> x_lange.typecode
     'z'
+
+    If you want to select a specific BLAS variant instead of relying on array types, use
+    the ``dtype=`` argument:
+
+    >>> LA.get_lapack_funcs('lange', dtype=np.float32)
+    <fortran function slange>
+
+    The ``int_dtype`` attribute stores whether the routine is ILP64 (integer arguments
+    and outputs are 64-bit) or LP64 (integer arguments and outputs are 32-bit):
+
+    >>> x_lange.int_dtype
+    dtype('int32')   # may vary
+
+    **Work size computations**
 
     Several LAPACK routines work best when its internal WORK array has
     the optimal size (big enough for fast computation and small enough to
