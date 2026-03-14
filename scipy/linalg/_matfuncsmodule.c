@@ -121,8 +121,8 @@ recursive_schur_sqrtm(PyObject* Py_UNUSED(dummy), PyObject *args) {
         free(mem_ret);
         Py_INCREF(Py_None);
         return Py_BuildValue(
-            "Nnnn", Py_None, (Py_ssize_t)isIllconditioned,
-            (Py_ssize_t)isSingular, (Py_ssize_t)info
+            "Niin", Py_None, isIllconditioned,
+            isSingular, (Py_ssize_t)info
         );
     }
 
@@ -137,7 +137,7 @@ recursive_schur_sqrtm(PyObject* Py_UNUSED(dummy), PyObject *args) {
             PYERR(matfuncs_error, "scipy.linalg._matfuncs:sqrtm: Memory reallocation failed.");
         }
         mem_ret = new_ret;
-        ap_ret = (PyArrayObject*)PyArray_SimpleNewFromData((int)ndim, shape, (int)input_type, mem_ret);
+        ap_ret = (PyArrayObject*)PyArray_SimpleNewFromData(ndim, shape, input_type, mem_ret);
         if (ap_ret == NULL) {
             free(mem_ret);
             PYERR(matfuncs_error, "scipy.linalg._matfuncs:sqrtm: Failed to create numpy array from data.");
@@ -145,14 +145,14 @@ recursive_schur_sqrtm(PyObject* Py_UNUSED(dummy), PyObject *args) {
     } else if ((input_type == NPY_FLOAT32) || (input_type == NPY_FLOAT64)) {
         // Input was real, result is complex, then view the result as complex
         int new_type = (PyArray_TYPE(ap_Am) == NPY_FLOAT32 ? NPY_COMPLEX64 : NPY_COMPLEX128);
-        ap_ret = (PyArrayObject*)PyArray_SimpleNewFromData((int)ndim, shape, (int)new_type, mem_ret);
+        ap_ret = (PyArrayObject*)PyArray_SimpleNewFromData(ndim, shape, new_type, mem_ret);
         if (ap_ret == NULL) {
             free(mem_ret);
             PYERR(matfuncs_error, "scipy.linalg._matfuncs:sqrtm: Failed to create numpy array from data.");
         }
     } else {
         // Input was complex, result is complex, only reshape
-        ap_ret = (PyArrayObject*)PyArray_SimpleNewFromData((int)ndim, shape, PyArray_TYPE(ap_Am), mem_ret);
+        ap_ret = (PyArrayObject*)PyArray_SimpleNewFromData(ndim, shape, PyArray_TYPE(ap_Am), mem_ret);
         if (ap_ret == NULL) {
             free(mem_ret);
             PYERR(matfuncs_error, "scipy.linalg._matfuncs:sqrtm: Failed to create numpy array from data.");
@@ -175,8 +175,8 @@ recursive_schur_sqrtm(PyObject* Py_UNUSED(dummy), PyObject *args) {
 
     // Return the result
     return Py_BuildValue(
-        "Nnnn", PyArray_Return(ap_ret), (Py_ssize_t)isIllconditioned,
-        (Py_ssize_t)isSingular, (Py_ssize_t)info
+        "Niin", PyArray_Return(ap_ret), isIllconditioned,
+        isSingular, (Py_ssize_t)info
     );
 }
 
@@ -248,7 +248,7 @@ matrix_exponential(PyObject* Py_UNUSED(dummy), PyObject *args) {
         return Py_BuildValue("Nn", Py_None, (Py_ssize_t)info);
     }
 
-    PyArrayObject* ap_ret = (PyArrayObject*)PyArray_SimpleNewFromData((int)ndim, shape, (int)input_type, mem_ret);
+    PyArrayObject* ap_ret = (PyArrayObject*)PyArray_SimpleNewFromData(ndim, shape, input_type, mem_ret);
     if (ap_ret == NULL) {
         free(mem_ret);
         PYERR(matfuncs_error, "scipy.linalg._matfuncs:expm: Failed to create numpy array from data.");
