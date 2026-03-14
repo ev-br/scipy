@@ -3,8 +3,8 @@
 #include "lanbpro.h"
 
 
-static inline PROPACK_INT int_min(const PROPACK_INT a, const PROPACK_INT b) { return a < b ? a : b; }
-static inline PROPACK_INT int_max(const PROPACK_INT a, const PROPACK_INT b) { return a > b ? a : b; }
+static inline CBLAS_INT int_min(const CBLAS_INT a, const CBLAS_INT b) { return a < b ? a : b; }
+static inline CBLAS_INT int_max(const CBLAS_INT a, const CBLAS_INT b) { return a > b ? a : b; }
 
 
 /**
@@ -14,12 +14,12 @@ static inline PROPACK_INT int_max(const PROPACK_INT a, const PROPACK_INT b) { re
  * @param alpha The scaling factor.
  * @param x The vector to be scaled.
  */
-static void ssafescal(PROPACK_INT n, float alpha, float* x)
+static void ssafescal(CBLAS_INT n, float alpha, float* x)
 {
     // Scale the vector x by 1/alpha avoiding unnecessary under- and overflow.
     static float sfmin = FLT_MIN;
-    PROPACK_INT ione = 1;
-    PROPACK_INT info;
+    CBLAS_INT ione = 1;
+    CBLAS_INT info;
 
     if (fabsf(alpha) >= sfmin) {
         float inv_alpha = 1.0f / alpha;
@@ -39,12 +39,12 @@ static void ssafescal(PROPACK_INT n, float alpha, float* x)
  * @param alpha The scaling factor.
  * @param x The vector to be scaled.
  */
-void dsafescal(PROPACK_INT n, double alpha, double* x)
+void dsafescal(CBLAS_INT n, double alpha, double* x)
 {
     // Scale the vector x by 1/alpha avoiding unnecessary under- and overflow.
     static double sfmin = DBL_MIN;
-    PROPACK_INT ione = 1;
-    PROPACK_INT info;
+    CBLAS_INT ione = 1;
+    CBLAS_INT info;
 
     if (fabs(alpha) >= sfmin) {
         double inv_alpha = 1.0 / alpha;
@@ -64,12 +64,12 @@ void dsafescal(PROPACK_INT n, double alpha, double* x)
  * @param alpha The scaling factor.
  * @param x The complex vector to be scaled.
  */
-void csafescal(PROPACK_INT n, float alpha, PROPACK_CPLXF_TYPE* x)
+void csafescal(CBLAS_INT n, float alpha, PROPACK_CPLXF_TYPE* x)
 {
     // Scale the complex vector x by 1/alpha avoiding unnecessary under- and overflow.
     static float sfmin = FLT_MIN;
-    PROPACK_INT ione = 1;
-    PROPACK_INT info;
+    CBLAS_INT ione = 1;
+    CBLAS_INT info;
 
     if (fabsf(alpha) >= sfmin) {
         float inv_alpha = 1.0f / alpha;
@@ -89,12 +89,12 @@ void csafescal(PROPACK_INT n, float alpha, PROPACK_CPLXF_TYPE* x)
  * @param alpha The scaling factor.
  * @param x The complex vector to be scaled.
  */
-void zsafescal(PROPACK_INT n, double alpha, PROPACK_CPLX_TYPE* x)
+void zsafescal(CBLAS_INT n, double alpha, PROPACK_CPLX_TYPE* x)
 {
     // Scale the complex vector x by 1/alpha avoiding unnecessary under- and overflow.
     static double sfmin = DBL_MIN;
-    PROPACK_INT ione = 1;
-    PROPACK_INT info;
+    CBLAS_INT ione = 1;
+    CBLAS_INT info;
 
     if (fabs(alpha) >= sfmin) {
         double inv_alpha = 1.0 / alpha;
@@ -107,10 +107,10 @@ void zsafescal(PROPACK_INT n, double alpha, PROPACK_CPLX_TYPE* x)
 }
 
 
-void slanbpro(PROPACK_INT m, PROPACK_INT n, PROPACK_INT k0, PROPACK_INT* k, PROPACK_aprod_s aprod,
-              float* U, PROPACK_INT ldu, float* V, PROPACK_INT ldv, float* B, PROPACK_INT ldb,
-              float* rnorm, float* doption, PROPACK_INT* ioption, float* work, PROPACK_INT* iwork,
-              float* dparm, PROPACK_INT* iparm, PROPACK_INT* ierr, uint64_t* rng_state)
+void slanbpro(CBLAS_INT m, CBLAS_INT n, CBLAS_INT k0, CBLAS_INT* k, PROPACK_aprod_s aprod,
+              float* U, CBLAS_INT ldu, float* V, CBLAS_INT ldv, float* B, CBLAS_INT ldb,
+              float* rnorm, float* doption, CBLAS_INT* ioption, float* work, CBLAS_INT* iwork,
+              float* dparm, CBLAS_INT* iparm, CBLAS_INT* ierr, uint64_t* rng_state)
 {
 
     // Constants
@@ -124,10 +124,10 @@ void slanbpro(PROPACK_INT m, PROPACK_INT n, PROPACK_INT k0, PROPACK_INT* k, PROP
     const float epsn2 = sqrtf((float)int_max(m, n)) * eps;
 
     // Local variables
-    PROPACK_INT i, j, inu, imu, is, iidx, j0;
+    CBLAS_INT i, j, inu, imu, is, iidx, j0;
     float s, mumax, numax, alpha, beta, a1, b1, amax, anormest;
     int force_reorth, full_reorth;
-    PROPACK_INT ione = 1;
+    CBLAS_INT ione = 1;
 
     // Set default parameters
     float delta, eta, anorm;
@@ -495,10 +495,10 @@ void slanbpro(PROPACK_INT m, PROPACK_INT n, PROPACK_INT k0, PROPACK_INT* k, PROP
 }
 
 
-void dlanbpro(PROPACK_INT m, PROPACK_INT n, PROPACK_INT k0, PROPACK_INT* k, PROPACK_aprod_d aprod,
-              double* U, PROPACK_INT ldu, double* V, PROPACK_INT ldv, double* B, PROPACK_INT ldb,
-              double* rnorm, double* doption, PROPACK_INT* ioption, double* work, PROPACK_INT* iwork,
-              double* dparm, PROPACK_INT* iparm, PROPACK_INT* ierr, uint64_t* rng_state) {
+void dlanbpro(CBLAS_INT m, CBLAS_INT n, CBLAS_INT k0, CBLAS_INT* k, PROPACK_aprod_d aprod,
+              double* U, CBLAS_INT ldu, double* V, CBLAS_INT ldv, double* B, CBLAS_INT ldb,
+              double* rnorm, double* doption, CBLAS_INT* ioption, double* work, CBLAS_INT* iwork,
+              double* dparm, CBLAS_INT* iparm, CBLAS_INT* ierr, uint64_t* rng_state) {
 
     // Constants
     const double FUDGE = 1.01;
@@ -511,10 +511,10 @@ void dlanbpro(PROPACK_INT m, PROPACK_INT n, PROPACK_INT k0, PROPACK_INT* k, PROP
     const double epsn2 = sqrt((double)int_max(m, n)) * eps;
 
     // Local variables
-    PROPACK_INT i, j, inu, imu, is, iidx, j0;
+    CBLAS_INT i, j, inu, imu, is, iidx, j0;
     double s, mumax, numax, alpha, beta, a1, b1, amax, anormest;
     int force_reorth, full_reorth;
-    PROPACK_INT ione = 1;
+    CBLAS_INT ione = 1;
 
     // Set default parameters
     double delta, eta, anorm;
@@ -881,10 +881,10 @@ void dlanbpro(PROPACK_INT m, PROPACK_INT n, PROPACK_INT k0, PROPACK_INT* k, PROP
 
 
 void clanbpro(
-    PROPACK_INT m, PROPACK_INT n, PROPACK_INT k0, PROPACK_INT* k, PROPACK_aprod_c aprod, PROPACK_CPLXF_TYPE* U, PROPACK_INT ldu,
-    PROPACK_CPLXF_TYPE* V, PROPACK_INT ldv, float* B, PROPACK_INT ldb, float* rnorm, float* soption,
-    PROPACK_INT* ioption, float* swork, PROPACK_CPLXF_TYPE* cwork, PROPACK_INT* iwork, PROPACK_CPLXF_TYPE* cparm,
-    PROPACK_INT* iparm, PROPACK_INT* ierr, uint64_t* rng_state)
+    CBLAS_INT m, CBLAS_INT n, CBLAS_INT k0, CBLAS_INT* k, PROPACK_aprod_c aprod, PROPACK_CPLXF_TYPE* U, CBLAS_INT ldu,
+    PROPACK_CPLXF_TYPE* V, CBLAS_INT ldv, float* B, CBLAS_INT ldb, float* rnorm, float* soption,
+    CBLAS_INT* ioption, float* swork, PROPACK_CPLXF_TYPE* cwork, CBLAS_INT* iwork, PROPACK_CPLXF_TYPE* cparm,
+    CBLAS_INT* iparm, CBLAS_INT* ierr, uint64_t* rng_state)
 {
 
     // Constants
@@ -898,11 +898,11 @@ void clanbpro(
     const float epsn2 = sqrtf((float)int_max(m, n)) * eps;
 
     // Local variables
-    PROPACK_INT i, j, inu, imu, is, iidx, j0;
+    CBLAS_INT i, j, inu, imu, is, iidx, j0;
     float mumax, numax, alpha, beta, a1, b1, amax, anormest, nrm;
     PROPACK_CPLXF_TYPE s;
     int force_reorth, full_reorth;
-    PROPACK_INT ione = 1;
+    CBLAS_INT ione = 1;
 
     // Set default parameters
     float delta, eta, anorm;
@@ -1265,10 +1265,10 @@ void clanbpro(
 
 
 void zlanbpro(
-    PROPACK_INT m, PROPACK_INT n, PROPACK_INT k0, PROPACK_INT* k, PROPACK_aprod_z aprod, PROPACK_CPLX_TYPE* U, PROPACK_INT ldu,
-    PROPACK_CPLX_TYPE* V, PROPACK_INT ldv, double* B, PROPACK_INT ldb, double* rnorm, double* doption,
-    PROPACK_INT* ioption, double* dwork, PROPACK_CPLX_TYPE* zwork, PROPACK_INT* iwork, PROPACK_CPLX_TYPE* zparm,
-    PROPACK_INT* iparm, PROPACK_INT* ierr, uint64_t* rng_state)
+    CBLAS_INT m, CBLAS_INT n, CBLAS_INT k0, CBLAS_INT* k, PROPACK_aprod_z aprod, PROPACK_CPLX_TYPE* U, CBLAS_INT ldu,
+    PROPACK_CPLX_TYPE* V, CBLAS_INT ldv, double* B, CBLAS_INT ldb, double* rnorm, double* doption,
+    CBLAS_INT* ioption, double* dwork, PROPACK_CPLX_TYPE* zwork, CBLAS_INT* iwork, PROPACK_CPLX_TYPE* zparm,
+    CBLAS_INT* iparm, CBLAS_INT* ierr, uint64_t* rng_state)
 {
 
     // Constants
@@ -1282,11 +1282,11 @@ void zlanbpro(
     const double epsn2 = sqrt((double)int_max(m, n)) * eps;
 
     // Local variables
-    PROPACK_INT i, j, inu, imu, is, iidx, j0;
+    CBLAS_INT i, j, inu, imu, is, iidx, j0;
     double mumax, numax, alpha, beta, a1, b1, amax, anormest, nrm;
     PROPACK_CPLX_TYPE s;
     int force_reorth, full_reorth;
-    PROPACK_INT ione = 1;
+    CBLAS_INT ione = 1;
 
     // Set default parameters
     double delta, eta, anorm;

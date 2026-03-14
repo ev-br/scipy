@@ -1,12 +1,12 @@
 #include "getu0.h"
 
 
-void sgetu0(int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT ntry, float* u0, float* u0norm, float* U, PROPACK_INT ldu,
-           PROPACK_aprod_s aprod, float* dparm, PROPACK_INT* iparm, PROPACK_INT* ierr, PROPACK_INT icgs, float* anormest, float* work, uint64_t* rng_state) {
+void sgetu0(int transa, CBLAS_INT m, CBLAS_INT n, CBLAS_INT j, CBLAS_INT ntry, float* u0, float* u0norm, float* U, CBLAS_INT ldu,
+           PROPACK_aprod_s aprod, float* dparm, CBLAS_INT* iparm, CBLAS_INT* ierr, CBLAS_INT icgs, float* anormest, float* work, uint64_t* rng_state) {
 
     const float kappa = sqrtf(2.0f) / 2.0f;
-    PROPACK_INT ione = 1;
-    PROPACK_INT rsize, usize;
+    CBLAS_INT ione = 1;
+    CBLAS_INT rsize, usize;
 
     // Determine vector sizes based on transpose flag
     if (transa == 0) {
@@ -19,9 +19,9 @@ void sgetu0(int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT
 
     *ierr = 0;
 
-    for (PROPACK_INT itry = 0; itry < ntry; itry++) {
+    for (CBLAS_INT itry = 0; itry < ntry; itry++) {
         // Generate random vector
-        for (PROPACK_INT i = 0; i < rsize; i++) { work[i] = random_float(rng_state); }
+        for (CBLAS_INT i = 0; i < rsize; i++) { work[i] = random_float(rng_state); }
 
         // Compute norm of random vector
         float nrm = BLAS_FUNC(snrm2)(&rsize, work, &ione);
@@ -35,7 +35,7 @@ void sgetu0(int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT
 
         // Orthogonalize against existing vectors if j >= 1
         if (j >= 1) {
-            PROPACK_INT indices[4];
+            CBLAS_INT indices[4];
             indices[0] = 0;      // start index (0-based)
             indices[1] = j;  // end index (0-based, inclusive)
             indices[2] = j+1;      // terminator
@@ -53,12 +53,12 @@ void sgetu0(int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT
 }
 
 
-void dgetu0(int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT ntry, double* u0, double* u0norm, double* U, PROPACK_INT ldu,
-           PROPACK_aprod_d aprod, double* dparm, PROPACK_INT* iparm, PROPACK_INT* ierr, PROPACK_INT icgs, double* anormest, double* work, uint64_t* rng_state) {
+void dgetu0(int transa, CBLAS_INT m, CBLAS_INT n, CBLAS_INT j, CBLAS_INT ntry, double* u0, double* u0norm, double* U, CBLAS_INT ldu,
+           PROPACK_aprod_d aprod, double* dparm, CBLAS_INT* iparm, CBLAS_INT* ierr, CBLAS_INT icgs, double* anormest, double* work, uint64_t* rng_state) {
 
     const double kappa = sqrt(2.0) / 2.0;
-    PROPACK_INT ione = 1;
-    PROPACK_INT rsize, usize;
+    CBLAS_INT ione = 1;
+    CBLAS_INT rsize, usize;
 
     // Determine vector sizes based on transpose flag
     if (transa == 0) {
@@ -71,9 +71,9 @@ void dgetu0(int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT
 
     *ierr = 0;
 
-    for (PROPACK_INT itry = 0; itry < ntry; itry++) {
+    for (CBLAS_INT itry = 0; itry < ntry; itry++) {
         // Generate random vector
-        for (PROPACK_INT i = 0; i < rsize; i++) { work[i] = random_double(rng_state); }
+        for (CBLAS_INT i = 0; i < rsize; i++) { work[i] = random_double(rng_state); }
 
         // Compute norm of random vector
         double nrm = BLAS_FUNC(dnrm2)(&rsize, work, &ione);
@@ -87,7 +87,7 @@ void dgetu0(int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT
 
         // Orthogonalize against existing vectors if j >= 1
         if (j >= 1) {
-            PROPACK_INT indices[4];
+            CBLAS_INT indices[4];
             indices[0] = 0;      // start index (0-based)
             indices[1] = j;      // end index (0-based, inclusive)
             indices[2] = j + 1;  // terminator
@@ -105,13 +105,13 @@ void dgetu0(int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT
 }
 
 
-void cgetu0(int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT ntry, PROPACK_CPLXF_TYPE* u0, float* u0norm, PROPACK_CPLXF_TYPE* U, PROPACK_INT ldu,
-           PROPACK_aprod_c aprod, PROPACK_CPLXF_TYPE* cparm, PROPACK_INT* iparm, PROPACK_INT* ierr, PROPACK_INT icgs, float* anormest, PROPACK_CPLXF_TYPE* work,
+void cgetu0(int transa, CBLAS_INT m, CBLAS_INT n, CBLAS_INT j, CBLAS_INT ntry, PROPACK_CPLXF_TYPE* u0, float* u0norm, PROPACK_CPLXF_TYPE* U, CBLAS_INT ldu,
+           PROPACK_aprod_c aprod, PROPACK_CPLXF_TYPE* cparm, CBLAS_INT* iparm, CBLAS_INT* ierr, CBLAS_INT icgs, float* anormest, PROPACK_CPLXF_TYPE* work,
            uint64_t* rng_state)
 {
     const float kappa = sqrtf(2.0f) / 2.0f;
-    PROPACK_INT ione = 1;
-    PROPACK_INT rsize, usize;
+    CBLAS_INT ione = 1;
+    CBLAS_INT rsize, usize;
 
     // Determine vector sizes based on transpose flag
     if (transa == 0) {
@@ -124,9 +124,9 @@ void cgetu0(int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT
 
     *ierr = 0;
 
-    for (PROPACK_INT itry = 0; itry < ntry; itry++) {
+    for (CBLAS_INT itry = 0; itry < ntry; itry++) {
         // Generate random complex vector
-        for (PROPACK_INT i = 0; i < rsize; i++) {
+        for (CBLAS_INT i = 0; i < rsize; i++) {
             work[i] = PROPACK_cplxf(random_float(rng_state), random_float(rng_state));
         }
 
@@ -142,7 +142,7 @@ void cgetu0(int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT
 
         // Orthogonalize against existing vectors if j >= 1
         if (j >= 1) {
-            PROPACK_INT indices[4];
+            CBLAS_INT indices[4];
             indices[0] = 0;      // start index (0-based)
             indices[1] = j;      // end index (0-based, inclusive)
             indices[2] = j + 1;  // terminator
@@ -160,13 +160,13 @@ void cgetu0(int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT
 }
 
 
-void zgetu0(int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT ntry, PROPACK_CPLX_TYPE* u0, double* u0norm, PROPACK_CPLX_TYPE* U, PROPACK_INT ldu,
-           PROPACK_aprod_z aprod, PROPACK_CPLX_TYPE* zparm, PROPACK_INT* iparm, PROPACK_INT* ierr, PROPACK_INT icgs, double* anormest, PROPACK_CPLX_TYPE* work,
+void zgetu0(int transa, CBLAS_INT m, CBLAS_INT n, CBLAS_INT j, CBLAS_INT ntry, PROPACK_CPLX_TYPE* u0, double* u0norm, PROPACK_CPLX_TYPE* U, CBLAS_INT ldu,
+           PROPACK_aprod_z aprod, PROPACK_CPLX_TYPE* zparm, CBLAS_INT* iparm, CBLAS_INT* ierr, CBLAS_INT icgs, double* anormest, PROPACK_CPLX_TYPE* work,
            uint64_t* rng_state)
 {
     const double kappa = sqrt(2.0) / 2.0;
-    PROPACK_INT ione = 1;
-    PROPACK_INT rsize, usize;
+    CBLAS_INT ione = 1;
+    CBLAS_INT rsize, usize;
 
     // Determine vector sizes based on transpose flag
     if (transa == 0) {
@@ -179,9 +179,9 @@ void zgetu0(int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT
 
     *ierr = 0;
 
-    for (PROPACK_INT itry = 0; itry < ntry; itry++) {
+    for (CBLAS_INT itry = 0; itry < ntry; itry++) {
         // Generate random complex vector
-        for (PROPACK_INT i = 0; i < rsize; i++) {
+        for (CBLAS_INT i = 0; i < rsize; i++) {
             work[i] = PROPACK_cplx(random_double(rng_state), random_double(rng_state));
         }
 
@@ -197,7 +197,7 @@ void zgetu0(int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT
 
         // Orthogonalize against existing vectors if j >= 1
         if (j >= 1) {
-            PROPACK_INT indices[4];
+            CBLAS_INT indices[4];
             indices[0] = 0;      // start index (0-based)
             indices[1] = j;      // end index (0-based, inclusive)
             indices[2] = j + 1;  // terminator

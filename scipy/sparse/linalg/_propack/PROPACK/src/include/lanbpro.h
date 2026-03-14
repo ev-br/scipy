@@ -49,10 +49,10 @@
  * @param ierr       Error status (0=success, <0=invariant subspace found, >0=near-invariant)
  * @param rng_state  Random number generator state (uint64_t[4])
  */
-void slanbpro(PROPACK_INT m, PROPACK_INT n, PROPACK_INT k0, PROPACK_INT* k, PROPACK_aprod_s aprod,
-              float* U, PROPACK_INT ldu, float* V, PROPACK_INT ldv, float* B, PROPACK_INT ldb,
-              float* rnorm, float* doption, PROPACK_INT* ioption, float* work, PROPACK_INT* iwork,
-              float* dparm, PROPACK_INT* iparm, PROPACK_INT* ierr, uint64_t* rng_state);
+void slanbpro(CBLAS_INT m, CBLAS_INT n, CBLAS_INT k0, CBLAS_INT* k, PROPACK_aprod_s aprod,
+              float* U, CBLAS_INT ldu, float* V, CBLAS_INT ldv, float* B, CBLAS_INT ldb,
+              float* rnorm, float* doption, CBLAS_INT* ioption, float* work, CBLAS_INT* iwork,
+              float* dparm, CBLAS_INT* iparm, CBLAS_INT* ierr, uint64_t* rng_state);
 
 
 /**
@@ -81,10 +81,10 @@ void slanbpro(PROPACK_INT m, PROPACK_INT n, PROPACK_INT k0, PROPACK_INT* k, PROP
  * @param ierr       Error status (0=success, <0=invariant subspace found, >0=near-invariant)
  * @param rng_state  Random number generator state (uint64_t[4])
  */
-void dlanbpro(PROPACK_INT m, PROPACK_INT n, PROPACK_INT k0, PROPACK_INT* k, PROPACK_aprod_d aprod,
-              double* U, PROPACK_INT ldu, double* V, PROPACK_INT ldv, double* B, PROPACK_INT ldb,
-              double* rnorm, double* doption, PROPACK_INT* ioption, double* work, PROPACK_INT* iwork,
-              double* dparm, PROPACK_INT* iparm, PROPACK_INT* ierr, uint64_t* rng_state);
+void dlanbpro(CBLAS_INT m, CBLAS_INT n, CBLAS_INT k0, CBLAS_INT* k, PROPACK_aprod_d aprod,
+              double* U, CBLAS_INT ldu, double* V, CBLAS_INT ldv, double* B, CBLAS_INT ldb,
+              double* rnorm, double* doption, CBLAS_INT* ioption, double* work, CBLAS_INT* iwork,
+              double* dparm, CBLAS_INT* iparm, CBLAS_INT* ierr, uint64_t* rng_state);
 
 
 /**
@@ -126,10 +126,10 @@ void dlanbpro(PROPACK_INT m, PROPACK_INT n, PROPACK_INT k0, PROPACK_INT* k, PROP
  * @param rng_state  Random number generator state (uint64_t[4])
  */
 void clanbpro(
-    PROPACK_INT m, PROPACK_INT n, PROPACK_INT k0, PROPACK_INT* k, PROPACK_aprod_c aprod, PROPACK_CPLXF_TYPE* U, PROPACK_INT ldu,
-    PROPACK_CPLXF_TYPE* V, PROPACK_INT ldv, float* B, PROPACK_INT ldb, float* rnorm, float* soption,
-    PROPACK_INT* ioption, float* swork, PROPACK_CPLXF_TYPE* cwork, PROPACK_INT* iwork, PROPACK_CPLXF_TYPE* cparm,
-    PROPACK_INT* iparm, PROPACK_INT* ierr, uint64_t* rng_state);
+    CBLAS_INT m, CBLAS_INT n, CBLAS_INT k0, CBLAS_INT* k, PROPACK_aprod_c aprod, PROPACK_CPLXF_TYPE* U, CBLAS_INT ldu,
+    PROPACK_CPLXF_TYPE* V, CBLAS_INT ldv, float* B, CBLAS_INT ldb, float* rnorm, float* soption,
+    CBLAS_INT* ioption, float* swork, PROPACK_CPLXF_TYPE* cwork, CBLAS_INT* iwork, PROPACK_CPLXF_TYPE* cparm,
+    CBLAS_INT* iparm, CBLAS_INT* ierr, uint64_t* rng_state);
 
 
 /**
@@ -171,9 +171,9 @@ void clanbpro(
  * @param rng_state  Random number generator state (uint64_t[4])
  */
 void zlanbpro(
-    PROPACK_INT m, PROPACK_INT n, PROPACK_INT k0, PROPACK_INT* k, PROPACK_aprod_z aprod, PROPACK_CPLX_TYPE* U, PROPACK_INT ldu,
-    PROPACK_CPLX_TYPE* V, PROPACK_INT ldv, double* B, PROPACK_INT ldb, double* rnorm, double* doption,
-    PROPACK_INT* ioption, double* dwork, PROPACK_CPLX_TYPE* zwork, PROPACK_INT* iwork, PROPACK_CPLX_TYPE* zparm,
-    PROPACK_INT* iparm, PROPACK_INT* ierr, uint64_t* rng_state);
+    CBLAS_INT m, CBLAS_INT n, CBLAS_INT k0, CBLAS_INT* k, PROPACK_aprod_z aprod, PROPACK_CPLX_TYPE* U, CBLAS_INT ldu,
+    PROPACK_CPLX_TYPE* V, CBLAS_INT ldv, double* B, CBLAS_INT ldb, double* rnorm, double* doption,
+    CBLAS_INT* ioption, double* dwork, PROPACK_CPLX_TYPE* zwork, CBLAS_INT* iwork, PROPACK_CPLX_TYPE* zparm,
+    CBLAS_INT* iparm, CBLAS_INT* ierr, uint64_t* rng_state);
 
 #endif

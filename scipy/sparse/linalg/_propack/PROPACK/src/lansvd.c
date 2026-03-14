@@ -10,21 +10,21 @@
 #include "blaslapack_declarations.h"
 
 
-static inline PROPACK_INT int_min(const PROPACK_INT a, const PROPACK_INT b) { return a < b ? a : b; }
-static inline PROPACK_INT int_max(const PROPACK_INT a, const PROPACK_INT b) { return a > b ? a : b; }
+static inline CBLAS_INT int_min(const CBLAS_INT a, const CBLAS_INT b) { return a < b ? a : b; }
+static inline CBLAS_INT int_max(const CBLAS_INT a, const CBLAS_INT b) { return a > b ? a : b; }
 
 
-void slansvd(int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PROPACK_INT kmax, PROPACK_aprod_s aprod,
-             float* U, PROPACK_INT ldu, float* sigma, float* bnd, float* V, PROPACK_INT ldv,
-             float tolin, float* work, PROPACK_INT lwork, PROPACK_INT* iwork,
-             float* doption, PROPACK_INT* ioption, PROPACK_INT* info, float* dparm, PROPACK_INT* iparm,
+void slansvd(int jobu, int jobv, CBLAS_INT m, CBLAS_INT n, CBLAS_INT k, CBLAS_INT kmax, PROPACK_aprod_s aprod,
+             float* U, CBLAS_INT ldu, float* sigma, float* bnd, float* V, CBLAS_INT ldv,
+             float tolin, float* work, CBLAS_INT lwork, CBLAS_INT* iwork,
+             float* doption, CBLAS_INT* ioption, CBLAS_INT* info, float* dparm, CBLAS_INT* iparm,
              uint64_t* rng_state)
 {
     // Parameters
-    PROPACK_INT int1 = 1, int0 = 0;
+    CBLAS_INT int1 = 1, int0 = 0;
 
     // Local variables
-    PROPACK_INT i, j, dj, jold, ibnd, ib, ib1, iwrk, ierr, ip, iq, neig, lwrk, lapinfo, lanmax, nlandim;
+    CBLAS_INT i, j, dj, jold, ibnd, ib, ib1, iwrk, ierr, ip, iq, neig, lwrk, lapinfo, lanmax, nlandim;
     float eps, eps34, epsn2, epsn, sfmin, anorm, rnorm, tol;
 
     // Set machine dependent constants
@@ -71,7 +71,7 @@ void slansvd(int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PR
         jold = j;
 
         // Compute and analyze SVD(B) and error bounds
-        PROPACK_INT two_lanmax = 2 * lanmax;
+        CBLAS_INT two_lanmax = 2 * lanmax;
         BLAS_FUNC(scopy)(&two_lanmax, &work[ib], &int1, &work[ib1], &int1);
 
         // Zero out bounds array
@@ -157,17 +157,17 @@ void slansvd(int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PR
 }
 
 
-void dlansvd(int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PROPACK_INT kmax, PROPACK_aprod_d aprod,
-             double* U, PROPACK_INT ldu, double* sigma, double* bnd, double* V, PROPACK_INT ldv,
-             double tolin, double* work, PROPACK_INT lwork, PROPACK_INT* iwork,
-             double* doption, PROPACK_INT* ioption, PROPACK_INT* info, double* dparm, PROPACK_INT* iparm,
+void dlansvd(int jobu, int jobv, CBLAS_INT m, CBLAS_INT n, CBLAS_INT k, CBLAS_INT kmax, PROPACK_aprod_d aprod,
+             double* U, CBLAS_INT ldu, double* sigma, double* bnd, double* V, CBLAS_INT ldv,
+             double tolin, double* work, CBLAS_INT lwork, CBLAS_INT* iwork,
+             double* doption, CBLAS_INT* ioption, CBLAS_INT* info, double* dparm, CBLAS_INT* iparm,
              uint64_t* rng_state)
 {
     // Parameters
-    PROPACK_INT int1 = 1, int0 = 0;
+    CBLAS_INT int1 = 1, int0 = 0;
 
     // Local variables
-    PROPACK_INT i, j, dj, jold, ibnd, ib, ib1, iwrk, ierr, ip, iq, neig, lwrk, lapinfo, lanmax, nlandim;
+    CBLAS_INT i, j, dj, jold, ibnd, ib, ib1, iwrk, ierr, ip, iq, neig, lwrk, lapinfo, lanmax, nlandim;
     double eps, eps34, epsn2, epsn, sfmin, anorm, rnorm, tol;
 
     // Set machine dependent constants
@@ -214,7 +214,7 @@ void dlansvd(int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PR
         jold = j;
 
         // Compute and analyze SVD(B) and error bounds
-        PROPACK_INT two_lanmax = 2 * lanmax;
+        CBLAS_INT two_lanmax = 2 * lanmax;
         BLAS_FUNC(dcopy)(&two_lanmax, &work[ib], &int1, &work[ib1], &int1);
 
         // Zero out bounds array
@@ -300,17 +300,17 @@ void dlansvd(int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PR
 }
 
 
-void clansvd(int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PROPACK_INT kmax, PROPACK_aprod_c aprod,
-             PROPACK_CPLXF_TYPE* U, PROPACK_INT ldu, float* sigma, float* bnd, PROPACK_CPLXF_TYPE* V, PROPACK_INT ldv,
-             float tolin, float* work, PROPACK_INT lwork, PROPACK_CPLXF_TYPE* cwork, PROPACK_INT lcwork,
-             PROPACK_INT* iwork, float* soption, PROPACK_INT* ioption, PROPACK_INT* info,
-             PROPACK_CPLXF_TYPE* cparm, PROPACK_INT* iparm, uint64_t* rng_state)
+void clansvd(int jobu, int jobv, CBLAS_INT m, CBLAS_INT n, CBLAS_INT k, CBLAS_INT kmax, PROPACK_aprod_c aprod,
+             PROPACK_CPLXF_TYPE* U, CBLAS_INT ldu, float* sigma, float* bnd, PROPACK_CPLXF_TYPE* V, CBLAS_INT ldv,
+             float tolin, float* work, CBLAS_INT lwork, PROPACK_CPLXF_TYPE* cwork, CBLAS_INT lcwork,
+             CBLAS_INT* iwork, float* soption, CBLAS_INT* ioption, CBLAS_INT* info,
+             PROPACK_CPLXF_TYPE* cparm, CBLAS_INT* iparm, uint64_t* rng_state)
 {
     // Parameters
-    PROPACK_INT int1 = 1, int0 = 0;
+    CBLAS_INT int1 = 1, int0 = 0;
 
     // Local variables
-    PROPACK_INT i, j, dj, jold, ibnd, ib, ib1, iwrk, ierr, ip, iq, neig, lwrk, lapinfo, lanmax, nlandim;
+    CBLAS_INT i, j, dj, jold, ibnd, ib, ib1, iwrk, ierr, ip, iq, neig, lwrk, lapinfo, lanmax, nlandim;
     float eps, eps34, epsn2, epsn, sfmin, anorm, rnorm, tol;
 
     // Set machine dependent constants
@@ -360,7 +360,7 @@ void clansvd(int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PR
         jold = j;
 
         // Compute and analyze SVD(B) and error bounds
-        PROPACK_INT two_lanmax = 2 * lanmax;
+        CBLAS_INT two_lanmax = 2 * lanmax;
         BLAS_FUNC(scopy)(&two_lanmax, &work[ib], &int1, &work[ib1], &int1);
 
         // Zero out bounds array
@@ -446,17 +446,17 @@ void clansvd(int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PR
 }
 
 
-void zlansvd(int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PROPACK_INT kmax, PROPACK_aprod_z aprod,
-             PROPACK_CPLX_TYPE* U, PROPACK_INT ldu, double* sigma, double* bnd, PROPACK_CPLX_TYPE* V, PROPACK_INT ldv,
-             double tolin, double* work, PROPACK_INT lwork, PROPACK_CPLX_TYPE* zwork, PROPACK_INT lzwork,
-             PROPACK_INT* iwork, double* doption, PROPACK_INT* ioption, PROPACK_INT* info,
-             PROPACK_CPLX_TYPE* zparm, PROPACK_INT* iparm, uint64_t* rng_state)
+void zlansvd(int jobu, int jobv, CBLAS_INT m, CBLAS_INT n, CBLAS_INT k, CBLAS_INT kmax, PROPACK_aprod_z aprod,
+             PROPACK_CPLX_TYPE* U, CBLAS_INT ldu, double* sigma, double* bnd, PROPACK_CPLX_TYPE* V, CBLAS_INT ldv,
+             double tolin, double* work, CBLAS_INT lwork, PROPACK_CPLX_TYPE* zwork, CBLAS_INT lzwork,
+             CBLAS_INT* iwork, double* doption, CBLAS_INT* ioption, CBLAS_INT* info,
+             PROPACK_CPLX_TYPE* zparm, CBLAS_INT* iparm, uint64_t* rng_state)
 {
     // Parameters
-    PROPACK_INT int1 = 1, int0 = 0;
+    CBLAS_INT int1 = 1, int0 = 0;
 
     // Local variables
-    PROPACK_INT i, j, dj, jold, ibnd, ib, ib1, iwrk, ierr, ip, iq, neig, lwrk, lapinfo, lanmax, nlandim;
+    CBLAS_INT i, j, dj, jold, ibnd, ib, ib1, iwrk, ierr, ip, iq, neig, lwrk, lapinfo, lanmax, nlandim;
     double eps, eps34, epsn2, epsn, sfmin, anorm, rnorm, tol;
 
     // Set machine dependent constants
@@ -506,7 +506,7 @@ void zlansvd(int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PR
         jold = j;
 
         // Compute and analyze SVD(B) and error bounds
-        PROPACK_INT two_lanmax = 2 * lanmax;
+        CBLAS_INT two_lanmax = 2 * lanmax;
         BLAS_FUNC(dcopy)(&two_lanmax, &work[ib], &int1, &work[ib1], &int1);
 
         // Zero out bounds array

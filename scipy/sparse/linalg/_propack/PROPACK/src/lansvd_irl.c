@@ -9,24 +9,24 @@
 #include "blaslapack_declarations.h"
 
 
-static inline PROPACK_INT int_min(const PROPACK_INT a, const PROPACK_INT b) { return a < b ? a : b; }
-static inline PROPACK_INT int_max(const PROPACK_INT a, const PROPACK_INT b) { return a > b ? a : b; }
+static inline CBLAS_INT int_min(const CBLAS_INT a, const CBLAS_INT b) { return a < b ? a : b; }
+static inline CBLAS_INT int_max(const CBLAS_INT a, const CBLAS_INT b) { return a > b ? a : b; }
 
 
-void slansvd_irl(int which, int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT dim, PROPACK_INT p, PROPACK_INT *neig, PROPACK_INT maxiter,
-                 PROPACK_aprod_s aprod, float* U, PROPACK_INT ldu, float* sigma, float* bnd, float* V, PROPACK_INT ldv,
-                 float tolin, float* work, PROPACK_INT lwork, PROPACK_INT* iwork, float* doption, PROPACK_INT* ioption,
-                 PROPACK_INT* info, float* dparm, PROPACK_INT* iparm, uint64_t* rng_state)
+void slansvd_irl(int which, int jobu, int jobv, CBLAS_INT m, CBLAS_INT n, CBLAS_INT dim, CBLAS_INT p, CBLAS_INT *neig, CBLAS_INT maxiter,
+                 PROPACK_aprod_s aprod, float* U, CBLAS_INT ldu, float* sigma, float* bnd, float* V, CBLAS_INT ldv,
+                 float tolin, float* work, CBLAS_INT lwork, CBLAS_INT* iwork, float* doption, CBLAS_INT* ioption,
+                 CBLAS_INT* info, float* dparm, CBLAS_INT* iparm, uint64_t* rng_state)
 {
     // Parameters
-    PROPACK_INT int1 = 1, int0 = 0;
+    CBLAS_INT int1 = 1, int0 = 0;
 
     // Local variables
-    PROPACK_INT k, i, ibnd, iwrk, ierr, ip, iq, nconv, lwrk, kold;
-    PROPACK_INT ialpha, ibeta, ialpha1, ibeta1, ishift, nshft, lapinfo;
+    CBLAS_INT k, i, ibnd, iwrk, ierr, ip, iq, nconv, lwrk, kold;
+    CBLAS_INT ialpha, ibeta, ialpha1, ibeta1, ishift, nshft, lapinfo;
     float eps, eps34, epsn2, epsn, sfmin, anorm, rnorm, tol;
     float shift, relgap;
-    PROPACK_INT iter;
+    CBLAS_INT iter;
 
     // Set machine dependent constants
     eps = FLT_EPSILON;
@@ -249,20 +249,20 @@ void slansvd_irl(int which, int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PR
 }
 
 
-void dlansvd_irl(int which, int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT dim, PROPACK_INT p, PROPACK_INT *neig, PROPACK_INT maxiter,
-                 PROPACK_aprod_d aprod, double* U, PROPACK_INT ldu, double* sigma, double* bnd, double* V, PROPACK_INT ldv,
-                 double tolin, double* work, PROPACK_INT lwork, PROPACK_INT* iwork, double* doption, PROPACK_INT* ioption,
-                 PROPACK_INT* info, double* dparm, PROPACK_INT* iparm, uint64_t* rng_state)
+void dlansvd_irl(int which, int jobu, int jobv, CBLAS_INT m, CBLAS_INT n, CBLAS_INT dim, CBLAS_INT p, CBLAS_INT *neig, CBLAS_INT maxiter,
+                 PROPACK_aprod_d aprod, double* U, CBLAS_INT ldu, double* sigma, double* bnd, double* V, CBLAS_INT ldv,
+                 double tolin, double* work, CBLAS_INT lwork, CBLAS_INT* iwork, double* doption, CBLAS_INT* ioption,
+                 CBLAS_INT* info, double* dparm, CBLAS_INT* iparm, uint64_t* rng_state)
 {
     // Parameters
-    PROPACK_INT int1 = 1, int0 = 0;
+    CBLAS_INT int1 = 1, int0 = 0;
 
     // Local variables
-    PROPACK_INT k, i, ibnd, iwrk, ierr, ip, iq, nconv, lwrk, kold;
-    PROPACK_INT ialpha, ibeta, ialpha1, ibeta1, ishift, nshft, lapinfo;
+    CBLAS_INT k, i, ibnd, iwrk, ierr, ip, iq, nconv, lwrk, kold;
+    CBLAS_INT ialpha, ibeta, ialpha1, ibeta1, ishift, nshft, lapinfo;
     double eps, eps34, epsn2, epsn, sfmin, anorm, rnorm, tol;
     double shift, relgap;
-    PROPACK_INT iter;
+    CBLAS_INT iter;
 
     // Set machine dependent constants
     eps = DBL_EPSILON;
@@ -482,21 +482,21 @@ void dlansvd_irl(int which, int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PR
 }
 
 
-void clansvd_irl(int which, int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT dim, PROPACK_INT p, PROPACK_INT *neig, PROPACK_INT maxiter,
-                 PROPACK_aprod_c aprod, PROPACK_CPLXF_TYPE* U, PROPACK_INT ldu, float* sigma, float* bnd,
-                 PROPACK_CPLXF_TYPE* V, PROPACK_INT ldv, float tolin, float* work, PROPACK_INT lwork,
-                 PROPACK_CPLXF_TYPE* cwork, PROPACK_INT lcwork, PROPACK_INT* iwork, float* soption,
-                 PROPACK_INT* ioption, PROPACK_INT* info, PROPACK_CPLXF_TYPE* cparm, PROPACK_INT* iparm, uint64_t* rng_state)
+void clansvd_irl(int which, int jobu, int jobv, CBLAS_INT m, CBLAS_INT n, CBLAS_INT dim, CBLAS_INT p, CBLAS_INT *neig, CBLAS_INT maxiter,
+                 PROPACK_aprod_c aprod, PROPACK_CPLXF_TYPE* U, CBLAS_INT ldu, float* sigma, float* bnd,
+                 PROPACK_CPLXF_TYPE* V, CBLAS_INT ldv, float tolin, float* work, CBLAS_INT lwork,
+                 PROPACK_CPLXF_TYPE* cwork, CBLAS_INT lcwork, CBLAS_INT* iwork, float* soption,
+                 CBLAS_INT* ioption, CBLAS_INT* info, PROPACK_CPLXF_TYPE* cparm, CBLAS_INT* iparm, uint64_t* rng_state)
 {
     // Parameters
-    PROPACK_INT int1 = 1, int0 = 0;
+    CBLAS_INT int1 = 1, int0 = 0;
 
     // Local variables
-    PROPACK_INT k, i, ibnd, iwrk, ierr, ip, iq, nconv, lwrk, kold;
-    PROPACK_INT ialpha, ibeta, ialpha1, ibeta1, ishift, nshft, lapinfo;
+    CBLAS_INT k, i, ibnd, iwrk, ierr, ip, iq, nconv, lwrk, kold;
+    CBLAS_INT ialpha, ibeta, ialpha1, ibeta1, ishift, nshft, lapinfo;
     float eps, eps34, epsn2, epsn, sfmin, anorm, rnorm, tol;
     float shift, relgap;
-    PROPACK_INT iter;
+    CBLAS_INT iter;
 
     // Set machine dependent constants
     eps = FLT_EPSILON;
@@ -713,21 +713,21 @@ void clansvd_irl(int which, int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PR
 }
 
 
-void zlansvd_irl(int which, int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT dim, PROPACK_INT p, PROPACK_INT *neig, PROPACK_INT maxiter,
-                 PROPACK_aprod_z aprod, PROPACK_CPLX_TYPE* U, PROPACK_INT ldu, double* sigma, double* bnd,
-                 PROPACK_CPLX_TYPE* V, PROPACK_INT ldv, double tolin, double* work, PROPACK_INT lwork,
-                 PROPACK_CPLX_TYPE* zwork, PROPACK_INT lzwork, PROPACK_INT* iwork, double* doption,
-                 PROPACK_INT* ioption, PROPACK_INT* info, PROPACK_CPLX_TYPE* zparm, PROPACK_INT* iparm, uint64_t* rng_state)
+void zlansvd_irl(int which, int jobu, int jobv, CBLAS_INT m, CBLAS_INT n, CBLAS_INT dim, CBLAS_INT p, CBLAS_INT *neig, CBLAS_INT maxiter,
+                 PROPACK_aprod_z aprod, PROPACK_CPLX_TYPE* U, CBLAS_INT ldu, double* sigma, double* bnd,
+                 PROPACK_CPLX_TYPE* V, CBLAS_INT ldv, double tolin, double* work, CBLAS_INT lwork,
+                 PROPACK_CPLX_TYPE* zwork, CBLAS_INT lzwork, CBLAS_INT* iwork, double* doption,
+                 CBLAS_INT* ioption, CBLAS_INT* info, PROPACK_CPLX_TYPE* zparm, CBLAS_INT* iparm, uint64_t* rng_state)
 {
     // Parameters
-    PROPACK_INT int1 = 1, int0 = 0;
+    CBLAS_INT int1 = 1, int0 = 0;
 
     // Local variables
-    PROPACK_INT k, i, ibnd, iwrk, ierr, ip, iq, nconv, lwrk, kold;
-    PROPACK_INT ialpha, ibeta, ialpha1, ibeta1, ishift, nshft, lapinfo;
+    CBLAS_INT k, i, ibnd, iwrk, ierr, ip, iq, nconv, lwrk, kold;
+    CBLAS_INT ialpha, ibeta, ialpha1, ibeta1, ishift, nshft, lapinfo;
     double eps, eps34, epsn2, epsn, sfmin, anorm, rnorm, tol;
     double shift, relgap;
-    PROPACK_INT iter;
+    CBLAS_INT iter;
 
     // Set machine dependent constants
     eps = DBL_EPSILON;

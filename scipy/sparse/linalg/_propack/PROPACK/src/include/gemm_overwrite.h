@@ -20,7 +20,7 @@
  * @param work      workspace array of size at least m * blocksize
  * @param blocksize number of columns to process at once
  */
-void sgemm_ovwr(const int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, float alpha, float* restrict A, PROPACK_INT lda, float beta, float* restrict B, PROPACK_INT ldb, float* restrict work, PROPACK_INT blocksize);
+void sgemm_ovwr(const int transa, CBLAS_INT m, CBLAS_INT n, CBLAS_INT k, float alpha, float* restrict A, CBLAS_INT lda, float beta, float* restrict B, CBLAS_INT ldb, float* restrict work, CBLAS_INT blocksize);
 
 
 /**
@@ -38,7 +38,7 @@ void sgemm_ovwr(const int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, f
  * @param work      workspace array of size at least blocksize * n
  * @param blocksize number of rows to process at once
  */
-void sgemm_ovwr_left(const PROPACK_INT transb, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, float alpha, float* restrict A, PROPACK_INT lda, float* restrict B, PROPACK_INT ldb, float* restrict work, PROPACK_INT blocksize);
+void sgemm_ovwr_left(const CBLAS_INT transb, CBLAS_INT m, CBLAS_INT n, CBLAS_INT k, float alpha, float* restrict A, CBLAS_INT lda, float* restrict B, CBLAS_INT ldb, float* restrict work, CBLAS_INT blocksize);
 
 
 /**
@@ -57,7 +57,7 @@ void sgemm_ovwr_left(const PROPACK_INT transb, PROPACK_INT m, PROPACK_INT n, PRO
  * @param work      workspace array of size at least m * blocksize
  * @param blocksize number of columns to process at once
  */
-void dgemm_ovwr(const int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, double alpha, double* restrict A, PROPACK_INT lda, double beta, double* restrict B, PROPACK_INT ldb, double* restrict work, PROPACK_INT blocksize);
+void dgemm_ovwr(const int transa, CBLAS_INT m, CBLAS_INT n, CBLAS_INT k, double alpha, double* restrict A, CBLAS_INT lda, double beta, double* restrict B, CBLAS_INT ldb, double* restrict work, CBLAS_INT blocksize);
 
 
 /**
@@ -75,7 +75,7 @@ void dgemm_ovwr(const int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, d
  * @param work      workspace array of size at least blocksize * n
  * @param blocksize number of rows to process at once
  */
-void dgemm_ovwr_left(const PROPACK_INT transb, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, double alpha, double* restrict A, PROPACK_INT lda, double* restrict B, PROPACK_INT ldb, double* restrict work, PROPACK_INT blocksize);
+void dgemm_ovwr_left(const CBLAS_INT transb, CBLAS_INT m, CBLAS_INT n, CBLAS_INT k, double alpha, double* restrict A, CBLAS_INT lda, double* restrict B, CBLAS_INT ldb, double* restrict work, CBLAS_INT blocksize);
 
 
 /**
@@ -92,7 +92,7 @@ void dgemm_ovwr_left(const PROPACK_INT transb, PROPACK_INT m, PROPACK_INT n, PRO
  * @param work      workspace array of size at least blocksize * n
  * @param blocksize number of rows to process at once
  */
-void csgemm_ovwr_left(const PROPACK_INT transb, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PROPACK_CPLXF_TYPE* restrict A, PROPACK_INT lda, const float* restrict B, PROPACK_INT ldb, PROPACK_CPLXF_TYPE* restrict work, PROPACK_INT blocksize);
+void csgemm_ovwr_left(const CBLAS_INT transb, CBLAS_INT m, CBLAS_INT n, CBLAS_INT k, PROPACK_CPLXF_TYPE* restrict A, CBLAS_INT lda, const float* restrict B, CBLAS_INT ldb, PROPACK_CPLXF_TYPE* restrict work, CBLAS_INT blocksize);
 
 
 /**
@@ -109,6 +109,6 @@ void csgemm_ovwr_left(const PROPACK_INT transb, PROPACK_INT m, PROPACK_INT n, PR
  * @param work      workspace array of size at least blocksize * n
  * @param blocksize number of rows to process at once
  */
-void zdgemm_ovwr_left(const PROPACK_INT transb, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PROPACK_CPLX_TYPE* restrict A, PROPACK_INT lda, const double* restrict B, PROPACK_INT ldb, PROPACK_CPLX_TYPE* restrict work, PROPACK_INT blocksize);
+void zdgemm_ovwr_left(const CBLAS_INT transb, CBLAS_INT m, CBLAS_INT n, CBLAS_INT k, PROPACK_CPLX_TYPE* restrict A, CBLAS_INT lda, const double* restrict B, CBLAS_INT ldb, PROPACK_CPLX_TYPE* restrict work, CBLAS_INT blocksize);
 
 #endif

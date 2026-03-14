@@ -7,7 +7,7 @@
 // Random 64bit integer generator for random floating point number purposes; based on
 // https://prng.di.unimi.it/xoshiro256plus.c
 
-static uint64_t rol64(uint64_t x, PROPACK_INT k) {
+static uint64_t rol64(uint64_t x, CBLAS_INT k) {
     return (x << k) | (x >> (64 - k));
 }
 
@@ -54,9 +54,9 @@ float random_float(uint64_t* state) {
 // ==================================================================================
 
 
-void sbsvdstep(const int jobu, const int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, float sigma, float* D, float* E, float* U, PROPACK_INT ldu, float* V, PROPACK_INT ldv)
+void sbsvdstep(const int jobu, const int jobv, CBLAS_INT m, CBLAS_INT n, CBLAS_INT k, float sigma, float* D, float* E, float* U, CBLAS_INT ldu, float* V, CBLAS_INT ldv)
 {
-    PROPACK_INT int1 = 1;
+    CBLAS_INT int1 = 1;
     float c, s, r;
     // Perform an implicit LQ SVD sweep with shift sigma.
     if (k < 2) { return; }
@@ -67,7 +67,7 @@ void sbsvdstep(const int jobu, const int jobv, PROPACK_INT m, PROPACK_INT n, PRO
 
     // Chase the bulge down the lower bidiagonal with Givens rotations.
     // Below "y" is the bulge and "x" is the element used to eliminate it.
-    for (PROPACK_INT i = 0; i < k-1; i++) {
+    for (CBLAS_INT i = 0; i < k-1; i++) {
         if (i > 0)
         {
             BLAS_FUNC(slartg)(&x, &y, &c, &s, &E[i-1]);
@@ -112,8 +112,8 @@ void sbsvdstep(const int jobu, const int jobv, PROPACK_INT m, PROPACK_INT n, PRO
 }
 
 
-void sbdqr(const PROPACK_INT ignorelast, const PROPACK_INT jobq, const PROPACK_INT n, float* restrict D, float* restrict E,
-           float* c1, float* c2, float* restrict Qt, PROPACK_INT ldq)
+void sbdqr(const CBLAS_INT ignorelast, const CBLAS_INT jobq, const CBLAS_INT n, float* restrict D, float* restrict E,
+           float* c1, float* c2, float* restrict Qt, CBLAS_INT ldq)
 {
     float flt1 = 1.0f, flt0 = 0.0f, cs, sn, r;
     if (n < 1) { return; }
@@ -121,10 +121,10 @@ void sbdqr(const PROPACK_INT ignorelast, const PROPACK_INT jobq, const PROPACK_I
     if (jobq)
     {
         // Reset Qt to the identity matrix.
-        PROPACK_INT nplus1 = n + 1;
+        CBLAS_INT nplus1 = n + 1;
         BLAS_FUNC(slaset)("A", &nplus1, &nplus1, &flt0, &flt1, Qt, &ldq);
     }
-    for (PROPACK_INT i = 0; i < n-1; i++)
+    for (CBLAS_INT i = 0; i < n-1; i++)
     {
         BLAS_FUNC(slartg)(&D[i], &E[i], &cs, &sn, &r);
         D[i] = r;
@@ -133,7 +133,7 @@ void sbdqr(const PROPACK_INT ignorelast, const PROPACK_INT jobq, const PROPACK_I
         if (jobq)
         {
             // Apply the Givens rotation to Qt.
-            for (PROPACK_INT j = 0; j <= i; j++)
+            for (CBLAS_INT j = 0; j <= i; j++)
             {
                 Qt[i+1 + j*ldq] = -sn*Qt[i + j*ldq];
                 Qt[i   + j*ldq] =  cs*Qt[i + j*ldq];
@@ -152,7 +152,7 @@ void sbdqr(const PROPACK_INT ignorelast, const PROPACK_INT jobq, const PROPACK_I
         if (jobq)
         {
             // Apply the last Givens rotation to Qt.
-            for (PROPACK_INT j = 0; j < n; j++)
+            for (CBLAS_INT j = 0; j < n; j++)
             {
                 Qt[n   + j*ldq] = -sn*Qt[n-1 + j*ldq];
                 Qt[n-1 + j*ldq] =  cs*Qt[n-1 + j*ldq];
@@ -166,13 +166,13 @@ void sbdqr(const PROPACK_INT ignorelast, const PROPACK_INT jobq, const PROPACK_I
 }
 
 
-void srefinebounds(const PROPACK_INT n, const PROPACK_INT k, float* restrict theta, float* restrict bound, const float tol, const float eps34)
+void srefinebounds(const CBLAS_INT n, const CBLAS_INT k, float* restrict theta, float* restrict bound, const float tol, const float eps34)
 {
     float gap = 0.0f;
     if (k < 2) { return; };
-    for (PROPACK_INT i = 0; i < k; i++)
+    for (CBLAS_INT i = 0; i < k; i++)
     {
-        for (PROPACK_INT pm1 = -1; pm1 <= 1; pm1 += 2)
+        for (CBLAS_INT pm1 = -1; pm1 <= 1; pm1 += 2)
         {
             if (((pm1 == 1) && (i < k-1)) || ((pm1 == -1) && (i > 0)))
             {
@@ -187,7 +187,7 @@ void srefinebounds(const PROPACK_INT n, const PROPACK_INT k, float* restrict the
             }
         }
     }
-    for (PROPACK_INT i = 0; i < k; i++)
+    for (CBLAS_INT i = 0; i < k; i++)
     {
         if ((i < k-1) || (k == n))
         {
@@ -215,19 +215,19 @@ void srefinebounds(const PROPACK_INT n, const PROPACK_INT k, float* restrict the
 }
 
 
-void scompute_int(float* restrict mu, const PROPACK_INT j, const float delta, const float eta, PROPACK_INT* restrict indices)
+void scompute_int(float* restrict mu, const CBLAS_INT j, const float delta, const float eta, CBLAS_INT* restrict indices)
 {
 
     if (delta < eta) { return; } // Malformed input
 
-    PROPACK_INT interval_count = 0;
-    PROPACK_INT current_pos = 0;
+    CBLAS_INT interval_count = 0;
+    CBLAS_INT current_pos = 0;
 
     // Process the array from left to right
     while (current_pos <= j) {
         // Find the next peak (value > delta)
-        PROPACK_INT peak_idx = -1;
-        for (PROPACK_INT k = current_pos; k <= j; k++) {
+        CBLAS_INT peak_idx = -1;
+        for (CBLAS_INT k = current_pos; k <= j; k++) {
             if (fabsf(mu[k]) > delta) {
                 peak_idx = k;
                 break;
@@ -241,8 +241,8 @@ void scompute_int(float* restrict mu, const PROPACK_INT j, const float delta, co
 
         // Find the left edge of the interval
         // Go backwards from the peak to find where values drop below eta
-        PROPACK_INT left_edge = peak_idx;
-        for (PROPACK_INT k = peak_idx; k >= current_pos; k--)
+        CBLAS_INT left_edge = peak_idx;
+        for (CBLAS_INT k = peak_idx; k >= current_pos; k--)
         {
             if (fabsf(mu[k]) >= eta)
             {
@@ -254,8 +254,8 @@ void scompute_int(float* restrict mu, const PROPACK_INT j, const float delta, co
 
         // Find the right edge of the interval
         // Go forwards from the peak to find where values drop below eta
-        PROPACK_INT right_edge = peak_idx;
-        for (PROPACK_INT k = peak_idx; k <= j; k++) {
+        CBLAS_INT right_edge = peak_idx;
+        for (CBLAS_INT k = peak_idx; k <= j; k++) {
             if (fabsf(mu[k]) >= eta)
             {
                 right_edge = k;
@@ -280,15 +280,15 @@ void scompute_int(float* restrict mu, const PROPACK_INT j, const float delta, co
 }
 
 
-void sset_mu(const PROPACK_INT k, float* restrict mu, PROPACK_INT* const restrict indices, const float val)
+void sset_mu(const CBLAS_INT k, float* restrict mu, CBLAS_INT* const restrict indices, const float val)
 {
-    PROPACK_INT i = 0, p, q;
+    CBLAS_INT i = 0, p, q;
     while (indices[i] <= k)
     {
         if ((i > 1) && (indices[i+1] == 0)) { break; }
         p = indices[i];
         q = indices[i+1];
-        for (PROPACK_INT j = p; j <= q; j++) { mu[j] = val; }
+        for (CBLAS_INT j = p; j <= q; j++) { mu[j] = val; }
         i += 2;
     }
 }
@@ -296,7 +296,7 @@ void sset_mu(const PROPACK_INT k, float* restrict mu, PROPACK_INT* const restric
 
 void
 supdate_mu(
-    float* mumax, float* restrict mu, float* restrict nu, const PROPACK_INT j, float* restrict alpha,
+    float* mumax, float* restrict mu, float* restrict nu, const CBLAS_INT j, float* restrict alpha,
     float* restrict beta, const float anorm, const float eps1)
 {
     float d = 0.0f;
@@ -311,7 +311,7 @@ supdate_mu(
         d = eps1 * (hypotf(alpha[j], beta[j]) + alpha[0]) + eps1 * anorm;
         mu[0] = (mu[0] + copysignf(d, mu[0])) / beta[j];
         *mumax = fabsf(mu[0]);
-        for (PROPACK_INT k = 1; k < j; k++)
+        for (CBLAS_INT k = 1; k < j; k++)
         {
             mu[k] = alpha[k]*nu[k] + beta[k-1]*nu[k-1] - alpha[j]*mu[k];
             d = eps1 * (hypotf(alpha[j], beta[j]) + hypotf(alpha[k], beta[k-1])) + eps1 * anorm;
@@ -328,7 +328,7 @@ supdate_mu(
 
 
 void supdate_nu(
-    float* numax, float* restrict mu, float* restrict nu, const PROPACK_INT j, float* restrict alpha,
+    float* numax, float* restrict mu, float* restrict nu, const CBLAS_INT j, float* restrict alpha,
     float* restrict beta, const float anorm, const float eps1)
 {
     float d = 0.0f;
@@ -336,7 +336,7 @@ void supdate_nu(
     if (j > 0)
     {
         *numax = 0.0f;
-        for (PROPACK_INT k = 0; k < j; k++)
+        for (CBLAS_INT k = 0; k < j; k++)
         {
             nu[k] = beta[k] * mu[k+1] + alpha[k] * mu[k] - beta[j-1] * nu[k];
             d = eps1 * (hypotf(alpha[k], beta[k]) + hypotf(alpha[j], beta[j-1])) + eps1 * anorm;
@@ -348,9 +348,9 @@ void supdate_nu(
 }
 
 
-void dbsvdstep(const int jobu, const int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, double sigma, double* D, double* E, double* U, PROPACK_INT ldu, double* V, PROPACK_INT ldv)
+void dbsvdstep(const int jobu, const int jobv, CBLAS_INT m, CBLAS_INT n, CBLAS_INT k, double sigma, double* D, double* E, double* U, CBLAS_INT ldu, double* V, CBLAS_INT ldv)
 {
-    PROPACK_INT int1 = 1;
+    CBLAS_INT int1 = 1;
     double c, s, r;
     // Perform an implicit LQ SVD sweep with shift sigma.
     if (k < 2) { return; }
@@ -361,7 +361,7 @@ void dbsvdstep(const int jobu, const int jobv, PROPACK_INT m, PROPACK_INT n, PRO
 
     // Chase the bulge down the lower bidiagonal with Givens rotations.
     // Below "y" is the bulge and "x" is the element used to eliminate it.
-    for (PROPACK_INT i = 0; i < k-1; i++) {
+    for (CBLAS_INT i = 0; i < k-1; i++) {
         if (i > 0)
         {
             BLAS_FUNC(dlartg)(&x, &y, &c, &s, &E[i-1]);
@@ -406,8 +406,8 @@ void dbsvdstep(const int jobu, const int jobv, PROPACK_INT m, PROPACK_INT n, PRO
 }
 
 
-void dbdqr(const PROPACK_INT ignorelast, const PROPACK_INT jobq, const PROPACK_INT n, double* restrict D, double* restrict E,
-           double* c1, double* c2, double* restrict Qt, PROPACK_INT ldq)
+void dbdqr(const CBLAS_INT ignorelast, const CBLAS_INT jobq, const CBLAS_INT n, double* restrict D, double* restrict E,
+           double* c1, double* c2, double* restrict Qt, CBLAS_INT ldq)
 {
     double dbl1 = 1.0, dbl0 = 0.0, cs, sn, r;
     if (n < 1) { return; }
@@ -415,10 +415,10 @@ void dbdqr(const PROPACK_INT ignorelast, const PROPACK_INT jobq, const PROPACK_I
     if (jobq)
     {
         // Reset Qt to the identity matrix.
-        PROPACK_INT nplus1 = n + 1;
+        CBLAS_INT nplus1 = n + 1;
         BLAS_FUNC(dlaset)("A", &nplus1, &nplus1, &dbl0, &dbl1, Qt, &ldq);
     }
-    for (PROPACK_INT i = 0; i < n-1; i++)
+    for (CBLAS_INT i = 0; i < n-1; i++)
     {
         BLAS_FUNC(dlartg)(&D[i], &E[i], &cs, &sn, &r);
         D[i] = r;
@@ -427,7 +427,7 @@ void dbdqr(const PROPACK_INT ignorelast, const PROPACK_INT jobq, const PROPACK_I
         if (jobq)
         {
             // Apply the Givens rotation to Qt.
-            for (PROPACK_INT j = 0; j <= i; j++)
+            for (CBLAS_INT j = 0; j <= i; j++)
             {
                 Qt[i+1 + j*ldq] = -sn*Qt[i + j*ldq];
                 Qt[i   + j*ldq] =  cs*Qt[i + j*ldq];
@@ -446,7 +446,7 @@ void dbdqr(const PROPACK_INT ignorelast, const PROPACK_INT jobq, const PROPACK_I
         if (jobq)
         {
             // Apply the last Givens rotation to Qt.
-            for (PROPACK_INT j = 0; j < n; j++)
+            for (CBLAS_INT j = 0; j < n; j++)
             {
                 Qt[n   + j*ldq] = -sn*Qt[n-1 + j*ldq];
                 Qt[n-1 + j*ldq] =  cs*Qt[n-1 + j*ldq];
@@ -460,13 +460,13 @@ void dbdqr(const PROPACK_INT ignorelast, const PROPACK_INT jobq, const PROPACK_I
 }
 
 
-void drefinebounds(const PROPACK_INT n, const PROPACK_INT k, double* restrict theta, double* restrict bound, const double tol, const double eps34)
+void drefinebounds(const CBLAS_INT n, const CBLAS_INT k, double* restrict theta, double* restrict bound, const double tol, const double eps34)
 {
     double gap = 0.0;
     if (k < 2) { return; };
-    for (PROPACK_INT i = 0; i < k; i++)
+    for (CBLAS_INT i = 0; i < k; i++)
     {
-        for (PROPACK_INT pm1 = -1; pm1 <= 1; pm1 += 2)
+        for (CBLAS_INT pm1 = -1; pm1 <= 1; pm1 += 2)
         {
             if (((pm1 == 1) && (i < k-1)) || ((pm1 == -1) && (i > 0)))
             {
@@ -481,7 +481,7 @@ void drefinebounds(const PROPACK_INT n, const PROPACK_INT k, double* restrict th
             }
         }
     }
-    for (PROPACK_INT i = 0; i < k; i++)
+    for (CBLAS_INT i = 0; i < k; i++)
     {
         if ((i < k-1) || (k == n))
         {
@@ -509,19 +509,19 @@ void drefinebounds(const PROPACK_INT n, const PROPACK_INT k, double* restrict th
 }
 
 
-void dcompute_int(double* restrict mu, const PROPACK_INT j, const double delta, const double eta, PROPACK_INT* restrict indices)
+void dcompute_int(double* restrict mu, const CBLAS_INT j, const double delta, const double eta, CBLAS_INT* restrict indices)
 {
 
     if (delta < eta) { return; } // Malformed input
 
-    PROPACK_INT interval_count = 0;
-    PROPACK_INT current_pos = 0;
+    CBLAS_INT interval_count = 0;
+    CBLAS_INT current_pos = 0;
 
     // Process the array from left to right
     while (current_pos <= j) {
         // Find the next peak (value > delta)
-        PROPACK_INT peak_idx = -1;
-        for (PROPACK_INT k = current_pos; k <= j; k++) {
+        CBLAS_INT peak_idx = -1;
+        for (CBLAS_INT k = current_pos; k <= j; k++) {
             if (fabs(mu[k]) > delta) {
                 peak_idx = k;
                 break;
@@ -535,8 +535,8 @@ void dcompute_int(double* restrict mu, const PROPACK_INT j, const double delta, 
 
         // Find the left edge of the interval
         // Go backwards from the peak to find where values drop below eta
-        PROPACK_INT left_edge = peak_idx;
-        for (PROPACK_INT k = peak_idx; k >= current_pos; k--)
+        CBLAS_INT left_edge = peak_idx;
+        for (CBLAS_INT k = peak_idx; k >= current_pos; k--)
         {
             if (fabs(mu[k]) >= eta)
             {
@@ -548,8 +548,8 @@ void dcompute_int(double* restrict mu, const PROPACK_INT j, const double delta, 
 
         // Find the right edge of the interval
         // Go forwards from the peak to find where values drop below eta
-        PROPACK_INT right_edge = peak_idx;
-        for (PROPACK_INT k = peak_idx; k <= j; k++) {
+        CBLAS_INT right_edge = peak_idx;
+        for (CBLAS_INT k = peak_idx; k <= j; k++) {
             if (fabs(mu[k]) >= eta)
             {
                 right_edge = k;
@@ -574,22 +574,22 @@ void dcompute_int(double* restrict mu, const PROPACK_INT j, const double delta, 
 }
 
 
-void dset_mu(const PROPACK_INT k, double* restrict mu, PROPACK_INT* const restrict indices, const double val)
+void dset_mu(const CBLAS_INT k, double* restrict mu, CBLAS_INT* const restrict indices, const double val)
 {
-    PROPACK_INT i = 0, p, q;
+    CBLAS_INT i = 0, p, q;
     while (indices[i] <= k)
     {
         if ((i > 1) && (indices[i+1] == 0)) { break; }
         p = indices[i];
         q = indices[i+1];
-        for (PROPACK_INT j = p; j <= q; j++) { mu[j] = val; }
+        for (CBLAS_INT j = p; j <= q; j++) { mu[j] = val; }
         i += 2;
     }
 }
 
 
 void dupdate_mu(
-    double* mumax, double* restrict mu, double* restrict nu, const PROPACK_INT j, double* restrict alpha,
+    double* mumax, double* restrict mu, double* restrict nu, const CBLAS_INT j, double* restrict alpha,
     double* restrict beta, const double anorm, const double eps1)
 {
     double d = 0.0;
@@ -603,7 +603,7 @@ void dupdate_mu(
         d = eps1 * (hypot(alpha[j], beta[j]) + alpha[0]) + eps1 * anorm;
         mu[0] = (mu[0] + copysign(d, mu[0])) / beta[j];
         *mumax = fabs(mu[0]);
-        for (PROPACK_INT k = 1; k < j; k++)
+        for (CBLAS_INT k = 1; k < j; k++)
         {
             mu[k] = alpha[k]*nu[k] + beta[k-1]*nu[k-1] - alpha[j]*mu[k];
             d = eps1 * (hypot(alpha[j], beta[j]) + hypot(alpha[k], beta[k-1])) + eps1 * anorm;
@@ -620,7 +620,7 @@ void dupdate_mu(
 
 
 void dupdate_nu(
-    double* numax, double* restrict mu, double* restrict nu, const PROPACK_INT j, double* restrict alpha,
+    double* numax, double* restrict mu, double* restrict nu, const CBLAS_INT j, double* restrict alpha,
     double* restrict beta, const double anorm, const double eps1)
 {
     double d = 0.0;
@@ -628,7 +628,7 @@ void dupdate_nu(
     if (j > 0)
     {
         *numax = 0.0;
-        for (PROPACK_INT k = 0; k < j; k++)
+        for (CBLAS_INT k = 0; k < j; k++)
         {
             nu[k] = beta[k] * mu[k+1] + alpha[k] * mu[k] - beta[j-1] * nu[k];
             d = eps1 * (hypot(alpha[k], beta[k]) + hypot(alpha[j], beta[j-1])) + eps1 * anorm;
