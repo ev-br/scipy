@@ -1,14 +1,14 @@
 #include "_common_array_utils.h"
 
-static int sqrtm_recursion_s(float* T, npy_intp bign, npy_intp n);
-static int sqrtm_recursion_d(double* T, npy_intp bign, npy_intp n);
-static int sqrtm_recursion_c(SCIPY_C* T, npy_intp bign, npy_intp n);
-static int sqrtm_recursion_z(SCIPY_Z* T, npy_intp bign, npy_intp n);
+static CBLAS_INT sqrtm_recursion_s(float* T, npy_intp bign, npy_intp n);
+static CBLAS_INT sqrtm_recursion_d(double* T, npy_intp bign, npy_intp n);
+static CBLAS_INT sqrtm_recursion_c(SCIPY_C* T, npy_intp bign, npy_intp n);
+static CBLAS_INT sqrtm_recursion_z(SCIPY_Z* T, npy_intp bign, npy_intp n);
 static inline void zebra_pattern_s(float* restrict data, const Py_ssize_t n) {for (Py_ssize_t i=n-1; i>=0; i--) { data[2*i] = data[i]; data[2*i + 1] = 0.0f; }}
 static inline void zebra_pattern_d(double* restrict data, const Py_ssize_t n) {for (Py_ssize_t i=n-1; i>=0; i--) { data[2*i] = data[i]; data[2*i + 1] = 0.0; }}
 
 void
-matrix_squareroot_s(const PyArrayObject* ap_Am, float* restrict ret_data, int* isIllconditioned, int* isSingular, int* sq_info, int* view_as_complex)
+matrix_squareroot_s(const PyArrayObject* ap_Am, float* restrict ret_data, CBLAS_INT* isIllconditioned, CBLAS_INT* isSingular, CBLAS_INT* sq_info, CBLAS_INT* view_as_complex)
 {
     float aa, bb, cc, dd, cs, sn;
     // Setting indicators to False.
@@ -18,14 +18,14 @@ matrix_squareroot_s(const PyArrayObject* ap_Am, float* restrict ret_data, int* i
     *view_as_complex = 0;
     *isIllconditioned = 0;
     *isSingular = 0;
-    int isComplex = 0;
-    int upcasted_to_complex = 0;
+    CBLAS_INT isComplex = 0;
+    CBLAS_INT upcasted_to_complex = 0;
 
     // --------------------------------------------------------------------
     // Input Array Attributes
     // --------------------------------------------------------------------
     float* restrict Am_data = (float*)PyArray_DATA(ap_Am);
-    int ndim = PyArray_NDIM(ap_Am);              // Number of dimensions
+    CBLAS_INT ndim = PyArray_NDIM(ap_Am);              // Number of dimensions
     npy_intp* shape = PyArray_SHAPE(ap_Am);      // Array shape
     npy_intp n = shape[ndim - 1];                // Slice size
     npy_intp* restrict strides = PyArray_STRIDES(ap_Am);
@@ -33,18 +33,18 @@ matrix_squareroot_s(const PyArrayObject* ap_Am, float* restrict ret_data, int* i
     npy_intp outer_size = 1;
     if (ndim > 2)
     {
-        for (int i = 0; i < ndim - 2; i++) { outer_size *= shape[i];}
+        for (CBLAS_INT i = 0; i < ndim - 2; i++) { outer_size *= shape[i];}
     }
 
     // --------------------------------------------------------------------
     // Workspace computation and allocation
     // --------------------------------------------------------------------
-    int info = 0, sdim = 0, lwork = -1, intn = (int)n;
+    CBLAS_INT info = 0, sdim = 0, lwork = -1, intn = (CBLAS_INT)n;
     float tmp_float = 0.0f, one = 1.0f, zero = 0.0f;
-    sgees_("V", "N", NULL, &intn, NULL, &intn, &sdim, NULL, NULL, NULL, &intn, &tmp_float, &lwork, NULL, &info);
+    BLAS_FUNC(sgees)("V", "N", NULL, &intn, NULL, &intn, &sdim, NULL, NULL, NULL, &intn, &tmp_float, &lwork, NULL, &info);
     // Improbable to fail at lwork query but check anyway
     if (info != 0) { *sq_info = -100; return;}
-    lwork = (int)tmp_float;
+    lwork = (CBLAS_INT)tmp_float;
     // 2n*n + 2n*n for data and vs for potentially converting to complex if needed
     // n + n for wr, wi (needed for gees calls)
     // lwork for work
@@ -86,14 +86,14 @@ matrix_squareroot_s(const PyArrayObject* ap_Am, float* restrict ret_data, int* i
         ------------------------------------------------------------------*/
         npy_intp offset = 0;
         npy_intp temp_idx = idx;
-        for (int i = ndim - 3; i >= 0; i--) {
+        for (CBLAS_INT i = ndim - 3; i >= 0; i--) {
             offset += (temp_idx % shape[i]) * strides[i];
             temp_idx /= shape[i];
         }
         float* restrict slice_ptr = (float*)(Am_data + (offset/sizeof(float)));
 
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
+        for (CBLAS_INT i = 0; i < n; i++) {
+            for (CBLAS_INT j = 0; j < n; j++) {
                 data2[i * n + j] = *(slice_ptr + (i*strides[ndim - 2]/sizeof(float)) + (j*strides[ndim - 1]/sizeof(float)));
             }
         }
@@ -103,11 +103,11 @@ matrix_squareroot_s(const PyArrayObject* ap_Am, float* restrict ret_data, int* i
         // ------------------------------------------------------------------------
         // Check if array is (quasi)upper triangular.
         // ------------------------------------------------------------------------
-        int isSchur = isschurf(data, n);
+        CBLAS_INT isSchur = isschurf(data, n);
 
         if (!isSchur)
         {
-            sgees_("V", "N", NULL, &intn, data, &intn, &sdim, wr, wi, vs, &intn, work, &lwork, NULL, &info);
+            BLAS_FUNC(sgees)("V", "N", NULL, &intn, data, &intn, &sdim, wr, wi, vs, &intn, work, &lwork, NULL, &info);
             if (info != 0)
             {
                 free(buffer);
@@ -133,7 +133,7 @@ matrix_squareroot_s(const PyArrayObject* ap_Am, float* restrict ret_data, int* i
                     bb = data[(col + 1)*n + col];
                     cc = data[col*n + col + 1];
                     dd = data[(col + 1)*n + col + 1];
-                    slanv2_(&aa, &bb, &cc, &dd, &wr[col], &wi[col], &wr[col+1], &wi[col+1], &cs, &sn);
+                    BLAS_FUNC(slanv2)(&aa, &bb, &cc, &dd, &wr[col], &wi[col], &wr[col+1], &wi[col+1], &cs, &sn);
                     col++;
                 }
             }
@@ -247,8 +247,8 @@ matrix_squareroot_s(const PyArrayObject* ap_Am, float* restrict ret_data, int* i
                 // data = ret_data * vs^H
                 SCIPY_C c_one = CPLX_C(1.0f, 0.0f);
                 SCIPY_C c_zero = CPLX_C(0.0f, 0.0f);
-                cgemm_("N", "N", &intn, &intn, &intn, &c_one, complex_vs, &intn, complex_data, &intn, &c_zero, &((SCIPY_C*)ret_data)[idx*n*n], &intn);
-                cgemm_("N", "C", &intn, &intn, &intn, &c_one, &((SCIPY_C*)ret_data)[idx*n*n], &intn, complex_vs, &intn, &c_zero, complex_data, &intn);
+                BLAS_FUNC(cgemm)("N", "N", &intn, &intn, &intn, &c_one, complex_vs, &intn, complex_data, &intn, &c_zero, &((SCIPY_C*)ret_data)[idx*n*n], &intn);
+                BLAS_FUNC(cgemm)("N", "C", &intn, &intn, &intn, &c_one, &((SCIPY_C*)ret_data)[idx*n*n], &intn, complex_vs, &intn, &c_zero, complex_data, &intn);
             }
 
         } else {
@@ -258,9 +258,9 @@ matrix_squareroot_s(const PyArrayObject* ap_Am, float* restrict ret_data, int* i
             {
                 // Apply the Schur decomposition, use the return array, current
                 // slice as scratch space for the matrix multiplication.
-                int new_address = (upcasted_to_complex? 2*idx*n*n : idx*n*n);
-                sgemm_("N", "N", &intn, &intn, &intn, &one, vs, &intn, data, &intn, &zero, &ret_data[new_address], &intn);
-                sgemm_("N", "T", &intn, &intn, &intn, &one, &ret_data[new_address], &intn, vs, &intn, &zero, data, &intn);
+                CBLAS_INT new_address = (upcasted_to_complex? 2*idx*n*n : idx*n*n);
+                BLAS_FUNC(sgemm)("N", "N", &intn, &intn, &intn, &one, vs, &intn, data, &intn, &zero, &ret_data[new_address], &intn);
+                BLAS_FUNC(sgemm)("N", "T", &intn, &intn, &intn, &one, &ret_data[new_address], &intn, vs, &intn, &zero, data, &intn);
             }
         }
 
@@ -309,17 +309,17 @@ matrix_squareroot_s(const PyArrayObject* ap_Am, float* restrict ret_data, int* i
 
 
 void
-matrix_squareroot_d(const PyArrayObject* ap_Am, double* restrict ret_data, int* isIllconditioned, int* isSingular, int* sq_info, int* view_as_complex)
+matrix_squareroot_d(const PyArrayObject* ap_Am, double* restrict ret_data, CBLAS_INT* isIllconditioned, CBLAS_INT* isSingular, CBLAS_INT* sq_info, CBLAS_INT* view_as_complex)
 {
     double aa, bb, cc, dd, cs, sn;
     *view_as_complex = 0;
     *isIllconditioned = 0;
     *isSingular = 0;
-    int isComplex = 0;
-    int upcasted_to_complex = 0;
+    CBLAS_INT isComplex = 0;
+    CBLAS_INT upcasted_to_complex = 0;
 
     double* restrict Am_data = (double*)PyArray_DATA(ap_Am);
-    int ndim = PyArray_NDIM(ap_Am);
+    CBLAS_INT ndim = PyArray_NDIM(ap_Am);
     npy_intp* shape = PyArray_SHAPE(ap_Am);
     npy_intp n = shape[ndim - 1];
     npy_intp* restrict strides = PyArray_STRIDES(ap_Am);
@@ -327,13 +327,13 @@ matrix_squareroot_d(const PyArrayObject* ap_Am, double* restrict ret_data, int* 
     npy_intp outer_size = 1;
     if (ndim > 2)
     {
-        for (int i = 0; i < ndim - 2; i++) { outer_size *= shape[i];}
+        for (CBLAS_INT i = 0; i < ndim - 2; i++) { outer_size *= shape[i];}
     }
-    int info = 0, sdim = 0, lwork = -1, intn = (int)n;
+    CBLAS_INT info = 0, sdim = 0, lwork = -1, intn = (CBLAS_INT)n;
     double tmp_float = 0.0, one = 1.0, zero = 0.0;
-    dgees_("V", "N", NULL, &intn, NULL, &intn, &sdim, NULL, NULL, NULL, &intn, &tmp_float, &lwork, NULL, &info);
+    BLAS_FUNC(dgees)("V", "N", NULL, &intn, NULL, &intn, &sdim, NULL, NULL, NULL, &intn, &tmp_float, &lwork, NULL, &info);
     if (info != 0) { *sq_info = -100; return; }
-    lwork = (int)tmp_float;
+    lwork = (CBLAS_INT)tmp_float;
     size_t buffer_size = 4*n*n + 2*n + lwork;
     double* restrict buffer = malloc(buffer_size*sizeof(double));
     if (buffer == NULL) { *sq_info = -101; return; }
@@ -350,24 +350,24 @@ matrix_squareroot_d(const PyArrayObject* ap_Am, double* restrict ret_data, int* 
     for (npy_intp idx = 0; idx < outer_size; idx++) {
         npy_intp offset = 0;
         npy_intp temp_idx = idx;
-        for (int i = ndim - 3; i >= 0; i--) {
+        for (CBLAS_INT i = ndim - 3; i >= 0; i--) {
             offset += (temp_idx % shape[i]) * strides[i];
             temp_idx /= shape[i];
         }
         double* restrict slice_ptr = (double*)(Am_data + (offset/sizeof(double)));
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
+        for (CBLAS_INT i = 0; i < n; i++) {
+            for (CBLAS_INT j = 0; j < n; j++) {
                 data2[i * n + j] = *(slice_ptr + (i*strides[ndim - 2]/sizeof(double)) + (j*strides[ndim - 1]/sizeof(double)));
             }
         }
         swap_cf_d(data2, data, n, n, n);
 
         isComplex = 0;
-        int isSchur = isschur(data, n);
+        CBLAS_INT isSchur = isschur(data, n);
 
         if (!isSchur)
         {
-            dgees_("V", "N", NULL, &intn, data, &intn, &sdim, wr, wi, vs, &intn, work, &lwork, NULL, &info);
+            BLAS_FUNC(dgees)("V", "N", NULL, &intn, data, &intn, &sdim, wr, wi, vs, &intn, work, &lwork, NULL, &info);
             if (info != 0)
             {
                 free(buffer);
@@ -390,7 +390,7 @@ matrix_squareroot_d(const PyArrayObject* ap_Am, double* restrict ret_data, int* 
                     bb = data[(col + 1)*n + col];
                     cc = data[col*n + col + 1];
                     dd = data[(col + 1)*n + col + 1];
-                    dlanv2_(&aa, &bb, &cc, &dd, &wr[col], &wi[col], &wr[col+1], &wi[col+1], &cs, &sn);
+                    BLAS_FUNC(dlanv2)(&aa, &bb, &cc, &dd, &wr[col], &wi[col], &wr[col+1], &wi[col+1], &cs, &sn);
                     col++;
                 }
             }
@@ -468,16 +468,16 @@ matrix_squareroot_d(const PyArrayObject* ap_Am, double* restrict ret_data, int* 
             {
                 SCIPY_Z c_one = CPLX_Z(1.0, 0.0);
                 SCIPY_Z c_zero = CPLX_Z(0.0, 0.0);
-                zgemm_("N", "N", &intn, &intn, &intn, &c_one, complex_vs, &intn, complex_data, &intn, &c_zero, &((SCIPY_Z*)ret_data)[idx*n*n], &intn);
-                zgemm_("N", "C", &intn, &intn, &intn, &c_one, &((SCIPY_Z*)ret_data)[idx*n*n], &intn, complex_vs, &intn, &c_zero, complex_data, &intn);
+                BLAS_FUNC(zgemm)("N", "N", &intn, &intn, &intn, &c_one, complex_vs, &intn, complex_data, &intn, &c_zero, &((SCIPY_Z*)ret_data)[idx*n*n], &intn);
+                BLAS_FUNC(zgemm)("N", "C", &intn, &intn, &intn, &c_one, &((SCIPY_Z*)ret_data)[idx*n*n], &intn, complex_vs, &intn, &c_zero, complex_data, &intn);
             }
         } else {
             info = sqrtm_recursion_d(data, n, n);
             if (!isSchur)
             {
-                int new_address = (upcasted_to_complex? 2*idx*n*n : idx*n*n);
-                dgemm_("N", "N", &intn, &intn, &intn, &one, vs, &intn, data, &intn, &zero, &ret_data[new_address], &intn);
-                dgemm_("N", "T", &intn, &intn, &intn, &one, &ret_data[new_address], &intn, vs, &intn, &zero, data, &intn);
+                CBLAS_INT new_address = (upcasted_to_complex? 2*idx*n*n : idx*n*n);
+                BLAS_FUNC(dgemm)("N", "N", &intn, &intn, &intn, &one, vs, &intn, data, &intn, &zero, &ret_data[new_address], &intn);
+                BLAS_FUNC(dgemm)("N", "T", &intn, &intn, &intn, &one, &ret_data[new_address], &intn, vs, &intn, &zero, data, &intn);
             }
         }
 
@@ -502,14 +502,14 @@ matrix_squareroot_d(const PyArrayObject* ap_Am, double* restrict ret_data, int* 
 
 
 void
-matrix_squareroot_c(const PyArrayObject* ap_Am, SCIPY_C* restrict ret_data, int* isIllconditioned, int* isSingular, int* sq_info, int* unused)
+matrix_squareroot_c(const PyArrayObject* ap_Am, SCIPY_C* restrict ret_data, CBLAS_INT* isIllconditioned, CBLAS_INT* isSingular, CBLAS_INT* sq_info, CBLAS_INT* unused)
 {
 
     *isIllconditioned = 0;
     *isSingular = 0;
 
     SCIPY_C* restrict Am_data = (SCIPY_C*)PyArray_DATA(ap_Am);
-    int ndim = PyArray_NDIM(ap_Am);
+    CBLAS_INT ndim = PyArray_NDIM(ap_Am);
     npy_intp* shape = PyArray_SHAPE(ap_Am);
     npy_intp n = shape[ndim - 1];
     npy_intp* restrict strides = PyArray_STRIDES(ap_Am);
@@ -517,14 +517,14 @@ matrix_squareroot_c(const PyArrayObject* ap_Am, SCIPY_C* restrict ret_data, int*
     npy_intp outer_size = 1;
     if (ndim > 2)
     {
-        for (int i = 0; i < ndim - 2; i++) { outer_size *= shape[i];}
+        for (CBLAS_INT i = 0; i < ndim - 2; i++) { outer_size *= shape[i];}
     }
-    int info = 0, sdim = 0, lwork = -1, intn = (int)n;
+    CBLAS_INT info = 0, sdim = 0, lwork = -1, intn = (CBLAS_INT)n;
     SCIPY_C tmp_float = CPLX_C(0.0f, 0.0f), cone = CPLX_C(1.0f, 0.0f), czero = CPLX_C(0.0f, 0.0f);
-    cgees_("V", "N", NULL, &intn, NULL, &intn, &sdim, NULL, NULL, &intn, &tmp_float, &lwork, NULL, NULL, &info);
+    BLAS_FUNC(cgees)("V", "N", NULL, &intn, NULL, &intn, &sdim, NULL, NULL, &intn, &tmp_float, &lwork, NULL, NULL, &info);
     if (info != 0) { *sq_info = -100; return; }
 
-    lwork = (int)crealf(tmp_float);
+    lwork = (CBLAS_INT)crealf(tmp_float);
     size_t buffer_size = 2*n*n + 2*n + lwork;
     SCIPY_C* buffer = malloc(buffer_size*sizeof(SCIPY_C));
     if (buffer == NULL) { *sq_info = -101; return; }
@@ -539,7 +539,7 @@ matrix_squareroot_c(const PyArrayObject* ap_Am, SCIPY_C* restrict ret_data, int*
     for (npy_intp idx = 0; idx < outer_size; idx++) {
         npy_intp offset = 0;
         npy_intp temp_idx = idx;
-        for (int i = ndim - 3; i >= 0; i--) {
+        for (CBLAS_INT i = ndim - 3; i >= 0; i--) {
             offset += (temp_idx % shape[i]) * strides[i];
             temp_idx /= shape[i];
         }
@@ -553,7 +553,7 @@ matrix_squareroot_c(const PyArrayObject* ap_Am, SCIPY_C* restrict ret_data, int*
         swap_cf_c(vs, data, n, n, n);
 
         // Check if array is upper triangular
-        int isSchur = 1;
+        CBLAS_INT isSchur = 1;
         for (Py_ssize_t i = 0; i < n - 1; i++)
         {
             for (Py_ssize_t j = i + 1; j < n; j++)
@@ -569,7 +569,7 @@ matrix_squareroot_c(const PyArrayObject* ap_Am, SCIPY_C* restrict ret_data, int*
 
         if (!isSchur)
         {
-            cgees_("V", "N", NULL, &intn, data, &intn, &sdim, w, vs, &intn, work, &lwork, rwork, NULL, &info);
+            BLAS_FUNC(cgees)("V", "N", NULL, &intn, data, &intn, &sdim, w, vs, &intn, work, &lwork, rwork, NULL, &info);
             if (info != 0)
             {
                 free(buffer);
@@ -591,8 +591,8 @@ matrix_squareroot_c(const PyArrayObject* ap_Am, SCIPY_C* restrict ret_data, int*
         info = sqrtm_recursion_c(data, n, n);
         if (!isSchur)
         {
-            cgemm_("N", "N", &intn, &intn, &intn, &cone, vs, &intn, data, &intn, &czero, &ret_data[idx*n*n], &intn);
-            cgemm_("N", "C", &intn, &intn, &intn, &cone, &ret_data[idx*n*n], &intn, vs, &intn, &czero, data, &intn);
+            BLAS_FUNC(cgemm)("N", "N", &intn, &intn, &intn, &cone, vs, &intn, data, &intn, &czero, &ret_data[idx*n*n], &intn);
+            BLAS_FUNC(cgemm)("N", "C", &intn, &intn, &intn, &cone, &ret_data[idx*n*n], &intn, vs, &intn, &czero, data, &intn);
         }
 
         if (info != 0) { *isIllconditioned = 1; }
@@ -604,14 +604,14 @@ matrix_squareroot_c(const PyArrayObject* ap_Am, SCIPY_C* restrict ret_data, int*
 
 
 void
-matrix_squareroot_z(const PyArrayObject* ap_Am, SCIPY_Z* restrict ret_data, int* isIllconditioned, int* isSingular, int* sq_info, int* unused)
+matrix_squareroot_z(const PyArrayObject* ap_Am, SCIPY_Z* restrict ret_data, CBLAS_INT* isIllconditioned, CBLAS_INT* isSingular, CBLAS_INT* sq_info, CBLAS_INT* unused)
 {
 
     *isIllconditioned = 0;
     *isSingular = 0;
 
     SCIPY_Z* restrict Am_data = (SCIPY_Z*)PyArray_DATA(ap_Am);
-    int ndim = PyArray_NDIM(ap_Am);
+    CBLAS_INT ndim = PyArray_NDIM(ap_Am);
     npy_intp* shape = PyArray_SHAPE(ap_Am);
     npy_intp n = shape[ndim - 1];
     npy_intp* restrict strides = PyArray_STRIDES(ap_Am);
@@ -619,14 +619,14 @@ matrix_squareroot_z(const PyArrayObject* ap_Am, SCIPY_Z* restrict ret_data, int*
     npy_intp outer_size = 1;
     if (ndim > 2)
     {
-        for (int i = 0; i < ndim - 2; i++) { outer_size *= shape[i];}
+        for (CBLAS_INT i = 0; i < ndim - 2; i++) { outer_size *= shape[i];}
     }
-    int info = 0, sdim = 0, lwork = -1, intn = (int)n;
+    CBLAS_INT info = 0, sdim = 0, lwork = -1, intn = (CBLAS_INT)n;
     SCIPY_Z tmp_float = CPLX_Z(0.0f, 0.0f), cone = CPLX_Z(1.0f, 0.0f), czero = CPLX_Z(0.0f, 0.0f);
-    zgees_("V", "N", NULL, &intn, NULL, &intn, &sdim, NULL, NULL, &intn, &tmp_float, &lwork, NULL, NULL, &info);
+    BLAS_FUNC(zgees)("V", "N", NULL, &intn, NULL, &intn, &sdim, NULL, NULL, &intn, &tmp_float, &lwork, NULL, NULL, &info);
     if (info != 0) { *sq_info = -100; return; }
 
-    lwork = (int)creal(tmp_float);
+    lwork = (CBLAS_INT)creal(tmp_float);
     size_t buffer_size = 2*n*n + 2*n + lwork;
     SCIPY_Z* buffer = malloc(buffer_size*sizeof(SCIPY_Z));
     if (buffer == NULL) { *sq_info = -101; return; }
@@ -641,7 +641,7 @@ matrix_squareroot_z(const PyArrayObject* ap_Am, SCIPY_Z* restrict ret_data, int*
     for (npy_intp idx = 0; idx < outer_size; idx++) {
         npy_intp offset = 0;
         npy_intp temp_idx = idx;
-        for (int i = ndim - 3; i >= 0; i--) {
+        for (CBLAS_INT i = ndim - 3; i >= 0; i--) {
             offset += (temp_idx % shape[i]) * strides[i];
             temp_idx /= shape[i];
         }
@@ -655,7 +655,7 @@ matrix_squareroot_z(const PyArrayObject* ap_Am, SCIPY_Z* restrict ret_data, int*
         swap_cf_z(vs, data, n, n, n);
 
         // Check if array is upper triangular
-        int isSchur = 1;
+        CBLAS_INT isSchur = 1;
         for (Py_ssize_t i = 0; i < n - 1; i++)
         {
             for (Py_ssize_t j = i + 1; j < n; j++)
@@ -671,7 +671,7 @@ matrix_squareroot_z(const PyArrayObject* ap_Am, SCIPY_Z* restrict ret_data, int*
 
         if (!isSchur)
         {
-            zgees_("V", "N", NULL, &intn, data, &intn, &sdim, w, vs, &intn, work, &lwork, rwork, NULL, &info);
+            BLAS_FUNC(zgees)("V", "N", NULL, &intn, data, &intn, &sdim, w, vs, &intn, work, &lwork, rwork, NULL, &info);
             if (info != 0)
             {
                 free(buffer);
@@ -693,8 +693,8 @@ matrix_squareroot_z(const PyArrayObject* ap_Am, SCIPY_Z* restrict ret_data, int*
         info = sqrtm_recursion_z(data, n, n);
         if (!isSchur)
         {
-            zgemm_("N", "N", &intn, &intn, &intn, &cone, vs, &intn, data, &intn, &czero, &ret_data[idx*n*n], &intn);
-            zgemm_("N", "C", &intn, &intn, &intn, &cone, &ret_data[idx*n*n], &intn, vs, &intn, &czero, data, &intn);
+            BLAS_FUNC(zgemm)("N", "N", &intn, &intn, &intn, &cone, vs, &intn, data, &intn, &czero, &ret_data[idx*n*n], &intn);
+            BLAS_FUNC(zgemm)("N", "C", &intn, &intn, &intn, &cone, &ret_data[idx*n*n], &intn, vs, &intn, &czero, data, &intn);
         }
 
         if (info != 0) { *isIllconditioned = 1; }
@@ -724,10 +724,10 @@ matrix_squareroot_z(const PyArrayObject* ap_Am, SCIPY_Z* restrict ret_data, int*
  * info: 0 if successful, 1 if the Sylvester solver returned nonzero info.
  *
  */
-int
+CBLAS_INT
 sqrtm_recursion_s(float* T, npy_intp bign, npy_intp n)
 {
-    int i, i1 = 0, i2 = 0, info = 0, j, halfn, otherhalfn, int1 = 1, intbign = (int)bign;
+    CBLAS_INT i, i1 = 0, i2 = 0, info = 0, j, halfn, otherhalfn, int1 = 1, intbign = (CBLAS_INT)bign;
     float scale = 0.0, a, b, c, d, alpha, theta, mu;
     if (n == 1)
     {
@@ -767,10 +767,10 @@ sqrtm_recursion_s(float* T, npy_intp bign, npy_intp n)
         }
     } else {
         // Recursion
-        halfn = (int)(n / 2);
+        halfn = (CBLAS_INT)(n / 2);
         // Don't split the 2x2 block, check if the entry under separation is zero
         if (T[(halfn-1)*bign + halfn] != 0.0) { halfn++; }
-        otherhalfn = (int)(n - halfn);
+        otherhalfn = (CBLAS_INT)(n - halfn);
 
         // Top left block
         i1 = sqrtm_recursion_s(T, bign, halfn);
@@ -780,8 +780,8 @@ sqrtm_recursion_s(float* T, npy_intp bign, npy_intp n)
         // When n == 3, the Sylvester equation is 1x2 or 2x1. If both
         // sides have a zero diagonal, strsyl_ produces garbage instead
         // of inf. Detect this and set INFINITY so it propagates.
-        int sylvester12 = (n == 3) && (halfn == 1);
-        int sylvester21 = (n == 3) && (halfn == 2);
+        CBLAS_INT sylvester12 = (n == 3) && (halfn == 1);
+        CBLAS_INT sylvester21 = (n == 3) && (halfn == 2);
         if (sylvester12 && (T[0] == 0.0f) && ((T[intbign + 1] == 0.0f) || (T[2*(intbign + 1)] == 0.0f))) {
             T[intbign] = INFINITY;
             T[2*intbign] = INFINITY;
@@ -791,7 +791,7 @@ sqrtm_recursion_s(float* T, npy_intp bign, npy_intp n)
             T[2*intbign + 1] = INFINITY;
             info = 1;
         } else {
-            strsyl_("N", "N", &int1, &halfn, &otherhalfn, T, &intbign, &T[halfn*(intbign + 1)], &intbign, &T[halfn*intbign], &intbign, &scale, &info);
+            BLAS_FUNC(strsyl)("N", "N", &int1, &halfn, &otherhalfn, T, &intbign, &T[halfn*(intbign + 1)], &intbign, &T[halfn*intbign], &intbign, &scale, &info);
             if (scale != 1.0)
             {
                 for (i = 0; i < otherhalfn; i++)
@@ -814,10 +814,10 @@ sqrtm_recursion_s(float* T, npy_intp bign, npy_intp n)
 }
 
 
-int
+CBLAS_INT
 sqrtm_recursion_d(double* T, npy_intp bign, npy_intp n)
 {
-    int i, i1 = 0, i2 = 0, info = 0, j, halfn, otherhalfn, int1 = 1, intbign = (int)bign;
+    CBLAS_INT i, i1 = 0, i2 = 0, info = 0, j, halfn, otherhalfn, int1 = 1, intbign = (CBLAS_INT)bign;
     double scale = 0.0, a, b, c, d, alpha, theta, mu;
     if (n == 1)
     {
@@ -857,10 +857,10 @@ sqrtm_recursion_d(double* T, npy_intp bign, npy_intp n)
         }
     } else {
         // Recursion
-        halfn = (int)(n / 2);
+        halfn = (CBLAS_INT)(n / 2);
         // Don't split the 2x2 block, check if the entry under separation is zero
         if (T[(halfn-1)*bign + halfn] != 0.0) { halfn++; }
-        otherhalfn = (int)(n - halfn);
+        otherhalfn = (CBLAS_INT)(n - halfn);
 
         // Top left block
         i1 = sqrtm_recursion_d(T, bign, halfn);
@@ -870,8 +870,8 @@ sqrtm_recursion_d(double* T, npy_intp bign, npy_intp n)
         // When n == 3, the Sylvester equation is 1x2 or 2x1. If both
         // sides have a zero diagonal, dtrsyl_ produces garbage instead
         // of inf. Detect this and set INFINITY so it propagates.
-        int sylvester12 = (n == 3) && (halfn == 1);
-        int sylvester21 = (n == 3) && (halfn == 2);
+        CBLAS_INT sylvester12 = (n == 3) && (halfn == 1);
+        CBLAS_INT sylvester21 = (n == 3) && (halfn == 2);
         if (sylvester12  && (T[0] == 0.0) && ((T[intbign + 1] == 0.0 )|| (T[2*(intbign + 1)] == 0.0))) {
             T[intbign] = INFINITY;
             T[2*intbign] = INFINITY;
@@ -881,7 +881,7 @@ sqrtm_recursion_d(double* T, npy_intp bign, npy_intp n)
             T[2*intbign + 1] = INFINITY;
             info = 1;
         } else {
-            dtrsyl_("N", "N", &int1, &halfn, &otherhalfn, T, &intbign, &T[halfn*(intbign + 1)], &intbign, &T[halfn*intbign], &intbign, &scale, &info);
+            BLAS_FUNC(dtrsyl)("N", "N", &int1, &halfn, &otherhalfn, T, &intbign, &T[halfn*(intbign + 1)], &intbign, &T[halfn*intbign], &intbign, &scale, &info);
             if (scale != 1.0)
             {
                 for (i = 0; i < otherhalfn; i++)
@@ -904,10 +904,10 @@ sqrtm_recursion_d(double* T, npy_intp bign, npy_intp n)
 }
 
 
-int
+CBLAS_INT
 sqrtm_recursion_c(SCIPY_C* T, npy_intp bign, npy_intp n)
 {
-    int i, i1 = 0, i2 = 0, info = 0, j, halfn, otherhalfn, int1 = 1, intbign = (int)bign;
+    CBLAS_INT i, i1 = 0, i2 = 0, info = 0, j, halfn, otherhalfn, int1 = 1, intbign = (CBLAS_INT)bign;
     float scale = 0.0;
     if (n == 1)
     {
@@ -933,8 +933,8 @@ sqrtm_recursion_c(SCIPY_C* T, npy_intp bign, npy_intp n)
 #endif
         return 0;
     } else {
-        halfn = (int)(n / 2);
-        otherhalfn = (int)(n - halfn);
+        halfn = (CBLAS_INT)(n / 2);
+        otherhalfn = (CBLAS_INT)(n - halfn);
         SCIPY_C* T11 = T;
         SCIPY_C* T22 = &T[halfn*(bign + 1)];
         SCIPY_C* T12 = &T[halfn*bign];
@@ -950,7 +950,7 @@ sqrtm_recursion_c(SCIPY_C* T, npy_intp bign, npy_intp n)
             T12[intbign] = cinf;
             info = 1;
         } else {
-            ctrsyl_("N", "N", &int1, &halfn, &otherhalfn, T11, &intbign, T22, &intbign, T12, &intbign, &scale, &info);
+            BLAS_FUNC(ctrsyl)("N", "N", &int1, &halfn, &otherhalfn, T11, &intbign, T22, &intbign, T12, &intbign, &scale, &info);
             if (scale != 1.0)
             {
                 for (i = 0; i < otherhalfn; i++)
@@ -977,10 +977,10 @@ sqrtm_recursion_c(SCIPY_C* T, npy_intp bign, npy_intp n)
 }
 
 
-int
+CBLAS_INT
 sqrtm_recursion_z(SCIPY_Z* T, npy_intp bign, npy_intp n)
 {
-    int i, i1 = 0, i2 = 0, info = 0, j, halfn, otherhalfn, int1 = 1, intbign = (int)bign;
+    CBLAS_INT i, i1 = 0, i2 = 0, info = 0, j, halfn, otherhalfn, int1 = 1, intbign = (CBLAS_INT)bign;
     double scale = 0.0;
     if (n == 1)
     {
@@ -1006,8 +1006,8 @@ sqrtm_recursion_z(SCIPY_Z* T, npy_intp bign, npy_intp n)
 #endif
         return 0;
     } else {
-        halfn = (int)(n / 2);
-        otherhalfn = (int)(n - halfn);
+        halfn = (CBLAS_INT)(n / 2);
+        otherhalfn = (CBLAS_INT)(n - halfn);
         SCIPY_Z* T11 = T;
         SCIPY_Z* T22 = &T[halfn*(bign + 1)];
         SCIPY_Z* T12 = &T[halfn*bign];
@@ -1023,7 +1023,7 @@ sqrtm_recursion_z(SCIPY_Z* T, npy_intp bign, npy_intp n)
             T12[intbign] = zinf;
             info = 1;
         } else {
-            ztrsyl_("N", "N", &int1, &halfn, &otherhalfn, T11, &intbign, T22, &intbign, T12, &intbign, &scale, &info);
+            BLAS_FUNC(ztrsyl)("N", "N", &int1, &halfn, &otherhalfn, T11, &intbign, T22, &intbign, T12, &intbign, &scale, &info);
             if (scale != 1.0)
             {
                 for (i = 0; i < otherhalfn; i++)
