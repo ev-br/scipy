@@ -31,8 +31,8 @@
  * @param work       Work array of size max(m,n)
  * @param rng_state  User-supplied random number generator state (uint64_t[4])
  */
-void sgetu0(int transa, int m, int n, int j, int ntry, float* u0, float* u0norm, float* U, int ldu,
-           PROPACK_aprod_s aprod, float* dparm, int* iparm, int* ierr, int icgs, float* anormest, float* work, uint64_t* rng_state);
+void sgetu0(PROPACK_INT transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT ntry, float* u0, float* u0norm, float* U, PROPACK_INT ldu,
+           PROPACK_aprod_s aprod, float* dparm, PROPACK_INT* iparm, PROPACK_INT* ierr, PROPACK_INT icgs, float* anormest, float* work, uint64_t* rng_state);
 
 /**
  * Generate random vector in span(Op(A)) orthogonal to span(U) - Double precision
@@ -58,8 +58,8 @@ void sgetu0(int transa, int m, int n, int j, int ntry, float* u0, float* u0norm,
  * @param work       Work array of size max(m,n)
  * @param rng_state  User-supplied random number generator state (uint64_t[4])
  */
-void dgetu0(int transa, int m, int n, int j, int ntry, double* u0, double* u0norm, double* U, int ldu,
-           PROPACK_aprod_d aprod, double* dparm, int* iparm, int* ierr, int icgs, double* anormest, double* work, uint64_t* rng_state);
+void dgetu0(PROPACK_INT transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT ntry, double* u0, double* u0norm, double* U, PROPACK_INT ldu,
+           PROPACK_aprod_d aprod, double* dparm, PROPACK_INT* iparm, PROPACK_INT* ierr, PROPACK_INT icgs, double* anormest, double* work, uint64_t* rng_state);
 
 /**
  * Generate random vector in span(Op(A)) orthogonal to span(U) - Single precision complex
@@ -85,8 +85,8 @@ void dgetu0(int transa, int m, int n, int j, int ntry, double* u0, double* u0nor
  * @param work       Work array of size max(m,n)
  * @param rng_state  User-supplied random number generator state (uint64_t[4])
  */
-void cgetu0(int transa, int m, int n, int j, int ntry, PROPACK_CPLXF_TYPE* u0, float* u0norm, PROPACK_CPLXF_TYPE* U, int ldu,
-           PROPACK_aprod_c aprod, PROPACK_CPLXF_TYPE* cparm, int* iparm, int* ierr, int icgs, float* anormest, PROPACK_CPLXF_TYPE* work,
+void cgetu0(PROPACK_INT transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT ntry, PROPACK_CPLXF_TYPE* u0, float* u0norm, PROPACK_CPLXF_TYPE* U, PROPACK_INT ldu,
+           PROPACK_aprod_c aprod, PROPACK_CPLXF_TYPE* cparm, PROPACK_INT* iparm, PROPACK_INT* ierr, PROPACK_INT icgs, float* anormest, PROPACK_CPLXF_TYPE* work,
            uint64_t* rng_state);
 
 /**
@@ -113,8 +113,8 @@ void cgetu0(int transa, int m, int n, int j, int ntry, PROPACK_CPLXF_TYPE* u0, f
  * @param work       Work array of size max(m,n)
  * @param rng_state  User-supplied random number generator state (uint64_t[4])
  */
-void zgetu0(int transa, int m, int n, int j, int ntry, PROPACK_CPLX_TYPE* u0, double* u0norm, PROPACK_CPLX_TYPE* U, int ldu,
-           PROPACK_aprod_z aprod, PROPACK_CPLX_TYPE* zparm, int* iparm, int* ierr, int icgs, double* anormest, PROPACK_CPLX_TYPE* work,
+void zgetu0(PROPACK_INT transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT ntry, PROPACK_CPLX_TYPE* u0, double* u0norm, PROPACK_CPLX_TYPE* U, PROPACK_INT ldu,
+           PROPACK_aprod_z aprod, PROPACK_CPLX_TYPE* zparm, PROPACK_INT* iparm, PROPACK_INT* ierr, PROPACK_INT icgs, double* anormest, PROPACK_CPLX_TYPE* work,
            uint64_t* rng_state);
 
 

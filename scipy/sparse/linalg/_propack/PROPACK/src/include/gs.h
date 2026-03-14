@@ -22,7 +22,7 @@
  *                for each block. The last element is marked as a terminator typically a value
  *                greater than k-1.
  */
-void smgs(int n, int k, float* V, int ldv, float* vnew, const int* indices);
+void smgs(PROPACK_INT n, PROPACK_INT k, float* V, PROPACK_INT ldv, float* vnew, const PROPACK_INT* indices);
 
 
 /**
@@ -43,7 +43,7 @@ void smgs(int n, int k, float* V, int ldv, float* vnew, const int* indices);
  *                for each block. The last element is marked as a terminator typically a value
  *                greater than k-1.
  */
-void dmgs(int n, int k, double* V, int ldv, double* vnew, const int* indices);
+void dmgs(PROPACK_INT n, PROPACK_INT k, double* V, PROPACK_INT ldv, double* vnew, const PROPACK_INT* indices);
 
 
 /**
@@ -64,7 +64,7 @@ void dmgs(int n, int k, double* V, int ldv, double* vnew, const int* indices);
  *                for each block. The last element is marked as a terminator typically a value
  *                greater than k-1.
  */
-void cmgs(int n, int k, PROPACK_CPLXF_TYPE* V, int ldv, PROPACK_CPLXF_TYPE* vnew, const int* indices);
+void cmgs(PROPACK_INT n, PROPACK_INT k, PROPACK_CPLXF_TYPE* V, PROPACK_INT ldv, PROPACK_CPLXF_TYPE* vnew, const PROPACK_INT* indices);
 
 
 /**
@@ -85,7 +85,7 @@ void cmgs(int n, int k, PROPACK_CPLXF_TYPE* V, int ldv, PROPACK_CPLXF_TYPE* vnew
  *                for each block. The last element is marked as a terminator typically a value
  *                greater than k-1.
  */
-void zmgs(int n, int k, PROPACK_CPLX_TYPE* V, int ldv, PROPACK_CPLX_TYPE* vnew, const int* indices);
+void zmgs(PROPACK_INT n, PROPACK_INT k, PROPACK_CPLX_TYPE* V, PROPACK_INT ldv, PROPACK_CPLX_TYPE* vnew, const PROPACK_INT* indices);
 
 
 /**
@@ -108,7 +108,7 @@ void zmgs(int n, int k, PROPACK_CPLX_TYPE* V, int ldv, PROPACK_CPLX_TYPE* vnew, 
  * @param work    Pointer to a workspace array of length at least equal to the size of the
  *                largest block (end - start + 1) in the `indices` array.
  */
-void scgs(int n, int k, float* V, int ldv, float* vnew, const int* indices, float* work);
+void scgs(PROPACK_INT n, PROPACK_INT k, float* V, PROPACK_INT ldv, float* vnew, const PROPACK_INT* indices, float* work);
 
 
 /**
@@ -131,7 +131,7 @@ void scgs(int n, int k, float* V, int ldv, float* vnew, const int* indices, floa
  * @param work    Pointer to a workspace array of length at least equal to the size of the
  *                largest block (end - start + 1) in the `indices` array.
  */
-void dcgs(int n, int k, double* V, int ldv, double* vnew, const int* indices, double* work);
+void dcgs(PROPACK_INT n, PROPACK_INT k, double* V, PROPACK_INT ldv, double* vnew, const PROPACK_INT* indices, double* work);
 
 
 /**
@@ -154,7 +154,7 @@ void dcgs(int n, int k, double* V, int ldv, double* vnew, const int* indices, do
  * @param work    Pointer to a workspace array of length at least equal to the size of the
  *                largest block (end - start + 1) in the `indices` array.
  */
-void ccgs(int n, int k, PROPACK_CPLXF_TYPE* V, int ldv, PROPACK_CPLXF_TYPE* vnew, const int* indices, PROPACK_CPLXF_TYPE* work);
+void ccgs(PROPACK_INT n, PROPACK_INT k, PROPACK_CPLXF_TYPE* V, PROPACK_INT ldv, PROPACK_CPLXF_TYPE* vnew, const PROPACK_INT* indices, PROPACK_CPLXF_TYPE* work);
 
 
 /**
@@ -177,7 +177,7 @@ void ccgs(int n, int k, PROPACK_CPLXF_TYPE* V, int ldv, PROPACK_CPLXF_TYPE* vnew
  * @param work    Pointer to a workspace array of length at least equal to the size of the
  *                largest block (end - start + 1) in the `indices` array.
  */
-void zcgs(int n, int k, PROPACK_CPLX_TYPE* V, int ldv, PROPACK_CPLX_TYPE* vnew, const int* indices, PROPACK_CPLX_TYPE* work);
+void zcgs(PROPACK_INT n, PROPACK_INT k, PROPACK_CPLX_TYPE* V, PROPACK_INT ldv, PROPACK_CPLX_TYPE* vnew, const PROPACK_INT* indices, PROPACK_CPLX_TYPE* work);
 
 
 /**
@@ -211,7 +211,7 @@ void zcgs(int n, int k, PROPACK_CPLX_TYPE* V, int ldv, PROPACK_CPLX_TYPE* vnew, 
  *                  - `0`: Iterated Modified Gram-Schmidt (MGS).
  *                  - `1`: Iterated Classical Gram-Schmidt (CGS).
  */
-void sreorth(int n, int k, float* V, int ldv, float* vnew, float* normvnew, const int* indices, float alpha, float* work, int iflag);
+void sreorth(PROPACK_INT n, PROPACK_INT k, float* V, PROPACK_INT ldv, float* vnew, float* normvnew, const PROPACK_INT* indices, float alpha, float* work, PROPACK_INT iflag);
 
 
 /**
@@ -245,7 +245,7 @@ void sreorth(int n, int k, float* V, int ldv, float* vnew, float* normvnew, cons
  *                  - `0`: Iterated Modified Gram-Schmidt (MGS).
  *                  - `1`: Iterated Classical Gram-Schmidt (CGS).
  */
-void dreorth(int n, int k, double* V, int ldv, double* vnew, double* normvnew, const int* indices, double alpha, double* work, int iflag);
+void dreorth(PROPACK_INT n, PROPACK_INT k, double* V, PROPACK_INT ldv, double* vnew, double* normvnew, const PROPACK_INT* indices, double alpha, double* work, PROPACK_INT iflag);
 
 
 /**
@@ -279,7 +279,7 @@ void dreorth(int n, int k, double* V, int ldv, double* vnew, double* normvnew, c
  *                  - `0`: Iterated Modified Gram-Schmidt (MGS).
  *                  - `1`: Iterated Classical Gram-Schmidt (CGS).
  */
-void creorth(int n, int k, PROPACK_CPLXF_TYPE* V, int ldv, PROPACK_CPLXF_TYPE* vnew, float* normvnew, const int* indices, float alpha, PROPACK_CPLXF_TYPE* work, int iflag);
+void creorth(PROPACK_INT n, PROPACK_INT k, PROPACK_CPLXF_TYPE* V, PROPACK_INT ldv, PROPACK_CPLXF_TYPE* vnew, float* normvnew, const PROPACK_INT* indices, float alpha, PROPACK_CPLXF_TYPE* work, PROPACK_INT iflag);
 
 
 /**
@@ -313,7 +313,7 @@ void creorth(int n, int k, PROPACK_CPLXF_TYPE* V, int ldv, PROPACK_CPLXF_TYPE* v
  *                  - `0`: Iterated Modified Gram-Schmidt (MGS).
  *                  - `1`: Iterated Classical Gram-Schmidt (CGS).
  */
-void zreorth(int n, int k, PROPACK_CPLX_TYPE* V, int ldv, PROPACK_CPLX_TYPE* vnew, double* normvnew, const int* indices, double alpha, PROPACK_CPLX_TYPE* work, int iflag);
+void zreorth(PROPACK_INT n, PROPACK_INT k, PROPACK_CPLX_TYPE* V, PROPACK_INT ldv, PROPACK_CPLX_TYPE* vnew, double* normvnew, const PROPACK_INT* indices, double alpha, PROPACK_CPLX_TYPE* work, PROPACK_INT iflag);
 
 
 #endif /* GS_H */

@@ -10,21 +10,21 @@
 #include "blaslapack_declarations.h"
 
 
-static inline int int_min(const int a, const int b) { return a < b ? a : b; }
-static inline int int_max(const int a, const int b) { return a > b ? a : b; }
+static inline PROPACK_INT int_min(const PROPACK_INT a, const PROPACK_INT b) { return a < b ? a : b; }
+static inline PROPACK_INT int_max(const PROPACK_INT a, const PROPACK_INT b) { return a > b ? a : b; }
 
 
-void slansvd(int jobu, int jobv, int m, int n, int k, int kmax, PROPACK_aprod_s aprod,
-             float* U, int ldu, float* sigma, float* bnd, float* V, int ldv,
-             float tolin, float* work, int lwork, int* iwork,
-             float* doption, int* ioption, int* info, float* dparm, int* iparm,
+void slansvd(PROPACK_INT jobu, PROPACK_INT jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PROPACK_INT kmax, PROPACK_aprod_s aprod,
+             float* U, PROPACK_INT ldu, float* sigma, float* bnd, float* V, PROPACK_INT ldv,
+             float tolin, float* work, PROPACK_INT lwork, PROPACK_INT* iwork,
+             float* doption, PROPACK_INT* ioption, PROPACK_INT* info, float* dparm, PROPACK_INT* iparm,
              uint64_t* rng_state)
 {
     // Parameters
-    int int1 = 1, int0 = 0;
+    PROPACK_INT int1 = 1, int0 = 0;
 
     // Local variables
-    int i, j, dj, jold, ibnd, ib, ib1, iwrk, ierr, ip, iq, neig, lwrk, lapinfo, lanmax, nlandim;
+    PROPACK_INT i, j, dj, jold, ibnd, ib, ib1, iwrk, ierr, ip, iq, neig, lwrk, lapinfo, lanmax, nlandim;
     float eps, eps34, epsn2, epsn, sfmin, anorm, rnorm, tol;
 
     // Set machine dependent constants
@@ -52,7 +52,7 @@ void slansvd(int jobu, int jobv, int m, int n, int k, int kmax, PROPACK_aprod_s 
     for (i = 0; i < 7 * lanmax + 2 + 2 * lanmax * lanmax; i++) { work[i] = 0.0f; }
 
     // Set up random starting vector if none is provided by the user
-    rnorm = snrm2_(&m, &U[0], &int1);  // U(:,0) in 0-based indexing
+    rnorm = BLAS_FUNC(snrm2)(&m, &U[0], &int1);  // U(:,0) in 0-based indexing
     if (rnorm == 0.0f)
     {
         sgetu0(0, m, n, 0, 1, &U[0], &rnorm, U, ldu, aprod, dparm, iparm, &ierr, ioption[0], &anorm, &work[iwrk], rng_state);
@@ -71,8 +71,8 @@ void slansvd(int jobu, int jobv, int m, int n, int k, int kmax, PROPACK_aprod_s 
         jold = j;
 
         // Compute and analyze SVD(B) and error bounds
-        int two_lanmax = 2 * lanmax;
-        scopy_(&two_lanmax, &work[ib], &int1, &work[ib1], &int1);
+        PROPACK_INT two_lanmax = 2 * lanmax;
+        BLAS_FUNC(scopy)(&two_lanmax, &work[ib], &int1, &work[ib1], &int1);
 
         // Zero out bounds array
         for (i = 0; i < j + 1; i++) { work[ibnd + i] = 0.0f; }
@@ -81,7 +81,7 @@ void slansvd(int jobu, int jobv, int m, int n, int k, int kmax, PROPACK_aprod_s 
         sbdqr((j == int_min(m, n)), 0, j, &work[ib1], &work[ib1 + lanmax], &work[ibnd + j - 1], &work[ibnd + j], &work[ip], lanmax + 1);
 
         // SVD of bidiagonal matrix
-        sbdsqr_("U", &j, &int0, &int1, &int0, &work[ib1], &work[ib1 + lanmax], work, &int1, &work[ibnd], &int1, work, &int1, &work[iwrk], &lapinfo);
+        BLAS_FUNC(sbdsqr)("U", &j, &int0, &int1, &int0, &work[ib1], &work[ib1 + lanmax], work, &int1, &work[ibnd], &int1, work, &int1, &work[iwrk], &lapinfo);
 
         // Update anorm estimate
         if (j > 5)
@@ -157,17 +157,17 @@ void slansvd(int jobu, int jobv, int m, int n, int k, int kmax, PROPACK_aprod_s 
 }
 
 
-void dlansvd(int jobu, int jobv, int m, int n, int k, int kmax, PROPACK_aprod_d aprod,
-             double* U, int ldu, double* sigma, double* bnd, double* V, int ldv,
-             double tolin, double* work, int lwork, int* iwork,
-             double* doption, int* ioption, int* info, double* dparm, int* iparm,
+void dlansvd(PROPACK_INT jobu, PROPACK_INT jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PROPACK_INT kmax, PROPACK_aprod_d aprod,
+             double* U, PROPACK_INT ldu, double* sigma, double* bnd, double* V, PROPACK_INT ldv,
+             double tolin, double* work, PROPACK_INT lwork, PROPACK_INT* iwork,
+             double* doption, PROPACK_INT* ioption, PROPACK_INT* info, double* dparm, PROPACK_INT* iparm,
              uint64_t* rng_state)
 {
     // Parameters
-    int int1 = 1, int0 = 0;
+    PROPACK_INT int1 = 1, int0 = 0;
 
     // Local variables
-    int i, j, dj, jold, ibnd, ib, ib1, iwrk, ierr, ip, iq, neig, lwrk, lapinfo, lanmax, nlandim;
+    PROPACK_INT i, j, dj, jold, ibnd, ib, ib1, iwrk, ierr, ip, iq, neig, lwrk, lapinfo, lanmax, nlandim;
     double eps, eps34, epsn2, epsn, sfmin, anorm, rnorm, tol;
 
     // Set machine dependent constants
@@ -195,7 +195,7 @@ void dlansvd(int jobu, int jobv, int m, int n, int k, int kmax, PROPACK_aprod_d 
     for (i = 0; i < 7 * lanmax + 2 + 2 * lanmax * lanmax; i++) { work[i] = 0.0; }
 
     // Set up random starting vector if none is provided by the user
-    rnorm = dnrm2_(&m, &U[0], &int1);
+    rnorm = BLAS_FUNC(dnrm2)(&m, &U[0], &int1);
     if (rnorm == 0.0)
     {
         dgetu0(0, m, n, 0, 1, &U[0], &rnorm, U, ldu, aprod, dparm, iparm, &ierr, ioption[0], &anorm, &work[iwrk], rng_state);
@@ -214,8 +214,8 @@ void dlansvd(int jobu, int jobv, int m, int n, int k, int kmax, PROPACK_aprod_d 
         jold = j;
 
         // Compute and analyze SVD(B) and error bounds
-        int two_lanmax = 2 * lanmax;
-        dcopy_(&two_lanmax, &work[ib], &int1, &work[ib1], &int1);
+        PROPACK_INT two_lanmax = 2 * lanmax;
+        BLAS_FUNC(dcopy)(&two_lanmax, &work[ib], &int1, &work[ib1], &int1);
 
         // Zero out bounds array
         for (i = 0; i < j + 1; i++) { work[ibnd + i] = 0.0; }
@@ -224,7 +224,7 @@ void dlansvd(int jobu, int jobv, int m, int n, int k, int kmax, PROPACK_aprod_d 
         dbdqr((j == int_min(m, n)), 0, j, &work[ib1], &work[ib1 + lanmax], &work[ibnd + j - 1], &work[ibnd + j], &work[ip], lanmax + 1);
 
         // SVD of bidiagonal matrix
-        dbdsqr_("U", &j, &int0, &int1, &int0, &work[ib1], &work[ib1 + lanmax], work, &int1, &work[ibnd], &int1, work, &int1, &work[iwrk], &lapinfo);
+        BLAS_FUNC(dbdsqr)("U", &j, &int0, &int1, &int0, &work[ib1], &work[ib1 + lanmax], work, &int1, &work[ibnd], &int1, work, &int1, &work[iwrk], &lapinfo);
 
         // Update anorm estimate
         if (j > 5)
@@ -300,17 +300,17 @@ void dlansvd(int jobu, int jobv, int m, int n, int k, int kmax, PROPACK_aprod_d 
 }
 
 
-void clansvd(int jobu, int jobv, int m, int n, int k, int kmax, PROPACK_aprod_c aprod,
-             PROPACK_CPLXF_TYPE* U, int ldu, float* sigma, float* bnd, PROPACK_CPLXF_TYPE* V, int ldv,
-             float tolin, float* work, int lwork, PROPACK_CPLXF_TYPE* cwork, int lcwork,
-             int* iwork, float* soption, int* ioption, int* info,
-             PROPACK_CPLXF_TYPE* cparm, int* iparm, uint64_t* rng_state)
+void clansvd(PROPACK_INT jobu, PROPACK_INT jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PROPACK_INT kmax, PROPACK_aprod_c aprod,
+             PROPACK_CPLXF_TYPE* U, PROPACK_INT ldu, float* sigma, float* bnd, PROPACK_CPLXF_TYPE* V, PROPACK_INT ldv,
+             float tolin, float* work, PROPACK_INT lwork, PROPACK_CPLXF_TYPE* cwork, PROPACK_INT lcwork,
+             PROPACK_INT* iwork, float* soption, PROPACK_INT* ioption, PROPACK_INT* info,
+             PROPACK_CPLXF_TYPE* cparm, PROPACK_INT* iparm, uint64_t* rng_state)
 {
     // Parameters
-    int int1 = 1, int0 = 0;
+    PROPACK_INT int1 = 1, int0 = 0;
 
     // Local variables
-    int i, j, dj, jold, ibnd, ib, ib1, iwrk, ierr, ip, iq, neig, lwrk, lapinfo, lanmax, nlandim;
+    PROPACK_INT i, j, dj, jold, ibnd, ib, ib1, iwrk, ierr, ip, iq, neig, lwrk, lapinfo, lanmax, nlandim;
     float eps, eps34, epsn2, epsn, sfmin, anorm, rnorm, tol;
 
     // Set machine dependent constants
@@ -341,7 +341,7 @@ void clansvd(int jobu, int jobv, int m, int n, int k, int kmax, PROPACK_aprod_c 
     for (i = 0; i < lcwork; i++) { cwork[i] = PROPACK_cplxf(0.0f, 0.0f); }
 
     // Set up random starting vector if none is provided by the user
-    rnorm = scnrm2_(&m, &U[0], &int1);
+    rnorm = BLAS_FUNC(scnrm2)(&m, &U[0], &int1);
     if (rnorm == 0.0f)
     {
         cgetu0(0, m, n, 0, 1, &U[0], &rnorm, U, ldu, aprod, cparm, iparm, &ierr, ioption[0], &anorm, cwork, rng_state);
@@ -360,8 +360,8 @@ void clansvd(int jobu, int jobv, int m, int n, int k, int kmax, PROPACK_aprod_c 
         jold = j;
 
         // Compute and analyze SVD(B) and error bounds
-        int two_lanmax = 2 * lanmax;
-        scopy_(&two_lanmax, &work[ib], &int1, &work[ib1], &int1);
+        PROPACK_INT two_lanmax = 2 * lanmax;
+        BLAS_FUNC(scopy)(&two_lanmax, &work[ib], &int1, &work[ib1], &int1);
 
         // Zero out bounds array
         for (i = 0; i < j + 1; i++) { work[ibnd + i] = 0.0f; }
@@ -370,7 +370,7 @@ void clansvd(int jobu, int jobv, int m, int n, int k, int kmax, PROPACK_aprod_c 
         sbdqr((j == int_min(m, n)), 0, j, &work[ib1], &work[ib1 + lanmax], &work[ibnd + j - 1], &work[ibnd + j], &work[ip], lanmax + 1);
 
         // SVD of bidiagonal matrix
-        sbdsqr_("U", &j, &int0, &int1, &int0, &work[ib1], &work[ib1 + lanmax], work, &int1, &work[ibnd], &int1, work, &int1, &work[iwrk], &lapinfo);
+        BLAS_FUNC(sbdsqr)("U", &j, &int0, &int1, &int0, &work[ib1], &work[ib1 + lanmax], work, &int1, &work[ibnd], &int1, work, &int1, &work[iwrk], &lapinfo);
 
         // Update anorm estimate
         if (j > 5)
@@ -446,17 +446,17 @@ void clansvd(int jobu, int jobv, int m, int n, int k, int kmax, PROPACK_aprod_c 
 }
 
 
-void zlansvd(int jobu, int jobv, int m, int n, int k, int kmax, PROPACK_aprod_z aprod,
-             PROPACK_CPLX_TYPE* U, int ldu, double* sigma, double* bnd, PROPACK_CPLX_TYPE* V, int ldv,
-             double tolin, double* work, int lwork, PROPACK_CPLX_TYPE* zwork, int lzwork,
-             int* iwork, double* doption, int* ioption, int* info,
-             PROPACK_CPLX_TYPE* zparm, int* iparm, uint64_t* rng_state)
+void zlansvd(PROPACK_INT jobu, PROPACK_INT jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PROPACK_INT kmax, PROPACK_aprod_z aprod,
+             PROPACK_CPLX_TYPE* U, PROPACK_INT ldu, double* sigma, double* bnd, PROPACK_CPLX_TYPE* V, PROPACK_INT ldv,
+             double tolin, double* work, PROPACK_INT lwork, PROPACK_CPLX_TYPE* zwork, PROPACK_INT lzwork,
+             PROPACK_INT* iwork, double* doption, PROPACK_INT* ioption, PROPACK_INT* info,
+             PROPACK_CPLX_TYPE* zparm, PROPACK_INT* iparm, uint64_t* rng_state)
 {
     // Parameters
-    int int1 = 1, int0 = 0;
+    PROPACK_INT int1 = 1, int0 = 0;
 
     // Local variables
-    int i, j, dj, jold, ibnd, ib, ib1, iwrk, ierr, ip, iq, neig, lwrk, lapinfo, lanmax, nlandim;
+    PROPACK_INT i, j, dj, jold, ibnd, ib, ib1, iwrk, ierr, ip, iq, neig, lwrk, lapinfo, lanmax, nlandim;
     double eps, eps34, epsn2, epsn, sfmin, anorm, rnorm, tol;
 
     // Set machine dependent constants
@@ -487,7 +487,7 @@ void zlansvd(int jobu, int jobv, int m, int n, int k, int kmax, PROPACK_aprod_z 
     for (i = 0; i < lzwork; i++) { zwork[i] = PROPACK_cplx(0.0, 0.0); }
 
     // Set up random starting vector if none is provided by the user
-    rnorm = dznrm2_(&m, &U[0], &int1);
+    rnorm = BLAS_FUNC(dznrm2)(&m, &U[0], &int1);
     if (rnorm == 0.0)
     {
         zgetu0(0, m, n, 0, 1, &U[0], &rnorm, U, ldu, aprod, zparm, iparm, &ierr, ioption[0], &anorm, zwork, rng_state);
@@ -506,8 +506,8 @@ void zlansvd(int jobu, int jobv, int m, int n, int k, int kmax, PROPACK_aprod_z 
         jold = j;
 
         // Compute and analyze SVD(B) and error bounds
-        int two_lanmax = 2 * lanmax;
-        dcopy_(&two_lanmax, &work[ib], &int1, &work[ib1], &int1);
+        PROPACK_INT two_lanmax = 2 * lanmax;
+        BLAS_FUNC(dcopy)(&two_lanmax, &work[ib], &int1, &work[ib1], &int1);
 
         // Zero out bounds array
         for (i = 0; i < j + 1; i++) { work[ibnd + i] = 0.0; }
@@ -516,7 +516,7 @@ void zlansvd(int jobu, int jobv, int m, int n, int k, int kmax, PROPACK_aprod_z 
         dbdqr((j == int_min(m, n)), 0, j, &work[ib1], &work[ib1 + lanmax], &work[ibnd + j - 1], &work[ibnd + j], &work[ip], lanmax + 1);
 
         // SVD of bidiagonal matrix
-        dbdsqr_("U", &j, &int0, &int1, &int0, &work[ib1], &work[ib1 + lanmax], work, &int1, &work[ibnd], &int1, work, &int1, &work[iwrk], &lapinfo);
+        BLAS_FUNC(dbdsqr)("U", &j, &int0, &int1, &int0, &work[ib1], &work[ib1 + lanmax], work, &int1, &work[ibnd], &int1, work, &int1, &work[iwrk], &lapinfo);
 
         // Update anorm estimate
         if (j > 5)
