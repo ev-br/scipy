@@ -5,10 +5,10 @@ void matrix_exponential_d(PyArrayObject* a, double* restrict result, CBLAS_INT* 
 void matrix_exponential_c(PyArrayObject* a, SCIPY_C* restrict result, CBLAS_INT* info);
 void matrix_exponential_z(PyArrayObject* a, SCIPY_Z* restrict result, CBLAS_INT* info);
 
-void matrix_squareroot_s(const PyArrayObject* ap_Am, float* restrict ap_ret, CBLAS_INT* isIllconditioned, CBLAS_INT* isSingular, CBLAS_INT* sq_info, CBLAS_INT* view_as_complex);
-void matrix_squareroot_d(const PyArrayObject* ap_Am, double* restrict ap_ret, CBLAS_INT* isIllconditioned, CBLAS_INT* isSingular, CBLAS_INT* sq_info, CBLAS_INT* view_as_complex);
-void matrix_squareroot_c(const PyArrayObject* ap_Am, SCIPY_C* restrict ap_ret, CBLAS_INT* isIllconditioned, CBLAS_INT* isSingular, CBLAS_INT* sq_info, CBLAS_INT* unused         );
-void matrix_squareroot_z(const PyArrayObject* ap_Am, SCIPY_Z* restrict ap_ret, CBLAS_INT* isIllconditioned, CBLAS_INT* isSingular, CBLAS_INT* sq_info, CBLAS_INT* unused         );
+void matrix_squareroot_s(const PyArrayObject* ap_Am, float* restrict ap_ret, int* isIllconditioned, int* isSingular, CBLAS_INT* sq_info, int* view_as_complex);
+void matrix_squareroot_d(const PyArrayObject* ap_Am, double* restrict ap_ret, int* isIllconditioned, int* isSingular, CBLAS_INT* sq_info, int* view_as_complex);
+void matrix_squareroot_c(const PyArrayObject* ap_Am, SCIPY_C* restrict ap_ret, int* isIllconditioned, int* isSingular, CBLAS_INT* sq_info, int* unused         );
+void matrix_squareroot_z(const PyArrayObject* ap_Am, SCIPY_Z* restrict ap_ret, int* isIllconditioned, int* isSingular, CBLAS_INT* sq_info, int* unused         );
 
 #define PYERR(errobj,message) {PyErr_SetString(errobj,message); return NULL;}
 
@@ -41,7 +41,8 @@ capsule_destructor(PyObject *capsule) {
 */
 static PyObject*
 recursive_schur_sqrtm(PyObject* Py_UNUSED(dummy), PyObject *args) {
-    CBLAS_INT isComplex = 0, isIllconditioned = 0, isSingular = 0, info = 0;
+    int isComplex = 0, isIllconditioned = 0, isSingular = 0;
+    CBLAS_INT info = 0;
     PyArrayObject *ap_Am = NULL;
     void* mem_ret = NULL;
     PyArrayObject* ap_ret = NULL;
@@ -63,10 +64,10 @@ recursive_schur_sqrtm(PyObject* Py_UNUSED(dummy), PyObject *args) {
                           "  of type float32, float64, complex64, or complex128.");
     }
 
-    CBLAS_INT ndim = PyArray_NDIM(ap_Am);              // Number of dimensions
+    int ndim = PyArray_NDIM(ap_Am);              // Number of dimensions
     npy_intp* shape = PyArray_SHAPE(ap_Am);      // Array shape
     npy_intp n = shape[ndim - 1];                // Slice size
-    CBLAS_INT input_type = PyArray_TYPE(ap_Am);        // Data type enum value
+    int input_type = PyArray_TYPE(ap_Am);        // Data type enum value
     // Compare last two dimensions for squareness
     if (n != shape[ndim - 2])
     {
@@ -78,7 +79,7 @@ recursive_schur_sqrtm(PyObject* Py_UNUSED(dummy), PyObject *args) {
     // real data which will be cast to complex e.g., "ret.asview(complex128)"
     // Example, (3, 3) -> (18), (4, 5, 5) -> (4, 50)
     npy_intp ret_dims = 1;
-    for (CBLAS_INT i = 0; i < ndim; i++) { ret_dims *= shape[i]; }
+    for (int i = 0; i < ndim; i++) { ret_dims *= shape[i]; }
     if ((input_type == NPY_FLOAT32) || (input_type == NPY_FLOAT64))
     {
         ret_dims *= 2;
@@ -143,7 +144,7 @@ recursive_schur_sqrtm(PyObject* Py_UNUSED(dummy), PyObject *args) {
         }
     } else if ((input_type == NPY_FLOAT32) || (input_type == NPY_FLOAT64)) {
         // Input was real, result is complex, then view the result as complex
-        CBLAS_INT new_type = (PyArray_TYPE(ap_Am) == NPY_FLOAT32 ? NPY_COMPLEX64 : NPY_COMPLEX128);
+        int new_type = (PyArray_TYPE(ap_Am) == NPY_FLOAT32 ? NPY_COMPLEX64 : NPY_COMPLEX128);
         ap_ret = (PyArrayObject*)PyArray_SimpleNewFromData((int)ndim, shape, (int)new_type, mem_ret);
         if (ap_ret == NULL) {
             free(mem_ret);
@@ -200,9 +201,9 @@ matrix_exponential(PyObject* Py_UNUSED(dummy), PyObject *args) {
         PYERR(matfuncs_error, "scipy.linalg._matfuncs:expm: Input must be at least a 2D-array"
                           "  of type float32, float64, complex64, or complex128.");
     }
-    CBLAS_INT ndim = PyArray_NDIM(ap_a);              // Number of dimensions
+    int ndim = PyArray_NDIM(ap_a);              // Number of dimensions
     npy_intp* shape = PyArray_SHAPE(ap_a);      // Array shape
-    CBLAS_INT input_type = PyArray_TYPE(ap_a);        // Data type enum value
+    int input_type = PyArray_TYPE(ap_a);        // Data type enum value
 
     if (shape[ndim - 1] != shape[ndim - 2])
     {
@@ -210,7 +211,7 @@ matrix_exponential(PyObject* Py_UNUSED(dummy), PyObject *args) {
     }
 
     npy_intp ret_dims = 1;
-    for (CBLAS_INT i = 0; i < ndim; i++) { ret_dims *= shape[i]; }
+    for (int i = 0; i < ndim; i++) { ret_dims *= shape[i]; }
 
     if (PyArray_TYPE(ap_a) == NPY_FLOAT32)
     {

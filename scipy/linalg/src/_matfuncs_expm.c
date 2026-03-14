@@ -197,11 +197,12 @@ znorm1est(SCIPY_Z* A, CBLAS_INT n)
 
 
 static void
-pick_pade_structure_s(float* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_INT* s)
+pick_pade_structure_s(float* Am, const Py_ssize_t size_n, int* m, int* s)
 {
     Py_ssize_t i, j;
     Py_ssize_t dims[2];
-    CBLAS_INT lm = 0, int1 = 1, n = (CBLAS_INT)size_n;
+    int lm = 0;
+    CBLAS_INT int1 = 1, n = (CBLAS_INT)size_n;
     float normA, dbl1 = 1.0, dbl0 = 0.0;
     float d4, d6, d8, d10, eta0, eta1, eta2, eta3, eta4, two_pow_s, temp, test;
     float theta[5];
@@ -263,7 +264,7 @@ pick_pade_structure_s(float* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_IN
     temp = 0.0;
     for (i = 0; i < n; i++)  { if (work_arr[n+i] > temp) { temp = work_arr[n+i]; } }
 
-    lm = (CBLAS_INT)ceilf(log2f(temp/normA/coeff[0])/6);
+    lm = (int)ceilf(log2f(temp/normA/coeff[0])/6);
     lm = (lm < 0 ? 0 : lm);
     if ((eta0 < theta[0]) && lm == 0)
     {
@@ -282,7 +283,7 @@ pick_pade_structure_s(float* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_IN
     temp = 0.0;
     for (i = 0; i < n; i++)  { if (work_arr[n+i] > temp) { temp = work_arr[n+i]; } }
 
-    lm = (CBLAS_INT)ceilf(log2f(temp/normA/coeff[1])/10);
+    lm = (int)ceilf(log2f(temp/normA/coeff[1])/10);
     lm = (lm < 0 ? 0 : lm);
 
     if ((eta1 < theta[1]) && lm == 0)
@@ -315,7 +316,7 @@ pick_pade_structure_s(float* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_IN
     temp = 0.0;
     for (i = 0; i < n; i++)  { if (work_arr[n+i] > temp) { temp = work_arr[n+i]; } }
 
-    lm = (CBLAS_INT)ceilf(log2f(temp/normA/coeff[2])/14);
+    lm = (int)ceilf(log2f(temp/normA/coeff[2])/14);
     lm = (lm < 0 ? 0 : lm);
 
     if ((eta2 < theta[2]) && lm == 0)
@@ -335,7 +336,7 @@ pick_pade_structure_s(float* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_IN
     temp = 0.0;
     for (i = 0; i < n; i++)  { if (work_arr[n+i] > temp) { temp = work_arr[n+i]; } }
 
-    lm = (CBLAS_INT)ceilf(log2f(temp/normA/coeff[3])/18);
+    lm = (int)ceilf(log2f(temp/normA/coeff[3])/18);
     lm = (lm < 0 ? 0 : lm);
 
     if ((eta2 < theta[3]) && lm == 0)
@@ -363,7 +364,7 @@ pick_pade_structure_s(float* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_IN
 
     eta3 = fmaxf(d8, d10);
     eta4 = fminf(eta2, eta3);
-    *s = (CBLAS_INT)ceilf(log2f(eta4 / theta[4]));
+    *s = (int)ceilf(log2f(eta4 / theta[4]));
     *s = (*s < 0 ? 0 : *s);
 
     if (*s != 0)
@@ -386,7 +387,7 @@ pick_pade_structure_s(float* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_IN
     temp = 0.0;
     for (i = 0; i < n; i++)  { if (work_arr[n+i] > temp) { temp = work_arr[n+i]; } }
 
-    lm = (CBLAS_INT)ceilf(log2f(temp/normA/coeff[4])/26.0);
+    lm = (int)ceilf(log2f(temp/normA/coeff[4])/26.0);
     *s += (lm < 0 ? 0 : lm );
     *m = 13;
 
@@ -413,11 +414,12 @@ pick_pade_structure_s(float* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_IN
 
 
 static void
-pick_pade_structure_d(double* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_INT* s)
+pick_pade_structure_d(double* Am, const Py_ssize_t size_n, int* m, int* s)
 {
     Py_ssize_t i, j;
     Py_ssize_t dims[2];
-    CBLAS_INT lm = 0, int1 = 1, n = (CBLAS_INT)size_n;
+    int lm = 0;
+    CBLAS_INT int1 = 1, n = (CBLAS_INT)size_n;
     double normA, dbl1 = 1.0, dbl0 = 0.0;
     double d4, d6, d8, d10, eta0, eta1, eta2, eta3, eta4, two_pow_s, temp, test;
     double theta[5];
@@ -479,7 +481,7 @@ pick_pade_structure_d(double* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_I
     temp = 0.0;
     for (i = 0; i < n; i++)  { if (work_arr[n+i] > temp) { temp = work_arr[n+i]; } }
 
-    lm = (CBLAS_INT)ceil(log2(temp/normA/coeff[0])/6);
+    lm = (int)ceil(log2(temp/normA/coeff[0])/6);
     lm = (lm < 0 ? 0 : lm);
     if ((eta0 < theta[0]) && lm == 0)
     {
@@ -498,7 +500,7 @@ pick_pade_structure_d(double* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_I
     temp = 0.0;
     for (i = 0; i < n; i++)  { if (work_arr[n+i] > temp) { temp = work_arr[n+i]; } }
 
-    lm = (CBLAS_INT)ceil(log2(temp/normA/coeff[1])/10);
+    lm = (int)ceil(log2(temp/normA/coeff[1])/10);
     lm = (lm < 0 ? 0 : lm);
 
     if ((eta1 < theta[1]) && lm == 0)
@@ -531,7 +533,7 @@ pick_pade_structure_d(double* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_I
     temp = 0.0;
     for (i = 0; i < n; i++)  { if (work_arr[n+i] > temp) { temp = work_arr[n+i]; } }
 
-    lm = (CBLAS_INT)ceil(log2(temp/normA/coeff[2])/14);
+    lm = (int)ceil(log2(temp/normA/coeff[2])/14);
     lm = (lm < 0 ? 0 : lm);
 
     if ((eta2 < theta[2]) && lm == 0)
@@ -551,7 +553,7 @@ pick_pade_structure_d(double* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_I
     temp = 0.0;
     for (i = 0; i < n; i++)  { if (work_arr[n+i] > temp) { temp = work_arr[n+i]; } }
 
-    lm = (CBLAS_INT)ceil(log2(temp/normA/coeff[3])/18);
+    lm = (int)ceil(log2(temp/normA/coeff[3])/18);
     lm = (lm < 0 ? 0 : lm);
 
     if ((eta2 < theta[3]) && lm == 0)
@@ -579,7 +581,7 @@ pick_pade_structure_d(double* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_I
 
     eta3 = fmax(d8, d10);
     eta4 = fmin(eta2, eta3);
-    *s = (CBLAS_INT)ceil(log2(eta4 / theta[4]));
+    *s = (int)ceil(log2(eta4 / theta[4]));
     *s = (*s < 0 ? 0 : *s);
 
     if (*s != 0)
@@ -602,7 +604,7 @@ pick_pade_structure_d(double* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_I
     temp = 0.0;
     for (i = 0; i < n; i++)  { if (work_arr[n+i] > temp) { temp = work_arr[n+i]; } }
 
-    lm = (CBLAS_INT)ceil(log2(temp/normA/coeff[4])/26.0);
+    lm = (int)ceil(log2(temp/normA/coeff[4])/26.0);
     *s += (lm < 0 ? 0 : lm );
     *m = 13;
 
@@ -629,11 +631,12 @@ pick_pade_structure_d(double* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_I
 
 
 static void
-pick_pade_structure_c(SCIPY_C* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_INT* s)
+pick_pade_structure_c(SCIPY_C* Am, const Py_ssize_t size_n, int* m, int* s)
 {
     Py_ssize_t i, j;
     Py_ssize_t dims[2];
-    CBLAS_INT lm = 0, int1 = 1, n = (CBLAS_INT)size_n;
+    int lm = 0;
+    CBLAS_INT int1 = 1, n = (CBLAS_INT)size_n;
     float normA;
     float dbl1 = 1.0, dbl0 = 0.0;
     SCIPY_C cdbl1 = CPLX_C(1.0, 0.0), cdbl0 = CPLX_C(0.0, 0.0);
@@ -698,7 +701,7 @@ pick_pade_structure_c(SCIPY_C* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_
     temp = 0.0;
     for (i = 0; i < n; i++)  { if (work_arr[n+i] > temp) { temp = work_arr[n+i]; } }
 
-    lm = (CBLAS_INT)ceilf(log2f(temp/normA/coeff[0])/6);
+    lm = (int)ceilf(log2f(temp/normA/coeff[0])/6);
     lm = (lm < 0 ? 0 : lm);
     if ((eta0 < theta[0]) && lm == 0)
     {
@@ -717,7 +720,7 @@ pick_pade_structure_c(SCIPY_C* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_
     temp = 0.0;
     for (i = 0; i < n; i++)  { if (work_arr[n+i] > temp) { temp = work_arr[n+i]; } }
 
-    lm = (CBLAS_INT)ceilf(log2f(temp/normA/coeff[1])/10);
+    lm = (int)ceilf(log2f(temp/normA/coeff[1])/10);
     lm = (lm < 0 ? 0 : lm);
 
     if ((eta1 < theta[1]) && lm == 0)
@@ -750,7 +753,7 @@ pick_pade_structure_c(SCIPY_C* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_
     temp = 0.0;
     for (i = 0; i < n; i++)  { if (work_arr[n+i] > temp) { temp = work_arr[n+i]; } }
 
-    lm = (CBLAS_INT)ceilf(log2f(temp/normA/coeff[2])/14);
+    lm = (int)ceilf(log2f(temp/normA/coeff[2])/14);
     lm = (lm < 0 ? 0 : lm);
 
     if ((eta2 < theta[2]) && lm == 0)
@@ -770,7 +773,7 @@ pick_pade_structure_c(SCIPY_C* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_
     temp = 0.0;
     for (i = 0; i < n; i++)  { if (work_arr[n+i] > temp) { temp = work_arr[n+i]; } }
 
-    lm = (CBLAS_INT)ceilf(log2f(temp/normA/coeff[3])/18);
+    lm = (int)ceilf(log2f(temp/normA/coeff[3])/18);
     lm = (lm < 0 ? 0 : lm);
 
     if ((eta2 < theta[3]) && lm == 0)
@@ -798,7 +801,7 @@ pick_pade_structure_c(SCIPY_C* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_
 
     eta3 = fmaxf(d8, d10);
     eta4 = fminf(eta2, eta3);
-    *s = (CBLAS_INT)ceilf(log2f(eta4 / theta[4]));
+    *s = (int)ceilf(log2f(eta4 / theta[4]));
     *s = (*s < 0 ? 0 : *s);
 
     if (*s != 0)
@@ -821,7 +824,7 @@ pick_pade_structure_c(SCIPY_C* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_
     temp = 0.0;
     for (i = 0; i < n; i++)  { if (work_arr[n+i] > temp) { temp = work_arr[n+i]; } }
 
-    lm = (CBLAS_INT)ceilf(log2f(temp/normA/coeff[4])/26.0);
+    lm = (int)ceilf(log2f(temp/normA/coeff[4])/26.0);
     *s += (lm < 0 ? 0 : lm );
     *m = 13;
 
@@ -855,11 +858,12 @@ pick_pade_structure_c(SCIPY_C* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_
 
 
 static void
-pick_pade_structure_z(SCIPY_Z* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_INT* s)
+pick_pade_structure_z(SCIPY_Z* Am, const Py_ssize_t size_n, int* m, int* s)
 {
     Py_ssize_t i, j;
     Py_ssize_t dims[2];
-    CBLAS_INT lm = 0, int1 = 1, n = (CBLAS_INT)size_n;
+    int lm = 0;
+    CBLAS_INT int1 = 1, n = (CBLAS_INT)size_n;
     double normA;
     double dbl1 = 1.0, dbl0 = 0.0;
     SCIPY_Z cdbl1 = CPLX_Z(1.0, 0.0), cdbl0 = CPLX_Z(0.0, 0.0);
@@ -924,7 +928,7 @@ pick_pade_structure_z(SCIPY_Z* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_
     temp = 0.0;
     for (i = 0; i < n; i++)  { if (work_arr[n+i] > temp) { temp = work_arr[n+i]; } }
 
-    lm = (CBLAS_INT)ceil(log2(temp/normA/coeff[0])/6);
+    lm = (int)ceil(log2(temp/normA/coeff[0])/6);
     lm = (lm < 0 ? 0 : lm);
     if ((eta0 < theta[0]) && lm == 0)
     {
@@ -943,7 +947,7 @@ pick_pade_structure_z(SCIPY_Z* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_
     temp = 0.0;
     for (i = 0; i < n; i++)  { if (work_arr[n+i] > temp) { temp = work_arr[n+i]; } }
 
-    lm = (CBLAS_INT)ceil(log2(temp/normA/coeff[1])/10);
+    lm = (int)ceil(log2(temp/normA/coeff[1])/10);
     lm = (lm < 0 ? 0 : lm);
 
     if ((eta1 < theta[1]) && lm == 0)
@@ -976,7 +980,7 @@ pick_pade_structure_z(SCIPY_Z* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_
     temp = 0.0;
     for (i = 0; i < n; i++)  { if (work_arr[n+i] > temp) { temp = work_arr[n+i]; } }
 
-    lm = (CBLAS_INT)ceil(log2(temp/normA/coeff[2])/14);
+    lm = (int)ceil(log2(temp/normA/coeff[2])/14);
     lm = (lm < 0 ? 0 : lm);
 
     if ((eta2 < theta[2]) && lm == 0)
@@ -996,7 +1000,7 @@ pick_pade_structure_z(SCIPY_Z* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_
     temp = 0.0;
     for (i = 0; i < n; i++)  { if (work_arr[n+i] > temp) { temp = work_arr[n+i]; } }
 
-    lm = (CBLAS_INT)ceil(log2(temp/normA/coeff[3])/18);
+    lm = (int)ceil(log2(temp/normA/coeff[3])/18);
     lm = (lm < 0 ? 0 : lm);
 
     if ((eta2 < theta[3]) && lm == 0)
@@ -1026,7 +1030,7 @@ pick_pade_structure_z(SCIPY_Z* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_
 
     eta3 = fmax(d8, d10);
     eta4 = fmin(eta2, eta3);
-    *s = (CBLAS_INT)ceil(log2(eta4 / theta[4]));
+    *s = (int)ceil(log2(eta4 / theta[4]));
     *s = (*s < 0 ? 0 : *s);
 
     if (*s != 0)
@@ -1049,7 +1053,7 @@ pick_pade_structure_z(SCIPY_Z* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_
     temp = 0.0;
     for (i = 0; i < n; i++)  { if (work_arr[n+i] > temp) { temp = work_arr[n+i]; } }
 
-    lm = (CBLAS_INT)ceil(log2(temp/normA/coeff[4])/26.0);
+    lm = (int)ceil(log2(temp/normA/coeff[4])/26.0);
     *s += (lm < 0 ? 0 : lm );
     *m = 13;
 
@@ -1087,7 +1091,7 @@ pick_pade_structure_z(SCIPY_Z* Am, const Py_ssize_t size_n, CBLAS_INT* m, CBLAS_
  *******************************************************************************/
 
 static void
-pade_UV_calc_s(float* restrict Am, CBLAS_INT* restrict ipiv, const Py_ssize_t size_n, const CBLAS_INT m, CBLAS_INT* info)
+pade_UV_calc_s(float* restrict Am, CBLAS_INT* restrict ipiv, const Py_ssize_t size_n, const int m, CBLAS_INT* info)
 {
     // U, V computation.
     // We utilize the unused powers of Am as scratch memory depending on m value.
@@ -1302,7 +1306,7 @@ pade_UV_calc_s(float* restrict Am, CBLAS_INT* restrict ipiv, const Py_ssize_t si
 
 
 static void
-pade_UV_calc_d(double* restrict Am, CBLAS_INT* restrict ipiv, const Py_ssize_t size_n, const CBLAS_INT m, CBLAS_INT* info)
+pade_UV_calc_d(double* restrict Am, CBLAS_INT* restrict ipiv, const Py_ssize_t size_n, const int m, CBLAS_INT* info)
 {
     // U, V computation.
     // We utilize the unused powers of Am as scratch memory depending on m value.
@@ -1520,7 +1524,7 @@ pade_UV_calc_d(double* restrict Am, CBLAS_INT* restrict ipiv, const Py_ssize_t s
 
 
 static void
-pade_UV_calc_c(SCIPY_C* restrict Am, CBLAS_INT* restrict ipiv, const Py_ssize_t size_n, const CBLAS_INT m, CBLAS_INT* info)
+pade_UV_calc_c(SCIPY_C* restrict Am, CBLAS_INT* restrict ipiv, const Py_ssize_t size_n, const int m, CBLAS_INT* info)
 {
     // U, V computation.
     // We utilize the unused powers of Am as scratch memory depending on m value.
@@ -1856,7 +1860,7 @@ pade_UV_calc_c(SCIPY_C* restrict Am, CBLAS_INT* restrict ipiv, const Py_ssize_t 
 
 
 static void
-pade_UV_calc_z(SCIPY_Z* restrict Am, CBLAS_INT* restrict ipiv, const Py_ssize_t size_n, const CBLAS_INT m, CBLAS_INT* info)
+pade_UV_calc_z(SCIPY_Z* restrict Am, CBLAS_INT* restrict ipiv, const Py_ssize_t size_n, const int m, CBLAS_INT* info)
 {
     // U, V computation.
     // We utilize the unused powers of Am as scratch memory depending on m value.
@@ -2187,13 +2191,13 @@ pade_UV_calc_z(SCIPY_Z* restrict Am, CBLAS_INT* restrict ipiv, const Py_ssize_t 
 void
 matrix_exponential_s(PyArrayObject* a, float* restrict result, CBLAS_INT* info)
 {
-    CBLAS_INT m = 0, s = 0, is_lower = 0;
+    int m = 0, s = 0, is_lower = 0;
     npy_intp lband = 0, uband = 0;
     // --------------------------------------------------------------------
     // Input Array Attributes
     // --------------------------------------------------------------------
     float* restrict a_data = (float*)PyArray_DATA(a);
-    CBLAS_INT ndim = PyArray_NDIM(a);              // Number of dimensions
+    int ndim = PyArray_NDIM(a);              // Number of dimensions
     npy_intp* shape = PyArray_SHAPE(a);      // Array shape
     CBLAS_INT n = (CBLAS_INT)shape[ndim - 1];                // Slice size
     npy_intp* restrict strides = PyArray_STRIDES(a);
@@ -2201,7 +2205,7 @@ matrix_exponential_s(PyArrayObject* a, float* restrict result, CBLAS_INT* info)
     npy_intp outer_size = 1;
     if (ndim > 2)
     {
-        for (CBLAS_INT i = 0; i < ndim - 2; i++) { outer_size *= shape[i];}
+        for (int i = 0; i < ndim - 2; i++) { outer_size *= shape[i];}
     }
 
     // expm requires 6*n*n + 2*n workspace.
@@ -2225,7 +2229,7 @@ matrix_exponential_s(PyArrayObject* a, float* restrict result, CBLAS_INT* info)
         // See sqrtm for explanation of the loop and offset calculations
         npy_intp offset = 0;
         npy_intp temp_idx = idx;
-        for (CBLAS_INT i = ndim - 3; i >= 0; i--) {
+        for (int i = ndim - 3; i >= 0; i--) {
             offset += (temp_idx % shape[i]) * strides[i];
             temp_idx /= shape[i];
         }
@@ -2286,7 +2290,7 @@ matrix_exponential_s(PyArrayObject* a, float* restrict result, CBLAS_INT* info)
             // Squaring needed.
             if ((lband == 0) || (uband == 0)) {
                 // Triangular case - use Fragment 2.1 of Al-Mohy and Higham (2009)
-                for (CBLAS_INT iter = s - 1; iter >= 0; iter--) {
+                for (int iter = s - 1; iter >= 0; iter--) {
                     BLAS_FUNC(sgemm)("N", "N", &n, &n, &n, &(float){1.0f}, temp1, &n, temp1, &n, &(float){0.0f}, temp2, &n);
                     float* swap = temp1;
                     temp1 = temp2;
@@ -2322,7 +2326,7 @@ matrix_exponential_s(PyArrayObject* a, float* restrict result, CBLAS_INT* info)
                 }
             } else {
                 // General dense case, compute A**(2**s) by repeated squaring.
-                for (CBLAS_INT i = 0; i < s; i++) {
+                for (int i = 0; i < s; i++) {
                     BLAS_FUNC(sgemm)("N", "N", &n, &n, &n, &(float){1.0f}, temp1, &n, temp1, &n, &(float){0.0f}, temp2, &n);
                     // Swap pointers
                     float *swap = temp1;
@@ -2344,13 +2348,13 @@ matrix_exponential_s(PyArrayObject* a, float* restrict result, CBLAS_INT* info)
 void
 matrix_exponential_d(PyArrayObject* a, double* restrict result, CBLAS_INT* info)
 {
-    CBLAS_INT m = 0, s = 0, is_lower = 0;
+    int m = 0, s = 0, is_lower = 0;
     npy_intp lband = 0, uband = 0;
     // --------------------------------------------------------------------
     // Input Array Attributes
     // --------------------------------------------------------------------
     double* restrict a_data = (double*)PyArray_DATA(a);
-    CBLAS_INT ndim = PyArray_NDIM(a);              // Number of dimensions
+    int ndim = PyArray_NDIM(a);              // Number of dimensions
     npy_intp* shape = PyArray_SHAPE(a);      // Array shape
     CBLAS_INT n = (CBLAS_INT)shape[ndim - 1];                // Slice size
     npy_intp* restrict strides = PyArray_STRIDES(a);
@@ -2358,7 +2362,7 @@ matrix_exponential_d(PyArrayObject* a, double* restrict result, CBLAS_INT* info)
     npy_intp outer_size = 1;
     if (ndim > 2)
     {
-        for (CBLAS_INT i = 0; i < ndim - 2; i++) { outer_size *= shape[i];}
+        for (int i = 0; i < ndim - 2; i++) { outer_size *= shape[i];}
     }
 
     // expm requires 6*n*n + 2*n workspace.
@@ -2382,7 +2386,7 @@ matrix_exponential_d(PyArrayObject* a, double* restrict result, CBLAS_INT* info)
         // See sqrtm for explanation of the loop and offset calculations
         npy_intp offset = 0;
         npy_intp temp_idx = idx;
-        for (CBLAS_INT i = ndim - 3; i >= 0; i--) {
+        for (int i = ndim - 3; i >= 0; i--) {
             offset += (temp_idx % shape[i]) * strides[i];
             temp_idx /= shape[i];
         }
@@ -2443,7 +2447,7 @@ matrix_exponential_d(PyArrayObject* a, double* restrict result, CBLAS_INT* info)
             // Squaring needed.
             if ((lband == 0) || (uband == 0)) {
                 // Triangular case - use Fragment 2.1 of Al-Mohy and Higham (2009)
-                for (CBLAS_INT iter = s - 1; iter >= 0; iter--) {
+                for (int iter = s - 1; iter >= 0; iter--) {
                     BLAS_FUNC(dgemm)("N", "N", &n, &n, &n, &(double){1.0}, temp1, &n, temp1, &n, &(double){0.0}, temp2, &n);
                     double* swap = temp1;
                     temp1 = temp2;
@@ -2479,7 +2483,7 @@ matrix_exponential_d(PyArrayObject* a, double* restrict result, CBLAS_INT* info)
                 }
             } else {
                 // General dense case, compute A**(2**s) by repeated squaring.
-                for (CBLAS_INT i = 0; i < s; i++) {
+                for (int i = 0; i < s; i++) {
                     BLAS_FUNC(dgemm)("N", "N", &n, &n, &n, &(double){1.0}, temp1, &n, temp1, &n, &(double){0.0}, temp2, &n);
                     // Swap pointers
                     double *swap = temp1;
@@ -2501,13 +2505,13 @@ matrix_exponential_d(PyArrayObject* a, double* restrict result, CBLAS_INT* info)
 void
 matrix_exponential_c(PyArrayObject* a, SCIPY_C* restrict result, CBLAS_INT* info)
 {
-    CBLAS_INT m = 0, s = 0, is_lower = 0;
+    int m = 0, s = 0, is_lower = 0;
     npy_intp lband = 0, uband = 0;
     // --------------------------------------------------------------------
     // Input Array Attributes
     // --------------------------------------------------------------------
     SCIPY_C* restrict a_data = (SCIPY_C*)PyArray_DATA(a);
-    CBLAS_INT ndim = PyArray_NDIM(a);              // Number of dimensions
+    int ndim = PyArray_NDIM(a);              // Number of dimensions
     npy_intp* shape = PyArray_SHAPE(a);      // Array shape
     CBLAS_INT n = (CBLAS_INT)shape[ndim - 1];                // Slice size
     npy_intp* restrict strides = PyArray_STRIDES(a);
@@ -2515,7 +2519,7 @@ matrix_exponential_c(PyArrayObject* a, SCIPY_C* restrict result, CBLAS_INT* info
     npy_intp outer_size = 1;
     if (ndim > 2)
     {
-        for (CBLAS_INT i = 0; i < ndim - 2; i++) { outer_size *= shape[i];}
+        for (int i = 0; i < ndim - 2; i++) { outer_size *= shape[i];}
     }
 
     // expm requires 6*n*n + 2*n workspace.
@@ -2539,7 +2543,7 @@ matrix_exponential_c(PyArrayObject* a, SCIPY_C* restrict result, CBLAS_INT* info
         // See sqrtm for explanation of the loop and offset calculations
         npy_intp offset = 0;
         npy_intp temp_idx = idx;
-        for (CBLAS_INT i = ndim - 3; i >= 0; i--) {
+        for (int i = ndim - 3; i >= 0; i--) {
             offset += (temp_idx % shape[i]) * strides[i];
             temp_idx /= shape[i];
         }
@@ -2600,7 +2604,7 @@ matrix_exponential_c(PyArrayObject* a, SCIPY_C* restrict result, CBLAS_INT* info
             // Squaring needed.
             if ((lband == 0) || (uband == 0)) {
                 // Triangular case - use Fragment 2.1 of Al-Mohy and Higham (2009)
-                for (CBLAS_INT iter = s - 1; iter >= 0; iter--) {
+                for (int iter = s - 1; iter >= 0; iter--) {
 #if defined(_MSC_VER)
                     SCIPY_C c_one = CPLX_C(1.0f, 0.0f);
                     SCIPY_C c_zero = CPLX_C(0.0f, 0.0f);
@@ -2678,7 +2682,7 @@ matrix_exponential_c(PyArrayObject* a, SCIPY_C* restrict result, CBLAS_INT* info
                 }
             } else {
                 // General dense case, compute A**(2**s) by repeated squaring.
-                for (CBLAS_INT i = 0; i < s; i++) {
+                for (int i = 0; i < s; i++) {
 #if defined(_MSC_VER)
                     SCIPY_C c_one = CPLX_C(1.0f, 0.0f);
                     SCIPY_C c_zero = CPLX_C(0.0f, 0.0f);
@@ -2706,13 +2710,13 @@ matrix_exponential_c(PyArrayObject* a, SCIPY_C* restrict result, CBLAS_INT* info
 void
 matrix_exponential_z(PyArrayObject* a, SCIPY_Z* restrict result, CBLAS_INT* info)
 {
-    CBLAS_INT m = 0, s = 0, is_lower = 0;
+    int m = 0, s = 0, is_lower = 0;
     npy_intp lband = 0, uband = 0;
     // --------------------------------------------------------------------
     // Input Array Attributes
     // --------------------------------------------------------------------
     SCIPY_Z* restrict a_data = (SCIPY_Z*)PyArray_DATA(a);
-    CBLAS_INT ndim = PyArray_NDIM(a);              // Number of dimensions
+    int ndim = PyArray_NDIM(a);              // Number of dimensions
     npy_intp* shape = PyArray_SHAPE(a);      // Array shape
     CBLAS_INT n = (CBLAS_INT)shape[ndim - 1];                // Slice size
     npy_intp* restrict strides = PyArray_STRIDES(a);
@@ -2720,7 +2724,7 @@ matrix_exponential_z(PyArrayObject* a, SCIPY_Z* restrict result, CBLAS_INT* info
     npy_intp outer_size = 1;
     if (ndim > 2)
     {
-        for (CBLAS_INT i = 0; i < ndim - 2; i++) { outer_size *= shape[i];}
+        for (int i = 0; i < ndim - 2; i++) { outer_size *= shape[i];}
     }
     // expm requires 6*n*n + 2*n workspace.
     // 5*n*n is for holding the powers of A
@@ -2743,7 +2747,7 @@ matrix_exponential_z(PyArrayObject* a, SCIPY_Z* restrict result, CBLAS_INT* info
         // See sqrtm for explanation of the loop and offset calculations
         npy_intp offset = 0;
         npy_intp temp_idx = idx;
-        for (CBLAS_INT i = ndim - 3; i >= 0; i--) {
+        for (int i = ndim - 3; i >= 0; i--) {
             offset += (temp_idx % shape[i]) * strides[i];
             temp_idx /= shape[i];
         }
@@ -2804,7 +2808,7 @@ matrix_exponential_z(PyArrayObject* a, SCIPY_Z* restrict result, CBLAS_INT* info
             // Squaring needed.
             if ((lband == 0) || (uband == 0)) {
                 // Triangular case - use Fragment 2.1 of Al-Mohy and Higham (2009)
-                for (CBLAS_INT iter = s - 1; iter >= 0; iter--) {
+                for (int iter = s - 1; iter >= 0; iter--) {
 #if defined(_MSC_VER)
                     SCIPY_Z z_one = CPLX_Z(1.0, 0.0);
                     SCIPY_Z z_zero = CPLX_Z(0.0, 0.0);
@@ -2882,7 +2886,7 @@ matrix_exponential_z(PyArrayObject* a, SCIPY_Z* restrict result, CBLAS_INT* info
                 }
             } else {
                 // General dense case, compute A**(2**s) by repeated squaring.
-                for (CBLAS_INT i = 0; i < s; i++) {
+                for (int i = 0; i < s; i++) {
 #if defined(_MSC_VER)
                     SCIPY_Z z_one = CPLX_Z(1.0, 0.0);
                     SCIPY_Z z_zero = CPLX_Z(0.0, 0.0);
