@@ -967,7 +967,8 @@ def get_lapack_funcs(names, arrays=(), dtype=None, ilp64="preferred"):
 
     See Also
     --------
-    get_blas_funcs : a similar routine for selecting BLAS functions.
+    scipy.linalg.blas.get_blas_funcs
+        A similar routine for selecting BLAS functions.
 
     Notes
     -----
