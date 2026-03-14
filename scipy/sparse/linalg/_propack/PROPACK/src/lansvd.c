@@ -14,7 +14,7 @@ static inline PROPACK_INT int_min(const PROPACK_INT a, const PROPACK_INT b) { re
 static inline PROPACK_INT int_max(const PROPACK_INT a, const PROPACK_INT b) { return a > b ? a : b; }
 
 
-void slansvd(PROPACK_INT jobu, PROPACK_INT jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PROPACK_INT kmax, PROPACK_aprod_s aprod,
+void slansvd(int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PROPACK_INT kmax, PROPACK_aprod_s aprod,
              float* U, PROPACK_INT ldu, float* sigma, float* bnd, float* V, PROPACK_INT ldv,
              float tolin, float* work, PROPACK_INT lwork, PROPACK_INT* iwork,
              float* doption, PROPACK_INT* ioption, PROPACK_INT* info, float* dparm, PROPACK_INT* iparm,
@@ -157,7 +157,7 @@ void slansvd(PROPACK_INT jobu, PROPACK_INT jobv, PROPACK_INT m, PROPACK_INT n, P
 }
 
 
-void dlansvd(PROPACK_INT jobu, PROPACK_INT jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PROPACK_INT kmax, PROPACK_aprod_d aprod,
+void dlansvd(int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PROPACK_INT kmax, PROPACK_aprod_d aprod,
              double* U, PROPACK_INT ldu, double* sigma, double* bnd, double* V, PROPACK_INT ldv,
              double tolin, double* work, PROPACK_INT lwork, PROPACK_INT* iwork,
              double* doption, PROPACK_INT* ioption, PROPACK_INT* info, double* dparm, PROPACK_INT* iparm,
@@ -300,7 +300,7 @@ void dlansvd(PROPACK_INT jobu, PROPACK_INT jobv, PROPACK_INT m, PROPACK_INT n, P
 }
 
 
-void clansvd(PROPACK_INT jobu, PROPACK_INT jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PROPACK_INT kmax, PROPACK_aprod_c aprod,
+void clansvd(int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PROPACK_INT kmax, PROPACK_aprod_c aprod,
              PROPACK_CPLXF_TYPE* U, PROPACK_INT ldu, float* sigma, float* bnd, PROPACK_CPLXF_TYPE* V, PROPACK_INT ldv,
              float tolin, float* work, PROPACK_INT lwork, PROPACK_CPLXF_TYPE* cwork, PROPACK_INT lcwork,
              PROPACK_INT* iwork, float* soption, PROPACK_INT* ioption, PROPACK_INT* info,
@@ -446,7 +446,7 @@ void clansvd(PROPACK_INT jobu, PROPACK_INT jobv, PROPACK_INT m, PROPACK_INT n, P
 }
 
 
-void zlansvd(PROPACK_INT jobu, PROPACK_INT jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PROPACK_INT kmax, PROPACK_aprod_z aprod,
+void zlansvd(int jobu, int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, PROPACK_INT kmax, PROPACK_aprod_z aprod,
              PROPACK_CPLX_TYPE* U, PROPACK_INT ldu, double* sigma, double* bnd, PROPACK_CPLX_TYPE* V, PROPACK_INT ldv,
              double tolin, double* work, PROPACK_INT lwork, PROPACK_CPLX_TYPE* zwork, PROPACK_INT lzwork,
              PROPACK_INT* iwork, double* doption, PROPACK_INT* ioption, PROPACK_INT* info,

@@ -1,7 +1,7 @@
 #include "getu0.h"
 
 
-void sgetu0(PROPACK_INT transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT ntry, float* u0, float* u0norm, float* U, PROPACK_INT ldu,
+void sgetu0(int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT ntry, float* u0, float* u0norm, float* U, PROPACK_INT ldu,
            PROPACK_aprod_s aprod, float* dparm, PROPACK_INT* iparm, PROPACK_INT* ierr, PROPACK_INT icgs, float* anormest, float* work, uint64_t* rng_state) {
 
     const float kappa = sqrtf(2.0f) / 2.0f;
@@ -53,7 +53,7 @@ void sgetu0(PROPACK_INT transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PRO
 }
 
 
-void dgetu0(PROPACK_INT transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT ntry, double* u0, double* u0norm, double* U, PROPACK_INT ldu,
+void dgetu0(int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT ntry, double* u0, double* u0norm, double* U, PROPACK_INT ldu,
            PROPACK_aprod_d aprod, double* dparm, PROPACK_INT* iparm, PROPACK_INT* ierr, PROPACK_INT icgs, double* anormest, double* work, uint64_t* rng_state) {
 
     const double kappa = sqrt(2.0) / 2.0;
@@ -105,7 +105,7 @@ void dgetu0(PROPACK_INT transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PRO
 }
 
 
-void cgetu0(PROPACK_INT transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT ntry, PROPACK_CPLXF_TYPE* u0, float* u0norm, PROPACK_CPLXF_TYPE* U, PROPACK_INT ldu,
+void cgetu0(int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT ntry, PROPACK_CPLXF_TYPE* u0, float* u0norm, PROPACK_CPLXF_TYPE* U, PROPACK_INT ldu,
            PROPACK_aprod_c aprod, PROPACK_CPLXF_TYPE* cparm, PROPACK_INT* iparm, PROPACK_INT* ierr, PROPACK_INT icgs, float* anormest, PROPACK_CPLXF_TYPE* work,
            uint64_t* rng_state)
 {
@@ -160,7 +160,7 @@ void cgetu0(PROPACK_INT transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PRO
 }
 
 
-void zgetu0(PROPACK_INT transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT ntry, PROPACK_CPLX_TYPE* u0, double* u0norm, PROPACK_CPLX_TYPE* U, PROPACK_INT ldu,
+void zgetu0(int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT j, PROPACK_INT ntry, PROPACK_CPLX_TYPE* u0, double* u0norm, PROPACK_CPLX_TYPE* U, PROPACK_INT ldu,
            PROPACK_aprod_z aprod, PROPACK_CPLX_TYPE* zparm, PROPACK_INT* iparm, PROPACK_INT* ierr, PROPACK_INT icgs, double* anormest, PROPACK_CPLX_TYPE* work,
            uint64_t* rng_state)
 {

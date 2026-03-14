@@ -1,7 +1,7 @@
 #include "gemm_overwrite.h"
 
 
-void sgemm_ovwr(const PROPACK_INT transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, float alpha,
+void sgemm_ovwr(const int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, float alpha,
                 float* restrict A, PROPACK_INT lda, float beta,
                 float* restrict B, PROPACK_INT ldb,
                 float* restrict work, PROPACK_INT blocksize)
@@ -134,7 +134,7 @@ void sgemm_ovwr_left(const PROPACK_INT transb, PROPACK_INT m, PROPACK_INT n, PRO
 
 
 void dgemm_ovwr(
-    const PROPACK_INT transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, double alpha, double* restrict A, PROPACK_INT lda, double beta,
+    const int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, double alpha, double* restrict A, PROPACK_INT lda, double beta,
     double* restrict B, PROPACK_INT ldb, double* restrict work, PROPACK_INT blocksize)
 {
     PROPACK_INT i, j, l;

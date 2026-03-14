@@ -28,7 +28,7 @@ static SCIPY_TLS propack_callback_t* current_propack_callback = NULL;
 
 
 static void
-propack_callback_s_thunk(PROPACK_INT transa, PROPACK_INT m, PROPACK_INT n, float* x, float* y, float* dparm, PROPACK_INT* iparm)
+propack_callback_s_thunk(int transa, PROPACK_INT m, PROPACK_INT n, float* x, float* y, float* dparm, PROPACK_INT* iparm)
 {
     // Silence unused parameter warnings for dparm/iparm
     (void)dparm; (void)iparm;
@@ -82,7 +82,7 @@ propack_callback_s_thunk(PROPACK_INT transa, PROPACK_INT m, PROPACK_INT n, float
 
 
 static void
-propack_callback_d_thunk(PROPACK_INT transa, PROPACK_INT m, PROPACK_INT n, double* x, double* y, double* dparm, PROPACK_INT* iparm)
+propack_callback_d_thunk(int transa, PROPACK_INT m, PROPACK_INT n, double* x, double* y, double* dparm, PROPACK_INT* iparm)
 {
     // Silence unused parameter warnings for dparm/iparm
     (void)dparm; (void)iparm;
@@ -137,7 +137,7 @@ propack_callback_d_thunk(PROPACK_INT transa, PROPACK_INT m, PROPACK_INT n, doubl
 
 
 static void
-propack_callback_c_thunk(PROPACK_INT transa, PROPACK_INT m, PROPACK_INT n, PROPACK_CPLXF_TYPE* x, PROPACK_CPLXF_TYPE* y, PROPACK_CPLXF_TYPE* dparm, PROPACK_INT* iparm)
+propack_callback_c_thunk(int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_CPLXF_TYPE* x, PROPACK_CPLXF_TYPE* y, PROPACK_CPLXF_TYPE* dparm, PROPACK_INT* iparm)
 {
     // Silence unused parameter warnings for dparm/iparm
     (void)dparm; (void)iparm;
@@ -192,7 +192,7 @@ propack_callback_c_thunk(PROPACK_INT transa, PROPACK_INT m, PROPACK_INT n, PROPA
 
 
 static void
-propack_callback_z_thunk(PROPACK_INT transa, PROPACK_INT m, PROPACK_INT n, PROPACK_CPLX_TYPE* x, PROPACK_CPLX_TYPE* y, PROPACK_CPLX_TYPE* dparm, PROPACK_INT* iparm)
+propack_callback_z_thunk(int transa, PROPACK_INT m, PROPACK_INT n, PROPACK_CPLX_TYPE* x, PROPACK_CPLX_TYPE* y, PROPACK_CPLX_TYPE* dparm, PROPACK_INT* iparm)
 {
     // Silence unused parameter warnings for dparm/iparm
     (void)dparm; (void)iparm;
@@ -298,9 +298,9 @@ propack_slansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
 
     // Call PROPACK slansvd_irl function
     slansvd(
-        (PROPACK_INT)jobu, (PROPACK_INT)jobv,                 // whether to compute U, V
+        (int)jobu, (int)jobv,                 // whether to compute U, V
         (PROPACK_INT)m, (PROPACK_INT)n, (PROPACK_INT)k, (PROPACK_INT)kmax,  // matrix and algorithm dimensions
-        (PROPACK_aprod_s)propack_callback_s_thunk,        // Py callback function
+        propack_callback_s_thunk,        // Py callback function
         (float*)PyArray_DATA(U), (PROPACK_INT)PyArray_DIM(U, 0),       // U matrix and leading dimension
         (float*)PyArray_DATA(sigma),                      // singular values output
         (float*)PyArray_DATA(bnd),                        // error bounds output
@@ -369,9 +369,9 @@ propack_dlansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
     current_propack_callback = &aprod_callback;
 
     dlansvd(
-        (PROPACK_INT)jobu, (PROPACK_INT)jobv,                 // whether to compute U, V
+        (int)jobu, (int)jobv,                 // whether to compute U, V
         (PROPACK_INT)m, (PROPACK_INT)n, (PROPACK_INT)k, (PROPACK_INT)kmax,  // matrix and algorithm dimensions
-        (PROPACK_aprod_d)propack_callback_d_thunk,        // Py callback function
+        propack_callback_d_thunk,        // Py callback function
         (double*)PyArray_DATA(U), (PROPACK_INT)PyArray_DIM(U, 0),      // U matrix and leading dimension
         (double*)PyArray_DATA(sigma),                     // singular values output
         (double*)PyArray_DATA(bnd),                       // error bounds output
@@ -441,9 +441,9 @@ propack_clansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
     current_propack_callback = &aprod_callback;
 
     clansvd(
-        (PROPACK_INT)jobu, (PROPACK_INT)jobv,                              // whether to compute U, V
+        (int)jobu, (int)jobv,                              // whether to compute U, V
         (PROPACK_INT)m, (PROPACK_INT)n, (PROPACK_INT)k, (PROPACK_INT)kmax, // matrix and algorithm dimensions
-        (PROPACK_aprod_c)propack_callback_c_thunk,                     // Py callback function
+        propack_callback_c_thunk,                     // Py callback function
         (PROPACK_CPLXF_TYPE*)PyArray_DATA(U), (PROPACK_INT)PyArray_DIM(U, 0),       // U matrix and leading dimension
         (float*)PyArray_DATA(sigma),                                   // singular values output
         (float*)PyArray_DATA(bnd),                                     // error bounds output
@@ -514,9 +514,9 @@ propack_zlansvd(PyObject* Py_UNUSED(dummy), PyObject* args)
     current_propack_callback = &aprod_callback;
 
     zlansvd(
-        (PROPACK_INT)jobu, (PROPACK_INT)jobv,                              // whether to compute U, V
+        (int)jobu, (int)jobv,                              // whether to compute U, V
         (PROPACK_INT)m, (PROPACK_INT)n, (PROPACK_INT)k, (PROPACK_INT)kmax, // matrix and algorithm dimensions
-        (PROPACK_aprod_z)propack_callback_z_thunk,                     // Py callback function
+        propack_callback_z_thunk,                     // Py callback function
         (PROPACK_CPLX_TYPE*)PyArray_DATA(U), (PROPACK_INT)PyArray_DIM(U, 0),        // U matrix and leading dimension
         (double*)PyArray_DATA(sigma),                                  // singular values output
         (double*)PyArray_DATA(bnd),                                    // error bounds output
@@ -587,12 +587,12 @@ propack_slansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args)
     current_propack_callback = &aprod_callback;
 
     slansvd_irl(
-        (PROPACK_INT)which,                            // which singular values to compute
-        (PROPACK_INT)jobu, (PROPACK_INT)jobv,                 // whether to compute U, V
+        (int)which,                            // which singular values to compute
+        (int)jobu, (int)jobv,                 // whether to compute U, V
         (PROPACK_INT)m, (PROPACK_INT)n, dim, (PROPACK_INT)shifts, // matrix and algorithm dimensions
         &neig_propack,                                    // number of converged values (input/output)
         (PROPACK_INT)maxiter,                            // maximum iterations
-        (PROPACK_aprod_s)propack_callback_s_thunk,        // Py callback function
+        propack_callback_s_thunk,        // Py callback function
         (float*)PyArray_DATA(U), (PROPACK_INT)PyArray_DIM(U, 0),       // U matrix and leading dimension
         (float*)PyArray_DATA(sigma),                      // singular values output
         (float*)PyArray_DATA(bnd),                        // error bounds output
@@ -660,12 +660,12 @@ propack_dlansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args)
     current_propack_callback = &aprod_callback;
 
     dlansvd_irl(
-        (PROPACK_INT)which,                              // which singular values to compute
-        (PROPACK_INT)jobu, (PROPACK_INT)jobv,                  // whether to compute U, V
+        (int)which,                              // which singular values to compute
+        (int)jobu, (int)jobv,                  // whether to compute U, V
         (PROPACK_INT)m, (PROPACK_INT)n, dim, (PROPACK_INT)shifts, // matrix and algorithm dimensions
         &neig_propack,                                    // number of converged values (input/output)
         (PROPACK_INT)maxiter,                             // maximum iterations
-        (PROPACK_aprod_d)propack_callback_d_thunk,         // Py callback function
+        propack_callback_d_thunk,         // Py callback function
         (double*)PyArray_DATA(U), (PROPACK_INT)PyArray_DIM(U, 0),       // U matrix and leading dimension
         (double*)PyArray_DATA(sigma),                      // singular values output
         (double*)PyArray_DATA(bnd),                        // error bounds output
@@ -735,12 +735,12 @@ propack_clansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args) {
 
     // Call PROPACK clansvd_irl function
     clansvd_irl(
-        (PROPACK_INT)which,                                           // which singular values to compute
-        (PROPACK_INT)jobu, (PROPACK_INT)jobv,                              // whether to compute U, V
+        (int)which,                                           // which singular values to compute
+        (int)jobu, (int)jobv,                              // whether to compute U, V
         (PROPACK_INT)m, (PROPACK_INT)n, dim, (PROPACK_INT)shifts,           // matrix and algorithm dimensions
         &neig_propack,                                                 // number of converged values (input/output)
         (PROPACK_INT)maxiter,                                         // maximum iterations
-        (PROPACK_aprod_c)propack_callback_c_thunk,                     // Py callback function
+        propack_callback_c_thunk,                     // Py callback function
         (PROPACK_CPLXF_TYPE*)PyArray_DATA(U), (PROPACK_INT)PyArray_DIM(U, 0),       // U matrix and leading dimension
         (float*)PyArray_DATA(sigma),                                   // singular values output
         (float*)PyArray_DATA(bnd),                                     // error bounds output
@@ -810,12 +810,12 @@ propack_zlansvd_irl(PyObject* Py_UNUSED(dummy), PyObject* args) {
 
     // Call PROPACK zlansvd_irl function
     zlansvd_irl(
-        (PROPACK_INT)which,                                           // which singular values to compute
-        (PROPACK_INT)jobu, (PROPACK_INT)jobv,                              // whether to compute U, V
+        (int)which,                                           // which singular values to compute
+        (int)jobu, (int)jobv,                              // whether to compute U, V
         (PROPACK_INT)m, (PROPACK_INT)n, dim, (PROPACK_INT)shifts,           // matrix and algorithm dimensions
         &neig_propack,                                                 // number of converged values (input/output)
         (PROPACK_INT)maxiter,                                         // maximum iterations
-        (PROPACK_aprod_z)propack_callback_z_thunk,                     // our callback function
+        propack_callback_z_thunk,                     // our callback function
         (PROPACK_CPLX_TYPE*)PyArray_DATA(U), (PROPACK_INT)PyArray_DIM(U, 0),        // U matrix and leading dimension
         (double*)PyArray_DATA(sigma),                                  // singular values output
         (double*)PyArray_DATA(bnd),                                    // error bounds output

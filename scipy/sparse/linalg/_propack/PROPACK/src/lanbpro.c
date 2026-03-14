@@ -126,12 +126,12 @@ void slanbpro(PROPACK_INT m, PROPACK_INT n, PROPACK_INT k0, PROPACK_INT* k, PROP
     // Local variables
     PROPACK_INT i, j, inu, imu, is, iidx, j0;
     float s, mumax, numax, alpha, beta, a1, b1, amax, anormest;
-    PROPACK_INT force_reorth, full_reorth;
+    int force_reorth, full_reorth;
     PROPACK_INT ione = 1;
 
     // Set default parameters
     float delta, eta, anorm;
-    PROPACK_INT cgs, elr;
+    int cgs, elr;
 
     if (doption[0] < 0.0f)
     {
@@ -513,12 +513,12 @@ void dlanbpro(PROPACK_INT m, PROPACK_INT n, PROPACK_INT k0, PROPACK_INT* k, PROP
     // Local variables
     PROPACK_INT i, j, inu, imu, is, iidx, j0;
     double s, mumax, numax, alpha, beta, a1, b1, amax, anormest;
-    PROPACK_INT force_reorth, full_reorth;
+    int force_reorth, full_reorth;
     PROPACK_INT ione = 1;
 
     // Set default parameters
     double delta, eta, anorm;
-    PROPACK_INT cgs, elr;
+    int cgs, elr;
 
     if (doption[0] < 0.0)
     {
@@ -901,12 +901,12 @@ void clanbpro(
     PROPACK_INT i, j, inu, imu, is, iidx, j0;
     float mumax, numax, alpha, beta, a1, b1, amax, anormest, nrm;
     PROPACK_CPLXF_TYPE s;
-    PROPACK_INT force_reorth, full_reorth;
+    int force_reorth, full_reorth;
     PROPACK_INT ione = 1;
 
     // Set default parameters
     float delta, eta, anorm;
-    PROPACK_INT cgs, elr;
+    int cgs, elr;
 
     if (soption[0] < 0.0f)
     {
@@ -1285,12 +1285,12 @@ void zlanbpro(
     PROPACK_INT i, j, inu, imu, is, iidx, j0;
     double mumax, numax, alpha, beta, a1, b1, amax, anormest, nrm;
     PROPACK_CPLX_TYPE s;
-    PROPACK_INT force_reorth, full_reorth;
+    int force_reorth, full_reorth;
     PROPACK_INT ione = 1;
 
     // Set default parameters
     double delta, eta, anorm;
-    PROPACK_INT cgs, elr;
+    int cgs, elr;
 
     if (doption[0] < 0.0)
     {

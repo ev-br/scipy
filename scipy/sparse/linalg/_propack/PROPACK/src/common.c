@@ -54,7 +54,7 @@ float random_float(uint64_t* state) {
 // ==================================================================================
 
 
-void sbsvdstep(const PROPACK_INT jobu, const PROPACK_INT jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, float sigma, float* D, float* E, float* U, PROPACK_INT ldu, float* V, PROPACK_INT ldv)
+void sbsvdstep(const int jobu, const int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, float sigma, float* D, float* E, float* U, PROPACK_INT ldu, float* V, PROPACK_INT ldv)
 {
     PROPACK_INT int1 = 1;
     float c, s, r;
@@ -348,7 +348,7 @@ void supdate_nu(
 }
 
 
-void dbsvdstep(const PROPACK_INT jobu, const PROPACK_INT jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, double sigma, double* D, double* E, double* U, PROPACK_INT ldu, double* V, PROPACK_INT ldv)
+void dbsvdstep(const int jobu, const int jobv, PROPACK_INT m, PROPACK_INT n, PROPACK_INT k, double sigma, double* D, double* E, double* U, PROPACK_INT ldu, double* V, PROPACK_INT ldv)
 {
     PROPACK_INT int1 = 1;
     double c, s, r;
