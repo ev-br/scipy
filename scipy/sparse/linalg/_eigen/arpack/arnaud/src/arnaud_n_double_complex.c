@@ -193,11 +193,11 @@ ARNAUD_zneupd(struct ARNAUD_state_d *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
         //  Initialize the Schur vector matrix Q to the identity.
 
         tmp_int = ldh*V->ncv;
-        zcopy_(&tmp_int, &workl[ih], &int1, &workl[iuptri], &int1);
-        zlaset_("A", &V->ncv, &V->ncv, &cdbl0, &cdbl1, &workl[invsub], &ldq);
-        zlahqr_(&int1, &int1, &V->ncv, &int1, &V->ncv, &workl[iuptri], &ldh,
+        BLAS_FUNC(zcopy)(&tmp_int, &workl[ih], &int1, &workl[iuptri], &int1);
+        BLAS_FUNC(zlaset)("A", &V->ncv, &V->ncv, &cdbl0, &cdbl1, &workl[invsub], &ldq);
+        BLAS_FUNC(zlahqr)(&int1, &int1, &V->ncv, &int1, &V->ncv, &workl[iuptri], &ldh,
                 &workl[iheig], &int1, &V->ncv, &workl[invsub], &ldq, &ierr);
-        zcopy_(&V->ncv, &workl[invsub + V->ncv - 1], &ldq, &workl[ihbds], &int1);
+        BLAS_FUNC(zcopy)(&V->ncv, &workl[invsub + V->ncv - 1], &ldq, &workl[ihbds], &int1);
 
         if (ierr != 0)
         {
@@ -210,7 +210,7 @@ ARNAUD_zneupd(struct ARNAUD_state_d *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
 
             //  Reorder the computed upper triangular matrix.
 
-            ztrsen_("N", "V", select, &V->ncv, &workl[iuptri], &ldh, &workl[invsub], &ldq,
+            BLAS_FUNC(ztrsen)("N", "V", select, &V->ncv, &workl[iuptri], &ldh, &workl[invsub], &ldq,
                     &workl[iheig], &nconv2, &conds, &sep, workev, &V->ncv, &ierr);
 
             if (nconv2 < V->nconv) { V->nconv = nconv2; }
@@ -225,21 +225,21 @@ ARNAUD_zneupd(struct ARNAUD_state_d *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
         //  to compute the Ritz estimates of converged
         //  Ritz values.
 
-        zcopy_(&V->ncv, &workl[invsub + V->ncv - 1], &ldq, &workl[ihbds], &int1);
+        BLAS_FUNC(zcopy)(&V->ncv, &workl[invsub + V->ncv - 1], &ldq, &workl[ihbds], &int1);
 
         //  Place the computed eigenvalues of H into D
         //  if a spectral transformation was not used.
 
         if (TYP == REGULAR)
         {
-            zcopy_(&V->nconv, &workl[iheig], &int1, d, &int1);
+            BLAS_FUNC(zcopy)(&V->nconv, &workl[iheig], &int1, d, &int1);
         }
 
         //  Compute the QR factorization of the matrix representing
         //  the wanted invariant subspace located in the first NCONV
         //  columns of workl(invsub,ldq).
 
-        zgeqr2_(&V->ncv, &V->nconv, &workl[invsub], &ldq, workev, &workev[V->ncv], &ierr);
+        BLAS_FUNC(zgeqr2)(&V->ncv, &V->nconv, &workl[invsub], &ldq, workev, &workev[V->ncv], &ierr);
 
         //  * Postmultiply V by Q using zunm2r.
         //  * Copy the first NCONV columns of VQ into Z.
@@ -251,8 +251,8 @@ ARNAUD_zneupd(struct ARNAUD_state_d *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
         //  associated with the upper triangular matrix of order
         //  NCONV in workl(iuptri).
 
-        zunm2r_("R", "N", &V->n, &V->ncv, &V->nconv, &workl[invsub], &ldq, workev, v, &ldv, &workd[V->n], &ierr);
-        zlacpy_("A", &V->n, &V->nconv, v, &ldv, z, &ldz);
+        BLAS_FUNC(zunm2r)("R", "N", &V->n, &V->ncv, &V->nconv, &workl[invsub], &ldq, workev, v, &ldv, &workd[V->n], &ierr);
+        BLAS_FUNC(zlacpy)("A", &V->n, &V->nconv, v, &ldv, z, &ldz);
 
         for (CBLAS_INT j = 0; j < V->nconv; j++)
         {
@@ -266,8 +266,8 @@ ARNAUD_zneupd(struct ARNAUD_state_d *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
 
             if (creal(workl[invsub + j*ldq + j]) < 0.0)
             {
-                zscal_(&V->nconv, &cdblm1, &workl[iuptri + j], &ldq);
-                zscal_(&V->nconv, &cdblm1, &workl[iuptri + j*ldq], &int1);
+                BLAS_FUNC(zscal)(&V->nconv, &cdblm1, &workl[iuptri + j], &ldq);
+                BLAS_FUNC(zscal)(&V->nconv, &cdblm1, &workl[iuptri + j*ldq], &int1);
             }
         }
         // 20
@@ -289,7 +289,7 @@ ARNAUD_zneupd(struct ARNAUD_state_d *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
             }
             // 30
 
-            ztrevc_("R", "S", select, &V->ncv, &workl[iuptri], &ldq, vl, &int1,
+            BLAS_FUNC(ztrevc)("R", "S", select, &V->ncv, &workl[iuptri], &ldq, vl, &int1,
                     &workl[invsub], &ldq, &V->ncv, &outncv, workev, rwork, &ierr);
             if (ierr != 0)
             {
@@ -305,8 +305,8 @@ ARNAUD_zneupd(struct ARNAUD_state_d *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
 
             for (j = 0; j < V->nconv; j++)
             {
-                rtemp = 1.0 / dznrm2_(&V->ncv, &workl[invsub + j*ldq], &int1);
-                zdscal_(&V->ncv, &rtemp, &workl[invsub + j*ldq], &int1);
+                rtemp = 1.0 / BLAS_FUNC(dznrm2)(&V->ncv, &workl[invsub + j*ldq], &int1);
+                BLAS_FUNC(zdscal)(&V->ncv, &rtemp, &workl[invsub + j*ldq], &int1);
 
                 //  Ritz estimates can be obtained by taking
                 //  the inner product of the last row of the
@@ -321,11 +321,11 @@ ARNAUD_zneupd(struct ARNAUD_state_d *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
 
             //  Copy Ritz estimates into workl(ihbds)
 
-            zcopy_(&V->nconv, workev, &int1, &workl[ihbds], &int1);
+            BLAS_FUNC(zcopy)(&V->nconv, workev, &int1, &workl[ihbds], &int1);
 
             //  The eigenvector mactirx Q of T is triangular. Form Z*Q
 
-            ztrmm_("R", "U", "N", "N", &V->n, &V->nconv, &cdbl1, &workl[invsub], &ldq, z, &ldz);
+            BLAS_FUNC(ztrmm)("R", "U", "N", "N", &V->n, &V->nconv, &cdbl1, &workl[invsub], &ldq, z, &ldz);
 
         }
 
@@ -334,9 +334,9 @@ ARNAUD_zneupd(struct ARNAUD_state_d *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
         // An approximate invariant subspace is not needed.
         // Place the Ritz values computed ZNAUPD into D.
 
-        zcopy_(&V->nconv, &workl[ritz], &int1, d, &int1);
-        zcopy_(&V->nconv, &workl[ritz], &int1, &workl[iheig], &int1);
-        zcopy_(&V->nconv, &workl[bounds], &int1, &workl[ihbds], &int1);
+        BLAS_FUNC(zcopy)(&V->nconv, &workl[ritz], &int1, d, &int1);
+        BLAS_FUNC(zcopy)(&V->nconv, &workl[ritz], &int1, &workl[iheig], &int1);
+        BLAS_FUNC(zcopy)(&V->nconv, &workl[bounds], &int1, &workl[ihbds], &int1);
 
     }
 
@@ -348,7 +348,7 @@ ARNAUD_zneupd(struct ARNAUD_state_d *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
     {
         if (rvec)
         {
-            zscal_(&V->ncv, &rnorm, &workl[ihbds], &int1);
+            BLAS_FUNC(zscal)(&V->ncv, &rnorm, &workl[ihbds], &int1);
         }
     } else {
 
@@ -358,7 +358,7 @@ ARNAUD_zneupd(struct ARNAUD_state_d *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
 
         if (rvec)
         {
-            zscal_(&V->ncv, &rnorm, &workl[ihbds], &int1);
+            BLAS_FUNC(zscal)(&V->ncv, &rnorm, &workl[ihbds], &int1);
         }
         for (k = 0; k < V->ncv; k++)
         {
@@ -430,7 +430,7 @@ ARNAUD_zneupd(struct ARNAUD_state_d *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
         //  Perform a rank one update to Z and
         //  purify all the Ritz vectors together.
 
-        zgeru_(&V->n, &V->nconv, &cdbl1, resid, &int1, workev, &int1, z, &ldz);
+        BLAS_FUNC(zgeru)(&V->n, &V->nconv, &cdbl1, resid, &int1, workev, &int1, z, &ldz);
     }
 
     return;
@@ -698,9 +698,9 @@ LINE20:
     //  Make a copy of Ritz values and the corresponding
     //  Ritz estimates obtained from zneigh .
     tmp_int = V->aup2_kplusp * V->aup2_kplusp;
-    zcopy_(&V->aup2_kplusp, ritz, &int1, &workl[tmp_int], &int1);
+    BLAS_FUNC(zcopy)(&V->aup2_kplusp, ritz, &int1, &workl[tmp_int], &int1);
     tmp_int += V->aup2_kplusp;
-    zcopy_(&V->aup2_kplusp, bounds, &int1, &workl[tmp_int], &int1);
+    BLAS_FUNC(zcopy)(&V->aup2_kplusp, bounds, &int1, &workl[tmp_int], &int1);
 
     //  Select the wanted Ritz values and their bounds
     //  to be used in the convergence test.
@@ -883,7 +883,7 @@ LINE50:
         //  RITZR, RITZI to free up WORKL
         //  for non-exact shift case.
 
-        zcopy_(&V->np, workl, &int1, ritz, &int1);
+        BLAS_FUNC(zcopy)(&V->np, workl, &int1, ritz, &int1);
     }
 
     //  Apply the NP implicit shifts by QR bulge chasing.
@@ -900,7 +900,7 @@ LINE50:
     V->aup2_cnorm = 1;
     if (V->bmat)
     {
-        zcopy_(&V->n, resid, &int1, &workd[V->n], &int1);
+        BLAS_FUNC(zcopy)(&V->n, resid, &int1, &workd[V->n], &int1);
         ipntr[0] = V->n;
         ipntr[1] = 0;
         V->ido = ido_BX;
@@ -909,7 +909,7 @@ LINE50:
 
         return;
     } else {
-        zcopy_(&V->n, resid, &int1, workd, &int1);
+        BLAS_FUNC(zcopy)(&V->n, resid, &int1, workd, &int1);
     }
 
 LINE100:
@@ -921,7 +921,7 @@ LINE100:
     {
         V->aup2_rnorm = sqrt(cabs(zdotc_(&V->n, resid, &int1, workd, &int1)));
     } else {
-        V->aup2_rnorm = dznrm2_(&V->n, resid, &int1);
+        V->aup2_rnorm = BLAS_FUNC(dznrm2)(&V->n, resid, &int1);
     }
     V->aup2_cnorm = 0;
 
@@ -1040,23 +1040,23 @@ LINE40:
     //  when reciprocating a small RNORM, test against lower
     //  machine bound.
 
-    zcopy_(&n, resid, &int1, &v[ldv*V->aitr_j], &int1);
+    BLAS_FUNC(zcopy)(&n, resid, &int1, &v[ldv*V->aitr_j], &int1);
 
     if (*rnorm >= unfl)
     {
         temp1 = 1.0 / *rnorm;
-        zdscal_(&n, &temp1, &v[ldv*V->aitr_j], &int1);
-        zdscal_(&n, &temp1, &workd[ipj], &int1);
+        BLAS_FUNC(zdscal)(&n, &temp1, &v[ldv*V->aitr_j], &int1);
+        BLAS_FUNC(zdscal)(&n, &temp1, &workd[ipj], &int1);
     } else {
-        zlascl_("G", &i, &i, rnorm, &dbl1, &n, &int1, &v[ldv*V->aitr_j], &n, &infol);
-        zlascl_("G", &i, &i, rnorm, &dbl1, &n, &int1, &workd[ipj], &n, &infol);
+        BLAS_FUNC(zlascl)("G", &i, &i, rnorm, &dbl1, &n, &int1, &v[ldv*V->aitr_j], &n, &infol);
+        BLAS_FUNC(zlascl)("G", &i, &i, rnorm, &dbl1, &n, &int1, &workd[ipj], &n, &infol);
     }
 
     //  STEP 3:  r_{j} = OP*v_{j}; Note that p_{j} = B*v_{j}
     //  Note that this is not quite yet r_{j}. See STEP 4
 
     V->aitr_step3 = 1;
-    zcopy_(&n, &v[ldv*(V->aitr_j)], &int1, &workd[ivj], &int1);
+    BLAS_FUNC(zcopy)(&n, &v[ldv*(V->aitr_j)], &int1, &workd[ivj], &int1);
     ipntr[0] = ivj;
     ipntr[1] = irj;
     ipntr[2] = ipj;
@@ -1076,7 +1076,7 @@ LINE50:
 
     //  Put another copy of OP*v_{j} into RESID.
 
-    zcopy_(&n, &workd[irj], &int1, resid, &int1);
+    BLAS_FUNC(zcopy)(&n, &workd[irj], &int1, resid, &int1);
 
     //  STEP 4:  Finish extending the Arnoldi
     //           factorization to length j.
@@ -1092,7 +1092,7 @@ LINE50:
 
         return;
     } else {
-        zcopy_(&n, resid, &int1, &workd[ipj], &int1);
+        BLAS_FUNC(zcopy)(&n, resid, &int1, &workd[ipj], &int1);
     }
 
 LINE60:
@@ -1110,7 +1110,7 @@ LINE60:
     {
         V->aitr_wnorm = sqrt(cabs(zdotc_(&n, resid, &int1, &workd[ipj], &int1)));
     } else {
-        V->aitr_wnorm = dznrm2_(&n, resid, &int1);
+        V->aitr_wnorm = BLAS_FUNC(dznrm2)(&n, resid, &int1);
     }
 
     //  Compute the j-th residual corresponding
@@ -1122,19 +1122,19 @@ LINE60:
     //  Compute the j Fourier coefficients w_{j}
     //  WORKD(IPJ:IPJ+N-1) contains B*OP*v_{j}.
     tmp_int = V->aitr_j + 1;
-    zgemv_("C", &n, &tmp_int, &cdbl1, v, &ldv, &workd[ipj], &int1, &cdbl0, &h[ldh*(V->aitr_j)], &int1);
+    BLAS_FUNC(zgemv)("C", &n, &tmp_int, &cdbl1, v, &ldv, &workd[ipj], &int1, &cdbl0, &h[ldh*(V->aitr_j)], &int1);
 
     //  Orthogonalize r_{j} against V_{j}.
     //  RESID contains OP*v_{j}. See STEP 3.
 
-    zgemv_("N", &n, &tmp_int, &cdblm1, v, &ldv, &h[ldh*(V->aitr_j)], &int1, &cdbl1, resid, &int1);
+    BLAS_FUNC(zgemv)("N", &n, &tmp_int, &cdblm1, v, &ldv, &h[ldh*(V->aitr_j)], &int1, &cdbl1, resid, &int1);
 
     if (V->aitr_j > 0) { h[V->aitr_j + ldh*(V->aitr_j-1)] = ARNAUD_cplx(V->aitr_betaj, 0.0); }
 
     V->aitr_orth1 = 1;
     if (V->bmat)
     {
-        zcopy_(&n, resid, &int1, &workd[irj], &int1);
+        BLAS_FUNC(zcopy)(&n, resid, &int1, &workd[irj], &int1);
         ipntr[0] = irj;
         ipntr[1] = ipj;
         V->ido = ido_BX;
@@ -1143,7 +1143,7 @@ LINE60:
 
         return;
     } else {
-        zcopy_(&n, resid, &int1, &workd[ipj], &int1);
+        BLAS_FUNC(zcopy)(&n, resid, &int1, &workd[ipj], &int1);
     }
 
 LINE70:
@@ -1159,7 +1159,7 @@ LINE70:
     {
         *rnorm = sqrt(cabs(zdotc_(&n, resid, &int1, &workd[ipj], &int1)));
     } else {
-        *rnorm = dznrm2_(&n, resid, &int1);
+        *rnorm = BLAS_FUNC(dznrm2)(&n, resid, &int1);
     }
 
     //  STEP 5: Re-orthogonalization / Iterative refinement phase
@@ -1191,21 +1191,21 @@ LINE80:
     //  Compute V_{j}^T * B * r_{j}.
     //  WORKD(IRJ:IRJ+J-1) = v(:,1:J)'*WORKD(IPJ:IPJ+N-1).
     tmp_int = V->aitr_j + 1;
-    zgemv_("C", &n, &tmp_int, &cdbl1, v, &ldv, &workd[ipj], &int1, &cdbl0, &workd[irj], &int1);
+    BLAS_FUNC(zgemv)("C", &n, &tmp_int, &cdbl1, v, &ldv, &workd[ipj], &int1, &cdbl0, &workd[irj], &int1);
 
     //  Compute the correction to the residual:
     //  r_{j} = r_{j} - V_{j} * WORKD(IRJ:IRJ+J-1).
     //  The correction to H is v(:,1:J)*H(1:J,1:J)
     //  + v(:,1:J)*WORKD(IRJ:IRJ+J-1)*e'_j.
 
-    zgemv_("N", &n, &tmp_int, &cdblm1, v, &ldv, &workd[irj], &int1, &cdbl1, resid, &int1);
-    zaxpy_(&tmp_int, &cdbl1, &workd[irj], &int1, &h[ldh*(V->aitr_j)], &int1);
+    BLAS_FUNC(zgemv)("N", &n, &tmp_int, &cdblm1, v, &ldv, &workd[irj], &int1, &cdbl1, resid, &int1);
+    BLAS_FUNC(zaxpy)(&tmp_int, &cdbl1, &workd[irj], &int1, &h[ldh*(V->aitr_j)], &int1);
 
     V->aitr_orth2 = 1;
 
     if (V->bmat)
     {
-        zcopy_(&n, resid, &int1, &workd[irj], &int1);
+        BLAS_FUNC(zcopy)(&n, resid, &int1, &workd[irj], &int1);
         ipntr[0] = irj;
         ipntr[1] = ipj;
         V->ido = ido_BX;
@@ -1215,7 +1215,7 @@ LINE80:
 
         return;
     } else {
-        zcopy_(&n, resid, &int1, &workd[ipj], &int1);
+        BLAS_FUNC(zcopy)(&n, resid, &int1, &workd[ipj], &int1);
     }
 
 LINE90:
@@ -1227,7 +1227,7 @@ LINE90:
     {
         V->aitr_rnorm1 = sqrt(cabs(zdotc_(&n, resid, &int1, &workd[ipj], &int1)));
     } else {
-        V->aitr_rnorm1 = dznrm2_(&n, resid, &int1);
+        V->aitr_rnorm1 = BLAS_FUNC(dznrm2)(&n, resid, &int1);
     }
 
     //  Determine if we need to perform another
@@ -1289,7 +1289,7 @@ LINE100:
                 tmp_int = k + np;
                 // zlanhs(norm, n, a, lda, work) with "work" being double type
                 // Recasting complex workspace to double for scratch space.
-                tst1 = zlanhs_("1", &tmp_int, h, &ldh, (double*)&workd[n]);
+                tst1 = BLAS_FUNC(zlanhs)("1", &tmp_int, h, &ldh, (double*)&workd[n]);
             }
             if (cabs(h[i+1 + ldh*i]) <= fmax(ulp*tst1, smlnum))
             {
@@ -1323,7 +1323,7 @@ znapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, ARNAUD_CPLX_TYPE* shift, ARNAU
 
     //  Initialize Q to the identity to accumulate
     //  the rotations and reflections
-    zlaset_("G", &kplusp, &kplusp, &cdbl0, &cdbl1, q, &ldq);
+    BLAS_FUNC(zlaset)("G", &kplusp, &kplusp, &cdbl0, &cdbl1, q, &ldq);
 
     //  Quick return if there are no shifts to apply
 
@@ -1347,7 +1347,7 @@ znapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, ARNAUD_CPLX_TYPE* shift, ARNAU
                 if (tst1 == 0.0)
                 {
                     tmp_int = kplusp - jj;
-                    zlanhs_("1", &tmp_int, h, &ldh, (double*)workl);
+                    BLAS_FUNC(zlanhs)("1", &tmp_int, h, &ldh, (double*)workl);
                 }
                 if (fabs(creal(h[iend+1 + ldh*iend])) <= fmax(ulp*tst1, smlnum))
                 {
@@ -1383,20 +1383,20 @@ znapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, ARNAUD_CPLX_TYPE* shift, ARNAU
 
                 //  Construct the plane rotation G to zero out the bulge
 
-                zlartg_(&f, &g, &c, &s, &r);
+                BLAS_FUNC(zlartg)(&f, &g, &c, &s, &r);
                 if (i > istart)
                 {
                     h[i + ldh*(i-1)] = r;
                     h[i + 1 + ldh*(i-1)] = ARNAUD_cplx(0.0, 0.0);
                 }
                 tmp_int = kplusp - i;
-                zrot_(&tmp_int, &h[i + ldh*i], &ldh, &h[i + 1 + ldh*i], &ldh, &c, &s);
+                BLAS_FUNC(zrot)(&tmp_int, &h[i + ldh*i], &ldh, &h[i + 1 + ldh*i], &ldh, &c, &s);
                 // z = a + bi, -conj(z) = -a + bi
                 s2 = conj(s);
                 tmp_int = (i + 2 > iend ? iend : i + 2) + 1;
-                zrot_(&tmp_int, &h[ldh*i], &int1, &h[ldh*(i+1)], &int1, &c, &s2);
+                BLAS_FUNC(zrot)(&tmp_int, &h[ldh*i], &int1, &h[ldh*(i+1)], &int1, &c, &s2);
                 tmp_int = (i + jj + 2 > kplusp ? kplusp : i + jj + 2);
-                zrot_(&tmp_int, &q[ldq*i], &int1, &q[ldq*(i+1)], &int1, &c, &s2);
+                BLAS_FUNC(zrot)(&tmp_int, &q[ldq*i], &int1, &q[ldq*(i+1)], &int1, &c, &s2);
 
                 if (i < iend - 1)
                 {
@@ -1421,13 +1421,13 @@ znapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, ARNAUD_CPLX_TYPE* shift, ARNAU
 
             tmp_cplx = conj(t);
             tmp_int = kplusp - j;
-            zscal_(&tmp_int, &tmp_cplx, &h[j+1 + ldh*j], &ldh);
+            BLAS_FUNC(zscal)(&tmp_int, &tmp_cplx, &h[j+1 + ldh*j], &ldh);
 
             tmp_int = (j+3 > kplusp ? kplusp : j+3);
-            zscal_(&tmp_int, &t, &h[ldh*(j+1)], &int1);
+            BLAS_FUNC(zscal)(&tmp_int, &t, &h[ldh*(j+1)], &int1);
 
             tmp_int = (j+np+2 > kplusp ? kplusp : j+np+2);
-            zscal_(&tmp_int, &t, &q[ldq*(j+1)], &int1);
+            BLAS_FUNC(zscal)(&tmp_int, &t, &q[ldq*(j+1)], &int1);
 
             h[j+1 + ldh*j] = ARNAUD_cplx(creal(h[j+1 + ldh*j]), 0.0);
         }
@@ -1448,7 +1448,7 @@ znapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, ARNAUD_CPLX_TYPE* shift, ARNAU
                fabs(cimag(h[i + ldh*i])) + fabs(cimag(h[i+1 + ldh*(i+1)]));
         if (tst1 == 0.0)
         {
-            tst1 = zlanhs_("1", kev, h, &ldh, (double*)workl);
+            tst1 = BLAS_FUNC(zlanhs)("1", kev, h, &ldh, (double*)workl);
         }
         if (creal(h[i+1 + ldh*i]) <= fmax(ulp*tst1, smlnum))
         {
@@ -1465,7 +1465,7 @@ znapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, ARNAUD_CPLX_TYPE* shift, ARNAU
 
     if (creal(h[*kev + ldh*(*kev-1)]) > 0.0)
     {
-        zgemv_("N", &n, &kplusp, &cdbl1, v, &ldv, &q[(*kev)*ldq], &int1, &cdbl0, &workd[n], &int1);
+        BLAS_FUNC(zgemv)("N", &n, &kplusp, &cdbl1, v, &ldv, &q[(*kev)*ldq], &int1, &cdbl0, &workd[n], &int1);
     }
 
     //  Compute column 1 to kev of (V*Q) in backward order
@@ -1474,18 +1474,18 @@ znapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, ARNAUD_CPLX_TYPE* shift, ARNAU
     for (i = 0; i < *kev; i++)
     {
         tmp_int = kplusp - i;
-        zgemv_("N", &n, &tmp_int, &cdbl1, v, &ldv, &q[(*kev-i-1)*ldq], &int1, &cdbl0, workd, &int1);
-        zcopy_(&n, workd, &int1, &v[(kplusp-i-1)*ldv], &int1);
+        BLAS_FUNC(zgemv)("N", &n, &tmp_int, &cdbl1, v, &ldv, &q[(*kev-i-1)*ldq], &int1, &cdbl0, workd, &int1);
+        BLAS_FUNC(zcopy)(&n, workd, &int1, &v[(kplusp-i-1)*ldv], &int1);
     }
 
     //   Move v(:,kplusp-kev+1:kplusp) into v(:,1:kev).
 
-    zlacpy_("A", &n, kev, &v[ldv*(kplusp - *kev)], &ldv, v, &ldv);
+    BLAS_FUNC(zlacpy)("A", &n, kev, &v[ldv*(kplusp - *kev)], &ldv, v, &ldv);
 
     //  Copy the (kev+1)-st column of (V*Q) in the appropriate place
 
     if (creal(h[*kev + ldh*(*kev-1)]) > 0.0) {
-        zcopy_(&n, &workd[n], &int1, &v[ldv*(*kev)], &int1);
+        BLAS_FUNC(zcopy)(&n, &workd[n], &int1, &v[ldv*(*kev)], &int1);
     }
 
     //  Update the residual vector:
@@ -1494,11 +1494,11 @@ znapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, ARNAUD_CPLX_TYPE* shift, ARNAU
     //     sigmak = (e_{kplusp}'*Q)*e_{kev}
     //     betak = e_{kev+1}'*H*e_{kev}
 
-    zscal_(&n, &q[kplusp-1 + ldq*(*kev-1)], resid, &int1);
+    BLAS_FUNC(zscal)(&n, &q[kplusp-1 + ldq*(*kev-1)], resid, &int1);
 
     if (creal(h[*kev + ldh*(*kev-1)]) > 0.0)
     {
-        zaxpy_(&n, &h[*kev + ldh*(*kev-1)], &v[ldv*(*kev)], &int1, resid, &int1);
+        BLAS_FUNC(zaxpy)(&n, &h[*kev + ldh*(*kev-1)], &v[ldv*(*kev)], &int1, resid, &int1);
     }
 
     return;
@@ -1523,19 +1523,19 @@ zneigh(double* rnorm, CBLAS_INT n, ARNAUD_CPLX_TYPE* h, CBLAS_INT ldh, ARNAUD_CP
     //     zlahqr returns the full Schur form of H
     //     in WORKL(1:N**2), and the Schur vectors in q.
 
-    zlacpy_("A", &n, &n, h, &ldh, workl, &n);
-    zlaset_("A", &n, &n, &c0, &c1, q, &ldq);
-    zlahqr_(&int1, &int1, &n, &int1, &n, workl, &ldh, ritz, &int1, &n, q, &ldq, ierr);
+    BLAS_FUNC(zlacpy)("A", &n, &n, h, &ldh, workl, &n);
+    BLAS_FUNC(zlaset)("A", &n, &n, &c0, &c1, q, &ldq);
+    BLAS_FUNC(zlahqr)(&int1, &int1, &n, &int1, &n, workl, &ldh, ritz, &int1, &n, q, &ldq, ierr);
 
     if (*ierr != 0) { return; }
 
-    zcopy_(&n, &q[n-2], &ldq, bounds, &int1);
+    BLAS_FUNC(zcopy)(&n, &q[n-2], &ldq, bounds, &int1);
 
     //  2. Compute the eigenvectors of the full Schur form T and
     //     apply the Schur vectors to get the corresponding
     //     eigenvectors.
 
-    ztrevc_("R", "B", select, &n, workl, &n, vl, &n, q, &ldq, &n, &n, &workl[n*n], rwork, ierr);
+    BLAS_FUNC(ztrevc)("R", "B", select, &n, workl, &n, vl, &n, q, &ldq, &n, &n, &workl[n*n], rwork, ierr);
 
     if (*ierr != 0) { return; }
 
@@ -1548,14 +1548,14 @@ zneigh(double* rnorm, CBLAS_INT n, ARNAUD_CPLX_TYPE* h, CBLAS_INT ldh, ARNAUD_CP
 
     for (j = 0; j < n; j++)
     {
-        temp = 1.0 / dznrm2_(&n, &q[j*ldq], &int1);
-        zdscal_(&n, &temp, &q[j*ldq], &int1);
+        temp = 1.0 / BLAS_FUNC(dznrm2)(&n, &q[j*ldq], &int1);
+        BLAS_FUNC(zdscal)(&n, &temp, &q[j*ldq], &int1);
     }
 
     //  Compute the Ritz estimates
 
-    zcopy_(&n, &q[n-1], &n, bounds, &int1);
-    zdscal_(&n, rnorm, bounds, &int1);
+    BLAS_FUNC(zcopy)(&n, &q[n-1], &n, bounds, &int1);
+    BLAS_FUNC(zdscal)(&n, rnorm, bounds, &int1);
 
     return;
 }
@@ -1629,12 +1629,12 @@ zgetv0(struct ARNAUD_state_d *V, CBLAS_INT initv, CBLAS_INT n, CBLAS_INT j,
         {
             ipntr[0] = 0;
             ipntr[1] = n;
-            zcopy_(&n, resid, &int1, workd, &int1);
+            BLAS_FUNC(zcopy)(&n, resid, &int1, workd, &int1);
             V->ido = ido_RANDOM_OPX;
             return;
         } else if ((V->getv0_itry > 1) && (V->bmat == 1))
         {
-            zcopy_(&n, resid, &int1, &workd[n], &int1);
+            BLAS_FUNC(zcopy)(&n, resid, &int1, &workd[n], &int1);
         }
     }
 
@@ -1652,7 +1652,7 @@ zgetv0(struct ARNAUD_state_d *V, CBLAS_INT initv, CBLAS_INT n, CBLAS_INT j,
     V->getv0_first = 1;
     if (V->getv0_itry == 1)
     {
-        zcopy_(&n, &workd[n], &int1, resid, &int1);
+        BLAS_FUNC(zcopy)(&n, &workd[n], &int1, resid, &int1);
     }
     if (V->bmat)
     {
@@ -1661,7 +1661,7 @@ zgetv0(struct ARNAUD_state_d *V, CBLAS_INT initv, CBLAS_INT n, CBLAS_INT j,
         V->ido = ido_BX;
         return;
     } else {
-        zcopy_(&n, resid, &int1, workd, &int1);
+        BLAS_FUNC(zcopy)(&n, resid, &int1, workd, &int1);
     }
 
 LINE20:
@@ -1670,7 +1670,7 @@ LINE20:
     {
         V->getv0_rnorm0 = sqrt(cabs(zdotc_(&n, resid, &int1, workd, &int1)));
     } else {
-        V->getv0_rnorm0 = dznrm2_(&n, resid, &int1);
+        V->getv0_rnorm0 = BLAS_FUNC(dznrm2)(&n, resid, &int1);
     }
     *rnorm = V->getv0_rnorm0;
 
@@ -1696,20 +1696,20 @@ LINE20:
 
 LINE30:
 
-    zgemv_("C", &n, &j, &c1, v, &ldv, workd, &int1, &c0, &workd[n], &int1);
-    zgemv_("N", &n, &j, &cm1, v, &ldv, &workd[n], &int1, &c1, resid, &int1);
+    BLAS_FUNC(zgemv)("C", &n, &j, &c1, v, &ldv, workd, &int1, &c0, &workd[n], &int1);
+    BLAS_FUNC(zgemv)("N", &n, &j, &cm1, v, &ldv, &workd[n], &int1, &c1, resid, &int1);
 
     //  Compute the B-norm of the orthogonalized starting vector
 
     if (V->bmat)
     {
-        zcopy_(&n, resid, &int1, &workd[n], &int1);
+        BLAS_FUNC(zcopy)(&n, resid, &int1, &workd[n], &int1);
         ipntr[0] = n;
         ipntr[1] = 0;
         V->ido = ido_BX;
         return;
     } else {
-        zcopy_(&n, resid, &int1, workd, &int1);
+        BLAS_FUNC(zcopy)(&n, resid, &int1, workd, &int1);
     }
 
 LINE40:
@@ -1718,7 +1718,7 @@ LINE40:
     {
         *rnorm = sqrt(cabs(zdotc_(&n, resid, &int1, workd, &int1)));
     } else {
-        *rnorm = dznrm2_(&n, resid, &int1);
+        *rnorm = BLAS_FUNC(dznrm2)(&n, resid, &int1);
     }
 
     //  Check for further orthogonalization.

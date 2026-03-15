@@ -159,7 +159,7 @@ ARNAUD_sseupd(struct ARNAUD_state_s *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
     rnorm = workl[ih];
     if (V->bmat)
     {
-        bnorm2 = snrm2_(&V->n, workd, &int1);
+        bnorm2 = BLAS_FUNC(snrm2)(&V->n, workd, &int1);
     } else {
         bnorm2 = rnorm;
     }
@@ -224,10 +224,10 @@ ARNAUD_sseupd(struct ARNAUD_state_s *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
         // Initialize the eigenvector matrix Q to the identity.
 
         tmp_int = V->ncv - 1;
-        scopy_(&tmp_int, &workl[ih+1], &int1, &workl[ihb], &int1);
-        scopy_(&V->ncv, &workl[ih+ldh], &int1, &workl[ihd], &int1);
+        BLAS_FUNC(scopy)(&tmp_int, &workl[ih+1], &int1, &workl[ihb], &int1);
+        BLAS_FUNC(scopy)(&V->ncv, &workl[ih+ldh], &int1, &workl[ihd], &int1);
 
-        ssteqr_("I", &V->ncv, &workl[ihd], &workl[ihb], &workl[iq], &ldq, &workl[iw], &ierr);
+        BLAS_FUNC(ssteqr)("I", &V->ncv, &workl[ihd], &workl[ihb], &workl[iq], &ldq, &workl[iw], &ierr);
 
         if (ierr != 0)
         {
@@ -277,9 +277,9 @@ ARNAUD_sseupd(struct ARNAUD_state_s *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
                         workl[ihd + leftptr] = workl[ihd + rightptr];
                         workl[ihd + rightptr] = temp;
 
-                        scopy_(&V->ncv, &workl[iq + V->ncv*leftptr], &int1, &workl[iw], &int1);
-                        scopy_(&V->ncv, &workl[iq + V->ncv*rightptr], &int1, &workl[iq + V->ncv*leftptr], &int1);
-                        scopy_(&V->ncv, &workl[iw], &int1, &workl[iq + V->ncv*rightptr], &int1);
+                        BLAS_FUNC(scopy)(&V->ncv, &workl[iq + V->ncv*leftptr], &int1, &workl[iw], &int1);
+                        BLAS_FUNC(scopy)(&V->ncv, &workl[iq + V->ncv*rightptr], &int1, &workl[iq + V->ncv*leftptr], &int1);
+                        BLAS_FUNC(scopy)(&V->ncv, &workl[iw], &int1, &workl[iq + V->ncv*rightptr], &int1);
 
                         leftptr += 1;
                         rightptr -= 1;
@@ -290,14 +290,14 @@ ARNAUD_sseupd(struct ARNAUD_state_s *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
 
         // Load the converged Ritz values into D.
 
-        scopy_(&V->nconv, &workl[ihd], &int1, d, &int1);
+        BLAS_FUNC(scopy)(&V->nconv, &workl[ihd], &int1, d, &int1);
 
     } else {
 
         // Ritz vectors not required. Load Ritz values into D.
 
-        scopy_(&V->nconv, &workl[ritz], &int1, d, &int1);
-        scopy_(&V->ncv, &workl[ritz], &int1, &workl[ihd], &int1);
+        BLAS_FUNC(scopy)(&V->nconv, &workl[ritz], &int1, d, &int1);
+        BLAS_FUNC(scopy)(&V->ncv, &workl[ritz], &int1, &workl[ihd], &int1);
     }
 
     // Transform the Ritz values and possibly vectors and corresponding
@@ -313,7 +313,7 @@ ARNAUD_sseupd(struct ARNAUD_state_s *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
         if (rvec) {
             ssesrt(which_LA, rvec, V->nconv, d, V->ncv, &workl[iq], ldq);
         } else {
-            scopy_(&V->ncv, &workl[bounds], &int1, &workl[ihb], &int1);
+            BLAS_FUNC(scopy)(&V->ncv, &workl[bounds], &int1, &workl[ihb], &int1);
         }
 
     } else {
@@ -331,7 +331,7 @@ ARNAUD_sseupd(struct ARNAUD_state_s *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
         // *The Ritz vectors are not affected by the transformation.
         //  They are only reordered.
 
-        scopy_(&V->ncv, &workl[ihd], &int1, &workl[iw], &int1);
+        BLAS_FUNC(scopy)(&V->ncv, &workl[ihd], &int1, &workl[iw], &int1);
         if (TYP == SHIFTI)
         {
             for (CBLAS_INT k = 0; k < V->ncv; k++)
@@ -361,14 +361,14 @@ ARNAUD_sseupd(struct ARNAUD_state_s *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
         //  match the ordering of the lambda. We`ll use them again for
         //  Ritz vector purification.
 
-        scopy_(&V->nconv, &workl[ihd], &int1, d, &int1);
+        BLAS_FUNC(scopy)(&V->nconv, &workl[ihd], &int1, d, &int1);
         ssortr(which_LA, 1, V->nconv, &workl[ihd], &workl[iw]);
         if (rvec) {
             ssesrt(which_LA, rvec, V->nconv, d, V->ncv, &workl[iq], ldq);
         } else {
-            scopy_(&V->ncv, &workl[bounds], &int1, &workl[ihb], &int1);
+            BLAS_FUNC(scopy)(&V->ncv, &workl[bounds], &int1, &workl[ihb], &int1);
             temp = bnorm2 / rnorm;
-            sscal_(&V->ncv, &temp, &workl[ihb], &int1);
+            BLAS_FUNC(sscal)(&V->ncv, &temp, &workl[ihb], &int1);
             ssortr(which_LA, 1, V->nconv, d, &workl[ihb]);
         }
     }
@@ -384,7 +384,7 @@ ARNAUD_sseupd(struct ARNAUD_state_s *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
         // the wanted invariant subspace located in the first NCONV
         // columns of workl(iq, ldq).
 
-        sgeqr2_(&V->ncv, &V->nconv, &workl[iq], &ldq, &workl[iw + V->ncv], &workl[ihb], &ierr);
+        BLAS_FUNC(sgeqr2)(&V->ncv, &V->nconv, &workl[iq], &ldq, &workl[iw + V->ncv], &workl[ihb], &ierr);
 
         // * Postmultiply V by Q.
         // * Copy the first NCONV columns of VQ into Z.
@@ -392,8 +392,8 @@ ARNAUD_sseupd(struct ARNAUD_state_s *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
         // of the approximate invariant subspace associated with
         // the Ritz values in workl(ihd).
 
-        sorm2r_("R", "N", &V->n, &V->ncv, &V->nconv, &workl[iq], &ldq, &workl[iw + V->ncv], v, &ldv, &workd[V->n], &ierr);
-        slacpy_("A", &V->n, &V->nconv, v, &ldv, z, &ldz);
+        BLAS_FUNC(sorm2r)("R", "N", &V->n, &V->ncv, &V->nconv, &workl[iq], &ldq, &workl[iw + V->ncv], v, &ldv, &workd[V->n], &ierr);
+        BLAS_FUNC(slacpy)("A", &V->n, &V->nconv, v, &ldv, z, &ldz);
 
         // In order to compute the Ritz estimates for the Ritz
         // values in both systems, need the last row of the
@@ -404,7 +404,7 @@ ARNAUD_sseupd(struct ARNAUD_state_s *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
             workl[ihb + j] = 0.0f;
         }
         workl[ihb + V->ncv - 1] = 1.0f;
-        sorm2r_("L", "T", &V->ncv, &int1, &V->nconv, &workl[iq], &ldq, &workl[iw + V->ncv], &workl[ihb], &V->ncv, &temp, &ierr);
+        BLAS_FUNC(sorm2r)("L", "T", &V->ncv, &int1, &V->nconv, &workl[iq], &ldq, &workl[iw + V->ncv], &workl[ihb], &V->ncv, &temp, &ierr);
 
         //  Make a copy of the last row into
         //  workl(iw+ncv:iw+2*ncv), as it is needed again in
@@ -438,7 +438,7 @@ ARNAUD_sseupd(struct ARNAUD_state_s *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
         // *  Determine Ritz estimates of the lambda.
 
 
-        sscal_(&V->ncv, &bnorm2, &workl[ihb], &int1);
+        BLAS_FUNC(sscal)(&V->ncv, &bnorm2, &workl[ihb], &int1);
 
         for (k = 0; k < V->ncv; k++)
         {
@@ -476,7 +476,7 @@ ARNAUD_sseupd(struct ARNAUD_state_s *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_
 
     if ((rvec) && (TYP != REGULAR))
     {
-        sger_(&V->n, &V->nconv, &dbl1, resid, &int1, &workl[iw], &int1, z, &ldz);
+        BLAS_FUNC(sger)(&V->n, &V->nconv, &dbl1, resid, &int1, &workl[iw], &int1, z, &ldz);
     }
 
     return;
@@ -720,8 +720,8 @@ LINE20:
     // Make a copy of eigenvalues and corresponding error
     // bounds obtained from _seigt.
 
-    scopy_(&V->aup2_kplusp, ritz, &int1, &workl[V->aup2_kplusp], &int1);
-    scopy_(&V->aup2_kplusp, bounds, &int1, &workl[2*V->aup2_kplusp], &int1);
+    BLAS_FUNC(scopy)(&V->aup2_kplusp, ritz, &int1, &workl[V->aup2_kplusp], &int1);
+    BLAS_FUNC(scopy)(&V->aup2_kplusp, bounds, &int1, &workl[2*V->aup2_kplusp], &int1);
 
     // Select the wanted Ritz values and their bounds
     // to be used in the convergence test.
@@ -738,7 +738,7 @@ LINE20:
 
     // Convergence test
 
-    scopy_(&V->aup2_nev, &bounds[V->np], &int1, &workl[V->np], &int1);
+    BLAS_FUNC(scopy)(&V->aup2_nev, &bounds[V->np], &int1, &workl[V->np], &int1);
     ssconv(V->aup2_nev, &ritz[V->np], &workl[V->np], V->tol, &V->nconv);
 
     // Count the number of unwanted Ritz values that have zero
@@ -788,8 +788,8 @@ LINE20:
                 tmp_int = (nevd2 < V->np ? nevd2 : V->np);
                 CBLAS_INT tmp_int2 = V->aup2_kplusp - tmp_int;
 
-                sswap_(&tmp_int, &ritz[nevm2], &int1, &ritz[tmp_int2], &int1);
-                sswap_(&tmp_int, &bounds[nevm2], &int1, &bounds[tmp_int2], &int1);
+                BLAS_FUNC(sswap)(&tmp_int, &ritz[nevm2], &int1, &ritz[tmp_int2], &int1);
+                BLAS_FUNC(sswap)(&tmp_int, &bounds[nevm2], &int1, &bounds[tmp_int2], &int1);
             }
 
         } else {
@@ -932,7 +932,7 @@ LINE50:
     // free up WORKL.  This is for the non-exact shift case;
     // in the exact shift case, dsgets already handles this.
 
-    if (V->shift == 0) { scopy_(&V->np, workl, &int1, ritz, &int1); }
+    if (V->shift == 0) { BLAS_FUNC(scopy)(&V->np, workl, &int1, ritz, &int1); }
 
      /*--------------------------------------------------------*
      | Apply the NP0 implicit shifts by QR bulge chasing.      |
@@ -952,7 +952,7 @@ LINE50:
 
     if (V->bmat)
     {
-        scopy_(&V->n, resid, &int1, &workd[V->n], &int1);
+        BLAS_FUNC(scopy)(&V->n, resid, &int1, &workd[V->n], &int1);
         ipntr[0] = V->n;
         ipntr[1] = 0;
         V->ido = ido_BX;
@@ -961,7 +961,7 @@ LINE50:
 
         return;
     } else {
-        scopy_(&V->n, resid, &int1, workd, &int1);
+        BLAS_FUNC(scopy)(&V->n, resid, &int1, workd, &int1);
     }
 
 LINE100:
@@ -973,9 +973,9 @@ LINE100:
 
     if (V->bmat)
     {
-        V->aup2_rnorm = sqrtf(fabsf(sdot_(&V->n, resid, &int1, workd, &int1)));
+        V->aup2_rnorm = sqrtf(fabsf(BLAS_FUNC(sdot)(&V->n, resid, &int1, workd, &int1)));
     } else {
-        V->aup2_rnorm = snrm2_(&V->n, resid, &int1);
+        V->aup2_rnorm = BLAS_FUNC(snrm2)(&V->n, resid, &int1);
     }
 
     V->aup2_cnorm = 0;
@@ -1012,9 +1012,9 @@ sseigt(float rnorm, CBLAS_INT n, float* h, CBLAS_INT ldh, float* eig, float* bou
        float* workl, CBLAS_INT* ierr)
 {
     CBLAS_INT int1 = 1, tmp_int;
-    scopy_(&n, &h[ldh], &int1, eig, &int1);
+    BLAS_FUNC(scopy)(&n, &h[ldh], &int1, eig, &int1);
     tmp_int = n - 1;
-    scopy_(&tmp_int, &h[1], &int1, workl, &int1);
+    BLAS_FUNC(scopy)(&tmp_int, &h[1], &int1, workl, &int1);
     sstqrb(n, eig, workl, bounds, &workl[n], ierr);
     if (*ierr != 0) { return; }
     for (CBLAS_INT k = 0; k < n; k++) { bounds[k] = rnorm * fabsf(bounds[k]); }
@@ -1121,22 +1121,22 @@ LINE40:
     //  when reciprocating a small RNORM, test against lower
     //  machine bound.
 
-    scopy_(&n, resid, &int1, &v[ldv*(V->aitr_j)], &int1);
+    BLAS_FUNC(scopy)(&n, resid, &int1, &v[ldv*(V->aitr_j)], &int1);
     if (*rnorm >= unfl)
     {
         temp1 = 1.0f / *rnorm;
-        sscal_(&n, &temp1, &v[ldv*(V->aitr_j)], &int1);
-        sscal_(&n, &temp1, &workd[ipj], &int1);
+        BLAS_FUNC(sscal)(&n, &temp1, &v[ldv*(V->aitr_j)], &int1);
+        BLAS_FUNC(sscal)(&n, &temp1, &workd[ipj], &int1);
     } else {
-        slascl_("G", &i, &i, rnorm, &dbl1, &n, &int1, &v[ldv*(V->aitr_j)], &n, &infol);
-        slascl_("G", &i, &i, rnorm, &dbl1, &n, &int1, &workd[ipj], &n, &infol);
+        BLAS_FUNC(slascl)("G", &i, &i, rnorm, &dbl1, &n, &int1, &v[ldv*(V->aitr_j)], &n, &infol);
+        BLAS_FUNC(slascl)("G", &i, &i, rnorm, &dbl1, &n, &int1, &workd[ipj], &n, &infol);
     }
 
     //  STEP 3:  r_{j} = OP*v_{j}; Note that p_{j} = B*v_{j}
     //  Note that this is not quite yet r_{j}. See STEP 4
 
     V->aitr_step3 = 1;
-    scopy_(&n, &v[ldv*(V->aitr_j)], &int1, &workd[ivj], &int1);
+    BLAS_FUNC(scopy)(&n, &v[ldv*(V->aitr_j)], &int1, &workd[ivj], &int1);
     ipntr[0] = ivj;
     ipntr[1] = irj;
     ipntr[2] = ipj;
@@ -1155,7 +1155,7 @@ LINE50:
 
     // Put another copy of OP*v_{j} into RESID.
 
-    scopy_(&n, &workd[irj], &int1, resid, &int1);
+    BLAS_FUNC(scopy)(&n, &workd[irj], &int1, resid, &int1);
 
     // STEP 4:  Finish extending the symmetric
     //          Arnoldi to length j. If MODE = 2
@@ -1176,7 +1176,7 @@ LINE50:
 
         return;
     } else {
-        scopy_(&n, resid, &int1, &workd[ipj], &int1);
+        BLAS_FUNC(scopy)(&n, resid, &int1, &workd[ipj], &int1);
     }
 
 LINE60:
@@ -1197,13 +1197,13 @@ LINE65:
         // Note that the B-norm of OP*v_{j}
         // is the inv(B)-norm of A*v_{j}.
 
-        V->aitr_wnorm = sdot_(&n, resid, &int1, &workd[ivj], &int1);
+        V->aitr_wnorm = BLAS_FUNC(sdot)(&n, resid, &int1, &workd[ivj], &int1);
         V->aitr_wnorm = sqrtf(fabsf(V->aitr_wnorm));
     } else if (V->bmat) {
-        V->aitr_wnorm = sdot_(&n, resid, &int1, &workd[ipj], &int1);
+        V->aitr_wnorm = BLAS_FUNC(sdot)(&n, resid, &int1, &workd[ipj], &int1);
         V->aitr_wnorm = sqrtf(fabsf(V->aitr_wnorm));
     } else {
-        V->aitr_wnorm = snrm2_(&n, resid, &int1);
+        V->aitr_wnorm = BLAS_FUNC(snrm2)(&n, resid, &int1);
     }
 
     //  Compute the j-th residual corresponding
@@ -1217,15 +1217,15 @@ LINE65:
     tmp_int = V->aitr_j + 1;
     if (V->mode != 2)
     {
-        sgemv_("T", &n, &tmp_int, &dbl1, v, &ldv, &workd[ipj], &int1, &dbl0, &workd[irj], &int1);
+        BLAS_FUNC(sgemv)("T", &n, &tmp_int, &dbl1, v, &ldv, &workd[ipj], &int1, &dbl0, &workd[irj], &int1);
     } else {
-        sgemv_("T", &n, &tmp_int, &dbl1, v, &ldv, &workd[ivj], &int1, &dbl0, &workd[irj], &int1);
+        BLAS_FUNC(sgemv)("T", &n, &tmp_int, &dbl1, v, &ldv, &workd[ivj], &int1, &dbl0, &workd[irj], &int1);
     }
 
     //  Orthogonalize r_{j} against V_{j}.
     //  RESID contains OP*v_{j}. See STEP 3.
 
-    sgemv_("N", &n, &tmp_int, &dblm1, v, &ldv, &workd[irj], &int1, &dbl1, resid, &int1);
+    BLAS_FUNC(sgemv)("N", &n, &tmp_int, &dblm1, v, &ldv, &workd[irj], &int1, &dbl1, resid, &int1);
 
     // Extend H to have j rows and columns.
 
@@ -1243,7 +1243,7 @@ LINE65:
 
     if (V->bmat)
     {
-        scopy_(&n, resid, &int1, &workd[irj], &int1);
+        BLAS_FUNC(scopy)(&n, resid, &int1, &workd[irj], &int1);
         ipntr[0] = irj;
         ipntr[1] = ipj;
         V->ido = ido_BX;
@@ -1252,7 +1252,7 @@ LINE65:
 
         return;
     } else {
-        scopy_(&n, resid, &int1, &workd[ipj], &int1);
+        BLAS_FUNC(scopy)(&n, resid, &int1, &workd[ipj], &int1);
     }
 
 LINE70:
@@ -1266,10 +1266,10 @@ LINE70:
 
     if (V->bmat)
     {
-        *rnorm = sdot_(&n, resid, &int1, &workd[ipj], &int1);
+        *rnorm = BLAS_FUNC(sdot)(&n, resid, &int1, &workd[ipj], &int1);
         *rnorm = sqrtf(fabsf(*rnorm));
     } else {
-        *rnorm = snrm2_(&n, resid, &int1);
+        *rnorm = BLAS_FUNC(snrm2)(&n, resid, &int1);
     }
 
     // STEP 5: Re-orthogonalization / Iterative refinement phase
@@ -1297,14 +1297,14 @@ LINE80:
     //  Compute V_{j}^T * B * r_{j}.
     //  WORKD(IRJ:IRJ+J-1) = v(:,1:J)'*WORKD(IPJ:IPJ+N-1).
     tmp_int = V->aitr_j + 1;
-    sgemv_("T", &n, &tmp_int, &dbl1, v, &ldv, &workd[ipj], &int1, &dbl0, &workd[irj], &int1);
+    BLAS_FUNC(sgemv)("T", &n, &tmp_int, &dbl1, v, &ldv, &workd[ipj], &int1, &dbl0, &workd[irj], &int1);
 
     //  Compute the correction to the residual:
     //  r_{j} = r_{j} - V_{j} * WORKD(IRJ:IRJ+J-1).
     //  The correction to H is v(:,1:J)*H(1:J,1:J)
     //  + v(:,1:J)*WORKD(IRJ:IRJ+J-1)*e'_j.
 
-    sgemv_("N", &n, &tmp_int, &dblm1, v, &ldv, &workd[irj], &int1, &dbl1, resid, &int1);
+    BLAS_FUNC(sgemv)("N", &n, &tmp_int, &dblm1, v, &ldv, &workd[irj], &int1, &dbl1, resid, &int1);
 
     if ((V->aitr_j == 0) || (V->aitr_restart))
     {
@@ -1316,7 +1316,7 @@ LINE80:
 
     if (V->bmat)
     {
-        scopy_(&n, resid, &int1, &workd[irj], &int1);
+        BLAS_FUNC(scopy)(&n, resid, &int1, &workd[irj], &int1);
         ipntr[0] = irj;
         ipntr[1] = ipj;
         V->ido = ido_BX;
@@ -1326,7 +1326,7 @@ LINE80:
 
         return;
     } else {
-        scopy_(&n, resid, &int1, &workd[ipj], &int1);
+        BLAS_FUNC(scopy)(&n, resid, &int1, &workd[ipj], &int1);
     }
 
 LINE90:
@@ -1337,10 +1337,10 @@ LINE90:
 
     if (V->bmat)
     {
-        V->aitr_rnorm1 = sdot_(&n, resid, &int1, &workd[ipj], &int1);
+        V->aitr_rnorm1 = BLAS_FUNC(sdot)(&n, resid, &int1, &workd[ipj], &int1);
         V->aitr_rnorm1 = sqrtf(fabsf(V->aitr_rnorm1));
     } else {
-        V->aitr_rnorm1 = snrm2_(&n, resid, &int1);
+        V->aitr_rnorm1 = BLAS_FUNC(snrm2)(&n, resid, &int1);
     }
 
     //  Determine if we need to perform another
@@ -1388,9 +1388,9 @@ LINE100:
         h[V->aitr_j] = -h[V->aitr_j];
         if (V->aitr_j < k + np - 1)
         {
-            sscal_(&n, &dblm1, &v[V->aitr_j + 1], &int1);
+            BLAS_FUNC(sscal)(&n, &dblm1, &v[V->aitr_j + 1], &int1);
         } else {
-            sscal_(&n, &dblm1, resid, &int1);
+            BLAS_FUNC(sscal)(&n, &dblm1, resid, &int1);
         }
     }
 
@@ -1424,7 +1424,7 @@ ssapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, float* shift, float* v, CBLAS_
     // Initialize Q to the identity to accumulate
     // the rotations and reflections
 
-    slaset_("A", &kplusp, &kplusp, &dbl0, &dbl1, q, &ldq);
+    BLAS_FUNC(slaset)("A", &kplusp, &kplusp, &dbl0, &dbl1, q, &ldq);
 
     // Quick return if there are no shifts to apply
 
@@ -1462,7 +1462,7 @@ ssapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, float* shift, float* v, CBLAS_
                 if (h[iend] < 0.0f)
                 {
                     h[iend] = -h[iend];
-                    sscal_(&kplusp, &dblm1, &q[ldq*(iend)], &int1);
+                    BLAS_FUNC(sscal)(&kplusp, &dblm1, &q[ldq*(iend)], &int1);
                 }
                 continue;
             }
@@ -1490,7 +1490,7 @@ ssapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, float* shift, float* v, CBLAS_
                 // [-s, c] [ m n ] [s,  c]    [-s*k + c*m, -s*m + c*n] [s,  c]
                 //                                  a3          a4
 
-                slartgp_(&f, &g, &c, &s, &r);
+                BLAS_FUNC(slartgp)(&f, &g, &c, &s, &r);
                 if (i > istart)
                 {
                     h[i] = r;
@@ -1505,7 +1505,7 @@ ssapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, float* shift, float* v, CBLAS_
 
                 // Accumulate the rotation also in Q
                 tmp_int = (i + jj + 2 > kplusp ? kplusp : i + jj + 2);
-                srot_(&tmp_int, &q[ldq*i], &int1, &q[ldq*(i+1)], &int1, &c, &s);
+                BLAS_FUNC(srot)(&tmp_int, &q[ldq*i], &int1, &q[ldq*(i+1)], &int1, &c, &s);
 
                 if (i < iend - 1)
                 {
@@ -1519,7 +1519,7 @@ ssapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, float* shift, float* v, CBLAS_
             if (h[iend] < 0.0f)
             {
                 h[iend] = -h[iend];
-                sscal_(&kplusp, &dblm1, &q[ldq*(iend)], &int1);
+                BLAS_FUNC(sscal)(&kplusp, &dblm1, &q[ldq*(iend)], &int1);
             }
         }
     }
@@ -1545,7 +1545,7 @@ ssapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, float* shift, float* v, CBLAS_
 
     if (h[*kev] > 0.0f)
     {
-        sgemv_("N", &n, &kplusp, &dbl1, v, &ldv, &q[ldq*(*kev)], &int1, &dbl0, &workd[n], &int1);
+        BLAS_FUNC(sgemv)("N", &n, &kplusp, &dbl1, v, &ldv, &q[ldq*(*kev)], &int1, &dbl0, &workd[n], &int1);
     }
 
     // Compute column 1 to kev of (V*Q) in backward order
@@ -1556,8 +1556,8 @@ ssapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, float* shift, float* v, CBLAS_
     for (i = 0; i < *kev; i++)
     {
         tmp_int = kplusp - i;
-        sgemv_("N", &n, &tmp_int, &dbl1, v, &ldv, &q[ldq*(*kev-i-1)], &int1, &dbl0, workd, &int1);
-        scopy_(&n, workd, &int1, &v[ldv*(kplusp-i-1)], &int1);
+        BLAS_FUNC(sgemv)("N", &n, &tmp_int, &dbl1, v, &ldv, &q[ldq*(*kev-i-1)], &int1, &dbl0, workd, &int1);
+        BLAS_FUNC(scopy)(&n, workd, &int1, &v[ldv*(kplusp-i-1)], &int1);
     }
     // 130
 
@@ -1565,13 +1565,13 @@ ssapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, float* shift, float* v, CBLAS_
 
     for (i = 0; i < *kev; i++)
     {
-        scopy_(&n, &v[ldv*(np+i)], &int1, &v[ldv*i], &int1);
+        BLAS_FUNC(scopy)(&n, &v[ldv*(np+i)], &int1, &v[ldv*i], &int1);
     }
     // 140
 
     if (h[*kev] > 0.0f)
     {
-        scopy_(&n, &workd[n], &int1, &v[ldv*(*kev)], &int1);
+        BLAS_FUNC(scopy)(&n, &workd[n], &int1, &v[ldv*(*kev)], &int1);
     }
 
     // Update the residual vector:
@@ -1580,10 +1580,10 @@ ssapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, float* shift, float* v, CBLAS_
     //    sigmak = (e_{kev+p}'*Q)*e_{kev}
     //    betak = e_{kev+1}'*H*e_{kev}
 
-    sscal_(&n, &q[kplusp-1 + (*kev-1)*ldq], resid, &int1);
+    BLAS_FUNC(sscal)(&n, &q[kplusp-1 + (*kev-1)*ldq], resid, &int1);
     if (h[*kev] > 0.0f)
     {
-        saxpy_(&n, &h[*kev], &v[ldv*(*kev)], &int1, resid, &int1);
+        BLAS_FUNC(saxpy)(&n, &h[*kev], &v[ldv*(*kev)], &int1, resid, &int1);
     }
 
     return;
@@ -1610,8 +1610,8 @@ ssgets(struct ARNAUD_state_s *V, CBLAS_INT* kev, CBLAS_INT* np, float* ritz,
         {
             tmp1 = (kevd2 > *np ? *np : kevd2);
             tmp2 = (kevd2 > *np ? kevd2 : *np);
-            sswap_(&tmp1, ritz, &int1, &ritz[tmp2], &int1);
-            sswap_(&tmp1, bounds, &int1, &bounds[tmp2], &int1);
+            BLAS_FUNC(sswap)(&tmp1, ritz, &int1, &ritz[tmp2], &int1);
+            BLAS_FUNC(sswap)(&tmp1, bounds, &int1, &bounds[tmp2], &int1);
         }
     } else {
 
@@ -1634,7 +1634,7 @@ ssgets(struct ARNAUD_state_s *V, CBLAS_INT* kev, CBLAS_INT* np, float* ritz,
         // are applied in subroutine dsapps.
 
         ssortr(which_SM, 1, *np, bounds, ritz);
-        scopy_(np, ritz, &int1, shifts, &int1);
+        BLAS_FUNC(scopy)(np, ritz, &int1, shifts, &int1);
     }
 }
 
@@ -1677,12 +1677,12 @@ sgetv0(struct ARNAUD_state_s *V, CBLAS_INT initv, CBLAS_INT n, CBLAS_INT j,
         {
             ipntr[0] = 0;
             ipntr[1] = n;
-            scopy_(&n, resid, &int1, workd, &int1);
+            BLAS_FUNC(scopy)(&n, resid, &int1, workd, &int1);
             V->ido = ido_RANDOM_OPX;
             return;
         } else if ((V->getv0_itry > 1) && (V->bmat == 1))
         {
-            scopy_(&n, resid, &int1, &workd[n], &int1);
+            BLAS_FUNC(scopy)(&n, resid, &int1, &workd[n], &int1);
         }
     }
 
@@ -1700,7 +1700,7 @@ sgetv0(struct ARNAUD_state_s *V, CBLAS_INT initv, CBLAS_INT n, CBLAS_INT j,
     V->getv0_first = 1;
     if (V->getv0_itry == 1)
     {
-        scopy_(&n, &workd[n], &int1, resid, &int1);
+        BLAS_FUNC(scopy)(&n, &workd[n], &int1, resid, &int1);
     }
     if (V->bmat)
     {
@@ -1709,7 +1709,7 @@ sgetv0(struct ARNAUD_state_s *V, CBLAS_INT initv, CBLAS_INT n, CBLAS_INT j,
         V->ido = ido_BX;
         return;
     } else {
-        scopy_(&n, resid, &int1, workd, &int1);
+        BLAS_FUNC(scopy)(&n, resid, &int1, workd, &int1);
     }
 
 LINE20:
@@ -1717,10 +1717,10 @@ LINE20:
     V->getv0_first = 0;
     if (V->bmat)
     {
-        V->getv0_rnorm0 = sdot_(&n, resid, &int1, workd, &int1);
+        V->getv0_rnorm0 = BLAS_FUNC(sdot)(&n, resid, &int1, workd, &int1);
         V->getv0_rnorm0 = sqrtf(fabsf(V->getv0_rnorm0));
     } else {
-        V->getv0_rnorm0 = snrm2_(&n, resid, &int1);
+        V->getv0_rnorm0 = BLAS_FUNC(snrm2)(&n, resid, &int1);
     }
     *rnorm = V->getv0_rnorm0;
 
@@ -1746,29 +1746,29 @@ LINE20:
 
 LINE30:
 
-    sgemv_("T", &n, &j, &dbl1, v, &ldv, workd, &int1, &dbl0, &workd[n], &int1);
-    sgemv_("N", &n, &j, &dblm1, v, &ldv, &workd[n], &int1, &dbl1, resid, &int1);
+    BLAS_FUNC(sgemv)("T", &n, &j, &dbl1, v, &ldv, workd, &int1, &dbl0, &workd[n], &int1);
+    BLAS_FUNC(sgemv)("N", &n, &j, &dblm1, v, &ldv, &workd[n], &int1, &dbl1, resid, &int1);
 
     //  Compute the B-norm of the orthogonalized starting vector
 
     if (V->bmat)
     {
-        scopy_(&n, resid, &int1, &workd[n], &int1);
+        BLAS_FUNC(scopy)(&n, resid, &int1, &workd[n], &int1);
         ipntr[0] = n;
         ipntr[1] = 0;
         V->ido = ido_BX;
         return;
     } else {
-        scopy_(&n, resid, &int1, workd, &int1);
+        BLAS_FUNC(scopy)(&n, resid, &int1, workd, &int1);
     }
 
 LINE40:
     if (V->bmat)
     {
-        *rnorm = sdot_(&n, resid, &int1, workd, &int1);
+        *rnorm = BLAS_FUNC(sdot)(&n, resid, &int1, workd, &int1);
         *rnorm = sqrtf(fabsf(*rnorm));
     } else {
-        *rnorm = snrm2_(&n, resid, &int1);
+        *rnorm = BLAS_FUNC(snrm2)(&n, resid, &int1);
     }
 
     //  Check for further orthogonalization.
@@ -1896,7 +1896,7 @@ ssesrt(const enum ARNAUD_which w, const CBLAS_INT apply, const CBLAS_INT n, floa
 
                 if (apply)
                 {
-                    sswap_(&na, &a[lda*pos], &int1, &a[lda*(pos+gap)], &int1);
+                    BLAS_FUNC(sswap)(&na, &a[lda*pos], &int1, &a[lda*(pos+gap)], &int1);
                 }
                 pos -= gap;
             }
@@ -1976,7 +1976,7 @@ sstqrb(CBLAS_INT n, float* d, float* e, float* z, float* work, CBLAS_INT* info)
 
         // Scale submatrix in rows and columns L to LEND
         tmp_int = lend - l + 1;
-        anorm = slanst_("I", &tmp_int, &d[l-1], &e[l-1]);
+        anorm = BLAS_FUNC(slanst)("I", &tmp_int, &d[l-1], &e[l-1]);
         iscale = 0;
 
         if (anorm == 0.0f) { continue; }
@@ -1984,14 +1984,14 @@ sstqrb(CBLAS_INT n, float* d, float* e, float* z, float* work, CBLAS_INT* info)
         if (anorm > ssfmax)
         {
             iscale = 1;
-            slascl_("G", &int0, &int0, &anorm, &ssfmax, &tmp_int, &int1, &d[l-1], &n, info);
+            BLAS_FUNC(slascl)("G", &int0, &int0, &anorm, &ssfmax, &tmp_int, &int1, &d[l-1], &n, info);
             tmp_int -= 1;
-            slascl_("G", &int0, &int0, &anorm, &ssfmax, &tmp_int, &int1, &e[l-1], &n, info);
+            BLAS_FUNC(slascl)("G", &int0, &int0, &anorm, &ssfmax, &tmp_int, &int1, &e[l-1], &n, info);
         } else if (anorm < ssfmin) {
             iscale = 2;
-            slascl_("G", &int0, &int0, &anorm, &ssfmin, &tmp_int, &int1, &d[l-1], &n, info);
+            BLAS_FUNC(slascl)("G", &int0, &int0, &anorm, &ssfmin, &tmp_int, &int1, &d[l-1], &n, info);
             tmp_int -= 1;
-            slascl_("G", &int0, &int0, &anorm, &ssfmin, &tmp_int, &int1, &e[l-1], &n, info);
+            BLAS_FUNC(slascl)("G", &int0, &int0, &anorm, &ssfmin, &tmp_int, &int1, &e[l-1], &n, info);
         }
         // Choose between QL and QR iteration
 
@@ -2035,7 +2035,7 @@ sstqrb(CBLAS_INT n, float* d, float* e, float* z, float* work, CBLAS_INT* info)
                 // If remaining matrix is 2x2, use dlaev2 to compute its eigensystem
                 if (m == l + 1)
                 {
-                    slaev2_(&d[l - 1], &e[l - 1], &d[l], &rt1, &rt2, &c, &s);
+                    BLAS_FUNC(slaev2)(&d[l - 1], &e[l - 1], &d[l], &rt1, &rt2, &c, &s);
                     work[l - 1] = c;
                     work[n - 1 + l - 1] = s;
                     tst    = z[l];
@@ -2066,7 +2066,7 @@ sstqrb(CBLAS_INT n, float* d, float* e, float* z, float* work, CBLAS_INT* info)
                 {
                     f = s * e[i-1];
                     b = c * e[i-1];
-                    slartg_(&g, &f, &c, &s, &r);
+                    BLAS_FUNC(slartg)(&g, &f, &c, &s, &r);
                     if (i != m - 1) { e[i] = r; }
                     g = d[i] - p;
                     r = (d[i-1] - g)*s + 2.0f*c*b;
@@ -2078,7 +2078,7 @@ sstqrb(CBLAS_INT n, float* d, float* e, float* z, float* work, CBLAS_INT* info)
                 }
                 // 70
                 tmp_int = m - l + 1;
-                slasr_("R", "V", "B", &int1, &tmp_int, &work[l-1], &work[n-1+l-1], &z[l-1], &int1);
+                BLAS_FUNC(slasr)("R", "V", "B", &int1, &tmp_int, &work[l-1], &work[n-1+l-1], &z[l-1], &int1);
 
                 d[l-1] = d[l-1] - p;
                 e[l-1] = g;
@@ -2117,7 +2117,7 @@ sstqrb(CBLAS_INT n, float* d, float* e, float* z, float* work, CBLAS_INT* info)
                 // If remaining matrix is 2x2, use dlaev2 to compute its eigensystem
                 if (m == l - 1)
                 {
-                    slaev2_(&d[l-2], &e[l-2], &d[l-1], &rt1, &rt2, &c, &s);
+                    BLAS_FUNC(slaev2)(&d[l-2], &e[l-2], &d[l-1], &rt1, &rt2, &c, &s);
                     tst    = z[l-1];
                     z[l-1] = c*tst - s*z[l-2];
                     z[l-2] = s*tst + c*z[l-2];
@@ -2147,7 +2147,7 @@ sstqrb(CBLAS_INT n, float* d, float* e, float* z, float* work, CBLAS_INT* info)
                 {
                     f = s * e[i-1];
                     b = c * e[i-1];
-                    slartg_(&g, &f, &c, &s, &r);
+                    BLAS_FUNC(slartg)(&g, &f, &c, &s, &r);
                     if (i != m) { e[i-2] = r; }
                     g = d[i-1] - p;
                     r = (d[i] - g)*s + 2.0f*c*b;
@@ -2162,7 +2162,7 @@ sstqrb(CBLAS_INT n, float* d, float* e, float* z, float* work, CBLAS_INT* info)
                 // 120
                 // Apply saved rotations.
                 tmp_int = l - m + 1;
-                slasr_("R", "V", "F", &int1, &tmp_int, &work[m-1], &work[n-1+m-1], &z[m-1], &int1);
+                BLAS_FUNC(slasr)("R", "V", "F", &int1, &tmp_int, &work[m-1], &work[n-1+m-1], &z[m-1], &int1);
 
                 d[l-1] = d[l-1] - p;
                 e[l - 2] = g;
@@ -2176,15 +2176,15 @@ sstqrb(CBLAS_INT n, float* d, float* e, float* z, float* work, CBLAS_INT* info)
         if (iscale == 1)
         {
 
-            slascl_("G", &int0, &int0, &ssfmax, &anorm, &tmp_int, &int1, &d[lsv-1], &n, info);
+            BLAS_FUNC(slascl)("G", &int0, &int0, &ssfmax, &anorm, &tmp_int, &int1, &d[lsv-1], &n, info);
             tmp_int -= 1;
-            slascl_("G", &int0, &int0, &ssfmax, &anorm, &tmp_int, &int1, &e[lsv-1], &n, info);
+            BLAS_FUNC(slascl)("G", &int0, &int0, &ssfmax, &anorm, &tmp_int, &int1, &e[lsv-1], &n, info);
 
         } else if (iscale == 2) {
 
-            slascl_("G", &int0, &int0, &ssfmin, &anorm, &tmp_int, &int1, &d[lsv-1], &n, info);
+            BLAS_FUNC(slascl)("G", &int0, &int0, &ssfmin, &anorm, &tmp_int, &int1, &d[lsv-1], &n, info);
             tmp_int -= 1;
-            slascl_("G", &int0, &int0, &ssfmin, &anorm, &tmp_int, &int1, &e[lsv-1], &n, info);
+            BLAS_FUNC(slascl)("G", &int0, &int0, &ssfmin, &anorm, &tmp_int, &int1, &e[lsv-1], &n, info);
 
         }
 
