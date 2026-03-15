@@ -7,7 +7,7 @@
 // Random 64bit integer generator for random floating point number purposes; based on
 // https://prng.di.unimi.it/xoshiro256plus.c
 
-static uint64_t rol64(uint64_t x, CBLAS_INT k) {
+static uint64_t rol64(uint64_t x, int k) {
     return (x << k) | (x >> (64 - k));
 }
 
