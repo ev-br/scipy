@@ -1,26 +1,26 @@
 #include "arnaud_s_single.h"
 #include <float.h>
 
-typedef int ARNAUD_compare_rfunc(const float, const float);
+typedef CBLAS_INT ARNAUD_compare_rfunc(const float, const float);
 
-static int sortr_LM(const float, const float);
-static int sortr_SM(const float, const float);
-static int sortr_LA(const float, const float);
-static int sortr_SA(const float, const float);
+static CBLAS_INT sortr_LM(const float, const float);
+static CBLAS_INT sortr_SM(const float, const float);
+static CBLAS_INT sortr_LA(const float, const float);
+static CBLAS_INT sortr_SA(const float, const float);
 
 static const float unfl = FLT_MIN;    // 1.1754943508222875e-38;
 static const float ulp = FLT_EPSILON; // 1.1920928955078125e-07;
 
-static void ssaup2(struct ARNAUD_state_s*, float*, float*, int, float*, int, float*, float*, float*, int, float*, int*, float*);
-static void ssconv(int, float*, float*, float, int*);
-static void sseigt(float, int, float*, int, float*, float*, float*, int*);
-static void ssaitr(struct ARNAUD_state_s*, int, int, float*, float*, float*, int, float*, int, int*, float*);
-static void ssapps(int, int*, int, float*, float*, int, float*, int, float*, float* , int, float*);
-static void ssgets(struct ARNAUD_state_s*, int*, int*, float*, float*, float*);
-static void sgetv0(struct ARNAUD_state_s *, int, int, int, float*, int, float*, float*, int*, float*);
-static void ssortr(const enum ARNAUD_which w, const int apply, const int n, float* x1, float* x2);
-static void ssesrt(const enum ARNAUD_which w, const int apply, const int n, float* x, int na, float* a, const int lda);
-static void sstqrb(int n, float* d, float* e, float* z, float* work, int* info);
+static void ssaup2(struct ARNAUD_state_s*, float*, float*, CBLAS_INT, float*, CBLAS_INT, float*, float*, float*, CBLAS_INT, float*, CBLAS_INT*, float*);
+static void ssconv(CBLAS_INT, float*, float*, float, CBLAS_INT*);
+static void sseigt(float, CBLAS_INT, float*, CBLAS_INT, float*, float*, float*, CBLAS_INT*);
+static void ssaitr(struct ARNAUD_state_s*, CBLAS_INT, CBLAS_INT, float*, float*, float*, CBLAS_INT, float*, CBLAS_INT, CBLAS_INT*, float*);
+static void ssapps(CBLAS_INT, CBLAS_INT*, CBLAS_INT, float*, float*, CBLAS_INT, float*, CBLAS_INT, float*, float* , CBLAS_INT, float*);
+static void ssgets(struct ARNAUD_state_s*, CBLAS_INT*, CBLAS_INT*, float*, float*, float*);
+static void sgetv0(struct ARNAUD_state_s *, CBLAS_INT, CBLAS_INT, CBLAS_INT, float*, CBLAS_INT, float*, float*, CBLAS_INT*, float*);
+static void ssortr(const enum ARNAUD_which w, const CBLAS_INT apply, const CBLAS_INT n, float* x1, float* x2);
+static void ssesrt(const enum ARNAUD_which w, const CBLAS_INT apply, const CBLAS_INT n, float* x, CBLAS_INT na, float* a, const CBLAS_INT lda);
+static void sstqrb(CBLAS_INT n, float* d, float* e, float* z, float* work, CBLAS_INT* info);
 
 enum ARNAUD_seupd_type {
     REGULAR,
@@ -31,14 +31,14 @@ enum ARNAUD_seupd_type {
 
 
 void
-ARNAUD_sseupd(struct ARNAUD_state_s *V, int rvec, int howmny, int* select,
-       float* d, float* z, int ldz, float sigma, float* resid, float* v,
-       int ldv, int* ipntr, float* workd, float* workl)
+ARNAUD_sseupd(struct ARNAUD_state_s *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_INT* select,
+       float* d, float* z, CBLAS_INT ldz, float sigma, float* resid, float* v,
+       CBLAS_INT ldv, CBLAS_INT* ipntr, float* workd, float* workl)
 {
     const float eps23 = powf(ulp, 2.0f / 3.0f);
-    int j, jj, k;
-    int ibd, ih, ihb, ihd, iq, irz, iw, ldh, ldq, ritz, bounds, next, np;
-    int ierr = 0, int1 = 1, tmp_int = 0, numcnv, reord;
+    CBLAS_INT j, jj, k;
+    CBLAS_INT ibd, ih, ihb, ihd, iq, irz, iw, ldh, ldq, ritz, bounds, next, np;
+    CBLAS_INT ierr = 0; CBLAS_INT int1 = 1; CBLAS_INT  tmp_int = 0, numcnv, reord;
     float bnorm2, rnorm, temp, temp1, dbl1 = 1.0f;
 
     if (V->nconv == 0) { return; }
@@ -197,7 +197,7 @@ ARNAUD_sseupd(struct ARNAUD_state_s *V, int rvec, int howmny, int* select,
         {
             temp1 = fmaxf(eps23, fabsf(workl[irz + V->ncv - j]));
 
-            jj = (int)workl[bounds + V->ncv - j];
+            jj = (CBLAS_INT)workl[bounds + V->ncv - j];
 
             if ((numcnv < V->nconv) && (workl[ibd + jj] <= V->tol*temp1))
             {
@@ -245,8 +245,8 @@ ARNAUD_sseupd(struct ARNAUD_state_s *V, int rvec, int howmny, int* select,
             // eigenvectors appear in the first NCONV
             // columns.
 
-            int leftptr = 0;
-            int rightptr = V->ncv - 1;
+            CBLAS_INT leftptr = 0;
+            CBLAS_INT rightptr = V->ncv - 1;
 
             if (V->ncv > 1)
             {
@@ -334,16 +334,16 @@ ARNAUD_sseupd(struct ARNAUD_state_s *V, int rvec, int howmny, int* select,
         scopy_(&V->ncv, &workl[ihd], &int1, &workl[iw], &int1);
         if (TYP == SHIFTI)
         {
-            for (int k = 0; k < V->ncv; k++)
+            for (CBLAS_INT k = 0; k < V->ncv; k++)
             {
                 workl[ihd + k] = 1.0f / workl[ihd + k] + sigma;
             }
         } else if (TYP == BUCKLE) {
-            for (int k = 0; k < V->ncv; k++) {
+            for (CBLAS_INT k = 0; k < V->ncv; k++) {
                 workl[ihd + k] = sigma * workl[ihd + k] / (workl[ihd + k] - 1.0f);
             }
         } else if (TYP == CAYLEY) {
-            for (int k = 0; k < V->ncv; k++) {
+            for (CBLAS_INT k = 0; k < V->ncv; k++) {
                 workl[ihd + k] = sigma * (workl[ihd + k] + 1.0f) / (workl[ihd + k] - 1.0f);
             }
         }
@@ -399,7 +399,7 @@ ARNAUD_sseupd(struct ARNAUD_state_s *V, int rvec, int howmny, int* select,
         // values in both systems, need the last row of the
         // eigenvector matrix. Remember, it's in factored form.
 
-        for (int j = 0; j < V->ncv - 1; j++)
+        for (CBLAS_INT j = 0; j < V->ncv - 1; j++)
         {
             workl[ihb + j] = 0.0f;
         }
@@ -410,7 +410,7 @@ ARNAUD_sseupd(struct ARNAUD_state_s *V, int rvec, int howmny, int* select,
         //  workl(iw+ncv:iw+2*ncv), as it is needed again in
         //  the Ritz vector purification step below
 
-        for (int j = 0; j < V->nconv; j++)
+        for (CBLAS_INT j = 0; j < V->nconv; j++)
         {
             workl[iw + V->ncv + j] = workl[ihb + j];
         }
@@ -484,11 +484,11 @@ ARNAUD_sseupd(struct ARNAUD_state_s *V, int rvec, int howmny, int* select,
 
 
 void
-ARNAUD_ssaupd(struct ARNAUD_state_s *V, float* resid, float* v, int ldv,
-       int* ipntr, float* workd, float* workl)
+ARNAUD_ssaupd(struct ARNAUD_state_s *V, float* resid, float* v, CBLAS_INT ldv,
+       CBLAS_INT* ipntr, float* workd, float* workl)
 {
 
-    int bounds = 0, ih = 0, iq = 0, iw = 0, j = 0, ldh = 0, ldq = 0, next = 0, ritz = 0;
+    CBLAS_INT bounds = 0, ih = 0, iq = 0, iw = 0, j = 0, ldh = 0, ldq = 0, next = 0, ritz = 0;
 
     if (V->ido == ido_FIRST)
     {
@@ -578,11 +578,11 @@ ARNAUD_ssaupd(struct ARNAUD_state_s *V, float* resid, float* v, int ldv,
 
 
 void
-ssaup2(struct ARNAUD_state_s *V, float* resid, float* v, int ldv,
-       float* h, int ldh, float* ritz, float* bounds,
-       float* q, int ldq, float* workl, int* ipntr, float* workd)
+ssaup2(struct ARNAUD_state_s *V, float* resid, float* v, CBLAS_INT ldv,
+       float* h, CBLAS_INT ldh, float* ritz, float* bounds,
+       float* q, CBLAS_INT ldq, float* workl, CBLAS_INT* ipntr, float* workd)
 {
-    int int1 = 1, j, tmp_int, nevd2, nevm2;
+    CBLAS_INT int1 = 1, j, tmp_int, nevd2, nevm2;
     const float eps23 = powf(ulp, 2.0f / 3.0f);
     float temp = 0.0f;
     // Initialize to silence the compiler warning
@@ -786,7 +786,7 @@ LINE20:
                 V->np = V->aup2_kplusp - V->aup2_nev0;
 
                 tmp_int = (nevd2 < V->np ? nevd2 : V->np);
-                int tmp_int2 = V->aup2_kplusp - tmp_int;
+                CBLAS_INT tmp_int2 = V->aup2_kplusp - tmp_int;
 
                 sswap_(&tmp_int, &ritz[nevm2], &int1, &ritz[tmp_int2], &int1);
                 sswap_(&tmp_int, &bounds[nevm2], &int1, &bounds[tmp_int2], &int1);
@@ -890,7 +890,7 @@ LINE20:
         // To prevent possible stagnation, adjust the number
         // of Ritz values and the shifts.
 
-        int nevbef = V->aup2_nev;
+        CBLAS_INT nevbef = V->aup2_nev;
         V->aup2_nev += (V->nconv > (V->np / 2) ? (V->np / 2) : V->nconv);
         if ((V->aup2_nev == 1) && (V->aup2_kplusp >= 6))
         {
@@ -990,14 +990,14 @@ LINE100:
 
 
 void
-ssconv(int n, float *ritz, float *bounds, float tol, int* nconv)
+ssconv(CBLAS_INT n, float *ritz, float *bounds, float tol, CBLAS_INT* nconv)
 {
     const float eps23 = powf(ulp, 2.0f / 3.0f);
     float temp = 0.0f;
 
     *nconv = 0;
     // Convergence test
-    for (int i = 0; i < n; i++)
+    for (CBLAS_INT i = 0; i < n; i++)
     {
         temp = fmaxf(eps23, fabsf(ritz[i]));
         if (fabsf(bounds[i]) <= tol * temp) { *nconv += 1; }
@@ -1008,28 +1008,28 @@ ssconv(int n, float *ritz, float *bounds, float tol, int* nconv)
 
 
 void
-sseigt(float rnorm, int n, float* h, int ldh, float* eig, float* bounds,
-       float* workl, int* ierr)
+sseigt(float rnorm, CBLAS_INT n, float* h, CBLAS_INT ldh, float* eig, float* bounds,
+       float* workl, CBLAS_INT* ierr)
 {
-    int int1 = 1, tmp_int;
+    CBLAS_INT int1 = 1, tmp_int;
     scopy_(&n, &h[ldh], &int1, eig, &int1);
     tmp_int = n - 1;
     scopy_(&tmp_int, &h[1], &int1, workl, &int1);
     sstqrb(n, eig, workl, bounds, &workl[n], ierr);
     if (*ierr != 0) { return; }
-    for (int k = 0; k < n; k++) { bounds[k] = rnorm * fabsf(bounds[k]); }
+    for (CBLAS_INT k = 0; k < n; k++) { bounds[k] = rnorm * fabsf(bounds[k]); }
     return;
 }
 
 
 void
-ssaitr(struct ARNAUD_state_s *V, int k, int np, float* resid, float* rnorm,
-       float* v, int ldv, float* h, int ldh, int* ipntr, float* workd)
+ssaitr(struct ARNAUD_state_s *V, CBLAS_INT k, CBLAS_INT np, float* resid, float* rnorm,
+       float* v, CBLAS_INT ldv, float* h, CBLAS_INT ldh, CBLAS_INT* ipntr, float* workd)
 {
-    int i, infol, ipj, irj, ivj, jj, n, tmp_int;
+    CBLAS_INT i, infol, ipj, irj, ivj, jj, n, tmp_int;
     const float sq2o2 = sqrtf(2.0f) / 2.0f;
 
-    int int1 = 1;
+    CBLAS_INT int1 = 1;
     float dbl1 = 1.0f, dbl0 = 0.0f, dblm1 = -1.0f, temp1;
 
     n = V->n;  // n is constant, this is just for typing convenience
@@ -1411,10 +1411,10 @@ LINE100:
 
 
 void
-ssapps(int n, int* kev, int np, float* shift, float* v, int ldv, float* h, int ldh,
-       float* resid, float* q, int ldq, float* workd)
+ssapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, float* shift, float* v, CBLAS_INT ldv, float* h, CBLAS_INT ldh,
+       float* resid, float* q, CBLAS_INT ldq, float* workd)
 {
-    int i, iend, istart, jj, kplusp, tmp_int, int1 = 1;
+    CBLAS_INT i, iend, istart, jj, kplusp, tmp_int; CBLAS_INT int1 = 1;
     float a1, a2, a3, a4, c, f, g, r, s, sigma, tst1;
     float dbl0 = 0.0f, dbl1 = 1.0f, dblm1 = -1.0f;
 
@@ -1591,10 +1591,10 @@ ssapps(int n, int* kev, int np, float* shift, float* v, int ldv, float* h, int l
 
 
 void
-ssgets(struct ARNAUD_state_s *V, int* kev, int* np, float* ritz,
+ssgets(struct ARNAUD_state_s *V, CBLAS_INT* kev, CBLAS_INT* np, float* ritz,
        float* bounds, float* shifts)
 {
-    int kevd2, tmp1, tmp2, int1 = 1;
+    CBLAS_INT kevd2, tmp1, tmp2; CBLAS_INT int1 = 1;
     if (V->which == which_BE)
     {
         // Both ends of the spectrum are requested.
@@ -1640,10 +1640,10 @@ ssgets(struct ARNAUD_state_s *V, int* kev, int* np, float* ritz,
 
 
 void
-sgetv0(struct ARNAUD_state_s *V, int initv, int n, int j,
-       float* v, int ldv, float* resid, float* rnorm, int* ipntr, float* workd)
+sgetv0(struct ARNAUD_state_s *V, CBLAS_INT initv, CBLAS_INT n, CBLAS_INT j,
+       float* v, CBLAS_INT ldv, float* resid, float* rnorm, CBLAS_INT* ipntr, float* workd)
 {
-    int jj, int1 = 1;
+    CBLAS_INT jj; CBLAS_INT int1 = 1;
     const float sq2o2 = sqrtf(2.0f) / 2.0f;
     float dbl1 = 1.0f, dbl0 = 0.0f, dblm1 = -1.0f;
 
@@ -1803,9 +1803,9 @@ LINE40:
 
 
 void
-ssortr(const enum ARNAUD_which w, const int apply, const int n, float* x1, float* x2)
+ssortr(const enum ARNAUD_which w, const CBLAS_INT apply, const CBLAS_INT n, float* x1, float* x2)
 {
-    int i, gap, pos;
+    CBLAS_INT i, gap, pos;
     float temp;
     ARNAUD_compare_rfunc *f;
 
@@ -1856,9 +1856,9 @@ ssortr(const enum ARNAUD_which w, const int apply, const int n, float* x1, float
 
 
 static void
-ssesrt(const enum ARNAUD_which w, const int apply, const int n, float* x, int na, float* a, const int lda)
+ssesrt(const enum ARNAUD_which w, const CBLAS_INT apply, const CBLAS_INT n, float* x, CBLAS_INT na, float* a, const CBLAS_INT lda)
 {
-    int i, gap, pos, int1 = 1;
+    CBLAS_INT i, gap, pos; CBLAS_INT int1 = 1;
     float temp;
     ARNAUD_compare_rfunc *f;
 
@@ -1907,16 +1907,16 @@ ssesrt(const enum ARNAUD_which w, const int apply, const int n, float* x, int na
 
 
 void
-sstqrb(int n, float* d, float* e, float* z, float* work, int* info)
+sstqrb(CBLAS_INT n, float* d, float* e, float* z, float* work, CBLAS_INT* info)
 {
-    int int1 = 1, int0 = 0;
+    CBLAS_INT int1 = 1, int0 = 0;
     float eps2 = powf(ulp, 2.0f);
     float safmin = unfl;
     float safmax = (1.0f / safmin);
     float ssfmax = sqrtf(safmax) / 3.0f;
     float ssfmin = sqrtf(safmin) / eps2;
 
-    int nmaxit, jtot, i, ii, j, k, l1, m = 0, tmp_int = 0, l, lsv, lend, lendsv, iscale;
+    CBLAS_INT nmaxit, jtot, i, ii, j, k, l1, m = 0, tmp_int = 0, l, lsv, lend, lendsv, iscale;
     float anorm = 0.0f, rt1 = 0.0f, rt2 = 0.0f, c = 0.0f, s = 0.0f, g = 0.0f, r = 0.0f, p = 0.0f;
     float b, f, tst;
 
@@ -2229,7 +2229,7 @@ sstqrb(int n, float* d, float* e, float* z, float* work, int* info)
 }
 
 
-int sortr_LM(const float x1, const float x2) { return (fabsf(x1) > fabsf(x2)); }
-int sortr_SM(const float x1, const float x2) { return (fabsf(x1) < fabsf(x2)); }
-int sortr_LA(const float x1, const float x2) { return (x1 > x2); }
-int sortr_SA(const float x1, const float x2) { return (x1 < x2); }
+CBLAS_INT sortr_LM(const float x1, const float x2) { return (fabsf(x1) > fabsf(x2)); }
+CBLAS_INT sortr_SM(const float x1, const float x2) { return (fabsf(x1) < fabsf(x2)); }
+CBLAS_INT sortr_LA(const float x1, const float x2) { return (x1 > x2); }
+CBLAS_INT sortr_SA(const float x1, const float x2) { return (x1 < x2); }

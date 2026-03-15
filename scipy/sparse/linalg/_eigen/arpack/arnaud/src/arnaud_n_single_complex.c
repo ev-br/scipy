@@ -1,27 +1,27 @@
 #include "arnaud_n_single_complex.h"
 #include <float.h>
 
-typedef int ARNAUD_compare_cfunc(const ARNAUD_CPLXF_TYPE, const ARNAUD_CPLXF_TYPE);
-typedef int ARNAUD_compare_rfunc(const float, const float);
+typedef CBLAS_INT ARNAUD_compare_cfunc(const ARNAUD_CPLXF_TYPE, const ARNAUD_CPLXF_TYPE);
+typedef CBLAS_INT ARNAUD_compare_rfunc(const float, const float);
 
 static const float unfl = FLT_MIN;    // 1.1754943508222875e-38;
 // static const float ovfl = FLT_MAX; // 1.0 / 1.1754943508222875e-38;
 static const float ulp = FLT_EPSILON; // 1.1920928955078125e-07;
 
-static ARNAUD_CPLXF_TYPE cdotc_(const int* n, const ARNAUD_CPLXF_TYPE* restrict x, const int* incx, const ARNAUD_CPLXF_TYPE* restrict y, const int* incy);
-static void cgetv0(struct ARNAUD_state_s*, int, int, int, ARNAUD_CPLXF_TYPE*, int, ARNAUD_CPLXF_TYPE*, float*, int*, ARNAUD_CPLXF_TYPE*);
-static void cnaup2(struct ARNAUD_state_s*, ARNAUD_CPLXF_TYPE* , ARNAUD_CPLXF_TYPE*, int, ARNAUD_CPLXF_TYPE*, int, ARNAUD_CPLXF_TYPE*, ARNAUD_CPLXF_TYPE*, ARNAUD_CPLXF_TYPE*, int, ARNAUD_CPLXF_TYPE*, int*, ARNAUD_CPLXF_TYPE*, float*);
-static void cnaitr(struct ARNAUD_state_s*, int, int, ARNAUD_CPLXF_TYPE*,float*, ARNAUD_CPLXF_TYPE*, int, ARNAUD_CPLXF_TYPE*, int, int*, ARNAUD_CPLXF_TYPE*);
-static void cnapps(int, int*, int, ARNAUD_CPLXF_TYPE*, ARNAUD_CPLXF_TYPE*, int, ARNAUD_CPLXF_TYPE*, int, ARNAUD_CPLXF_TYPE*, ARNAUD_CPLXF_TYPE*, int, ARNAUD_CPLXF_TYPE*, ARNAUD_CPLXF_TYPE*);
-static void cneigh(float*, int, ARNAUD_CPLXF_TYPE*, int, ARNAUD_CPLXF_TYPE*, ARNAUD_CPLXF_TYPE*, ARNAUD_CPLXF_TYPE*, int, ARNAUD_CPLXF_TYPE*, float*, int*);
-static void cngets(struct ARNAUD_state_s*, int*, int*, ARNAUD_CPLXF_TYPE*, ARNAUD_CPLXF_TYPE*);
-static void csortc(const enum ARNAUD_which w, const int, const int, ARNAUD_CPLXF_TYPE*, ARNAUD_CPLXF_TYPE*);
-static int sortc_LM(const ARNAUD_CPLXF_TYPE, const ARNAUD_CPLXF_TYPE);
-static int sortc_SM(const ARNAUD_CPLXF_TYPE, const ARNAUD_CPLXF_TYPE);
-static int sortc_LR(const ARNAUD_CPLXF_TYPE, const ARNAUD_CPLXF_TYPE);
-static int sortc_SR(const ARNAUD_CPLXF_TYPE, const ARNAUD_CPLXF_TYPE);
-static int sortc_LI(const ARNAUD_CPLXF_TYPE, const ARNAUD_CPLXF_TYPE);
-static int sortc_SI(const ARNAUD_CPLXF_TYPE, const ARNAUD_CPLXF_TYPE);
+static ARNAUD_CPLXF_TYPE cdotc_(const CBLAS_INT* n, const ARNAUD_CPLXF_TYPE* restrict x, const CBLAS_INT* incx, const ARNAUD_CPLXF_TYPE* restrict y, const CBLAS_INT* incy);
+static void cgetv0(struct ARNAUD_state_s*, CBLAS_INT, CBLAS_INT, CBLAS_INT, ARNAUD_CPLXF_TYPE*, CBLAS_INT, ARNAUD_CPLXF_TYPE*, float*, CBLAS_INT*, ARNAUD_CPLXF_TYPE*);
+static void cnaup2(struct ARNAUD_state_s*, ARNAUD_CPLXF_TYPE* , ARNAUD_CPLXF_TYPE*, CBLAS_INT, ARNAUD_CPLXF_TYPE*, CBLAS_INT, ARNAUD_CPLXF_TYPE*, ARNAUD_CPLXF_TYPE*, ARNAUD_CPLXF_TYPE*, CBLAS_INT, ARNAUD_CPLXF_TYPE*, CBLAS_INT*, ARNAUD_CPLXF_TYPE*, float*);
+static void cnaitr(struct ARNAUD_state_s*, CBLAS_INT, CBLAS_INT, ARNAUD_CPLXF_TYPE*,float*, ARNAUD_CPLXF_TYPE*, CBLAS_INT, ARNAUD_CPLXF_TYPE*, CBLAS_INT, CBLAS_INT*, ARNAUD_CPLXF_TYPE*);
+static void cnapps(CBLAS_INT, CBLAS_INT*, CBLAS_INT, ARNAUD_CPLXF_TYPE*, ARNAUD_CPLXF_TYPE*, CBLAS_INT, ARNAUD_CPLXF_TYPE*, CBLAS_INT, ARNAUD_CPLXF_TYPE*, ARNAUD_CPLXF_TYPE*, CBLAS_INT, ARNAUD_CPLXF_TYPE*, ARNAUD_CPLXF_TYPE*);
+static void cneigh(float*, CBLAS_INT, ARNAUD_CPLXF_TYPE*, CBLAS_INT, ARNAUD_CPLXF_TYPE*, ARNAUD_CPLXF_TYPE*, ARNAUD_CPLXF_TYPE*, CBLAS_INT, ARNAUD_CPLXF_TYPE*, float*, CBLAS_INT*);
+static void cngets(struct ARNAUD_state_s*, CBLAS_INT*, CBLAS_INT*, ARNAUD_CPLXF_TYPE*, ARNAUD_CPLXF_TYPE*);
+static void csortc(const enum ARNAUD_which w, const CBLAS_INT, const CBLAS_INT, ARNAUD_CPLXF_TYPE*, ARNAUD_CPLXF_TYPE*);
+static CBLAS_INT sortc_LM(const ARNAUD_CPLXF_TYPE, const ARNAUD_CPLXF_TYPE);
+static CBLAS_INT sortc_SM(const ARNAUD_CPLXF_TYPE, const ARNAUD_CPLXF_TYPE);
+static CBLAS_INT sortc_LR(const ARNAUD_CPLXF_TYPE, const ARNAUD_CPLXF_TYPE);
+static CBLAS_INT sortc_SR(const ARNAUD_CPLXF_TYPE, const ARNAUD_CPLXF_TYPE);
+static CBLAS_INT sortc_LI(const ARNAUD_CPLXF_TYPE, const ARNAUD_CPLXF_TYPE);
+static CBLAS_INT sortc_SI(const ARNAUD_CPLXF_TYPE, const ARNAUD_CPLXF_TYPE);
 
 enum ARNAUD_neupd_type {
     REGULAR,
@@ -32,15 +32,15 @@ enum ARNAUD_neupd_type {
 
 
 void
-ARNAUD_cneupd(struct ARNAUD_state_s *V, int rvec, int howmny, int* select,
-       ARNAUD_CPLXF_TYPE* d, ARNAUD_CPLXF_TYPE* z, int ldz, ARNAUD_CPLXF_TYPE sigma,
-       ARNAUD_CPLXF_TYPE* workev, ARNAUD_CPLXF_TYPE* resid, ARNAUD_CPLXF_TYPE* v, int ldv,
-       int* ipntr, ARNAUD_CPLXF_TYPE* workd, ARNAUD_CPLXF_TYPE* workl, float* rwork)
+ARNAUD_cneupd(struct ARNAUD_state_s *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_INT* select,
+       ARNAUD_CPLXF_TYPE* d, ARNAUD_CPLXF_TYPE* z, CBLAS_INT ldz, ARNAUD_CPLXF_TYPE sigma,
+       ARNAUD_CPLXF_TYPE* workev, ARNAUD_CPLXF_TYPE* resid, ARNAUD_CPLXF_TYPE* v, CBLAS_INT ldv,
+       CBLAS_INT* ipntr, ARNAUD_CPLXF_TYPE* workd, ARNAUD_CPLXF_TYPE* workl, float* rwork)
 {
     const float eps23 = powf(ulp, 2.0f / 3.0f);
-    int ibd, ih, iheig, ihbds, iuptri, invsub, irz, j, jj;
-    int bounds, k, ldh, ldq, np, numcnv, outncv, reord, ritz;
-    int ierr = 0, int1 = 1, tmp_int = 0, nconv2 = 0;
+    CBLAS_INT ibd, ih, iheig, ihbds, iuptri, invsub, irz, j, jj;
+    CBLAS_INT bounds, k, ldh, ldq, np, numcnv, outncv, reord, ritz;
+    CBLAS_INT ierr = 0; CBLAS_INT int1 = 1; CBLAS_INT  tmp_int = 0, nconv2 = 0;
     float conds, sep, temp1, rtemp;
     ARNAUD_CPLXF_TYPE rnorm, temp;
     ARNAUD_CPLXF_TYPE cdbl0 = ARNAUD_cplxf(0.0f, 0.0f);
@@ -165,7 +165,7 @@ ARNAUD_cneupd(struct ARNAUD_state_s *V, int rvec, int howmny, int* select,
         for (j = 1; j <= V->ncv; j++)
         {
             temp1 = fmaxf(eps23, cabsf(workl[irz + V->ncv - j]));
-            jj = (int)crealf(workl[bounds + V->ncv - j]);
+            jj = (CBLAS_INT)crealf(workl[bounds + V->ncv - j]);
 
             if ((numcnv < V->nconv) && (cabsf(workl[ibd + jj]) <= V->tol*temp1))
             {
@@ -254,7 +254,7 @@ ARNAUD_cneupd(struct ARNAUD_state_s *V, int rvec, int howmny, int* select,
         cunm2r_("R", "N", &V->n, &V->ncv, &V->nconv, &workl[invsub], &ldq, workev, v, &ldv, &workd[V->n], &ierr);
         clacpy_("A", &V->n, &V->nconv, v, &ldv, z, &ldz);
 
-        for (int j = 0; j < V->nconv; j++)
+        for (CBLAS_INT j = 0; j < V->nconv; j++)
         {
 
             //  Perform both a column and row scaling if the
@@ -278,7 +278,7 @@ ARNAUD_cneupd(struct ARNAUD_state_s *V, int rvec, int howmny, int* select,
             //  Compute the NCONV wanted eigenvectors of T
             //  located in workl(iuptri,ldq).
 
-            for (int j = 0; j < V->ncv; j++)
+            for (CBLAS_INT j = 0; j < V->ncv; j++)
             {
                 if (j < V->nconv)
                 {
@@ -439,10 +439,10 @@ ARNAUD_cneupd(struct ARNAUD_state_s *V, int rvec, int howmny, int* select,
 
 void
 ARNAUD_cnaupd(struct ARNAUD_state_s *V, ARNAUD_CPLXF_TYPE* resid,
-       ARNAUD_CPLXF_TYPE* v, int ldv, int* ipntr, ARNAUD_CPLXF_TYPE* workd,
+       ARNAUD_CPLXF_TYPE* v, CBLAS_INT ldv, CBLAS_INT* ipntr, ARNAUD_CPLXF_TYPE* workd,
        ARNAUD_CPLXF_TYPE* workl, float* rwork)
 {
-    int bounds, ierr = 0, ih, iq, iw, ldh, ldq, next, iritz;
+    CBLAS_INT bounds, ierr = 0, ih, iq, iw, ldh, ldq, next, iritz;
 
     if (V->ido == ido_FIRST)
     {
@@ -488,7 +488,7 @@ ARNAUD_cnaupd(struct ARNAUD_state_s *V, ARNAUD_CPLXF_TYPE* resid,
 
         V->np = V->ncv - V->nev;
 
-        for (int j = 0; j < 3 * (V->ncv*V->ncv) + 6*V->ncv; j++)
+        for (CBLAS_INT j = 0; j < 3 * (V->ncv*V->ncv) + 6*V->ncv; j++)
         {
             workl[j] = ARNAUD_cplxf(0.0f, 0.0f);
         }
@@ -542,13 +542,13 @@ ARNAUD_cnaupd(struct ARNAUD_state_s *V, ARNAUD_CPLXF_TYPE* resid,
 
 static void
 cnaup2(struct ARNAUD_state_s *V, ARNAUD_CPLXF_TYPE* resid,
-       ARNAUD_CPLXF_TYPE* v, int ldv, ARNAUD_CPLXF_TYPE* h, int ldh,
+       ARNAUD_CPLXF_TYPE* v, CBLAS_INT ldv, ARNAUD_CPLXF_TYPE* h, CBLAS_INT ldh,
        ARNAUD_CPLXF_TYPE* ritz, ARNAUD_CPLXF_TYPE* bounds,
-       ARNAUD_CPLXF_TYPE* q, int ldq, ARNAUD_CPLXF_TYPE* workl, int* ipntr,
+       ARNAUD_CPLXF_TYPE* q, CBLAS_INT ldq, ARNAUD_CPLXF_TYPE* workl, CBLAS_INT* ipntr,
        ARNAUD_CPLXF_TYPE* workd, float* rwork)
 {
     enum ARNAUD_which temp_which;
-    int i, int1 = 1, j, tmp_int;
+    CBLAS_INT i; CBLAS_INT int1 = 1; CBLAS_INT  j, tmp_int;
     const float eps23 = powf(ulp, 2.0f / 3.0f);
     float temp = 0.0f, rtemp;
 
@@ -736,7 +736,7 @@ LINE20:
     //  no shifts may be applied, then prepare to exit
 
     // We are modifying V->np hence the temporary variable.
-    int nptemp = V->np;
+    CBLAS_INT nptemp = V->np;
 
     for (j = 0; j < nptemp; j++)
     {
@@ -839,7 +839,7 @@ LINE20:
         //  To prevent possible stagnation, adjust the size
         //  of NEV.
 
-        int nevbef = V->aup2_nev;
+        CBLAS_INT nevbef = V->aup2_nev;
         V->aup2_nev += (V->nconv > (V->np / 2) ? (V->np / 2) : V->nconv);
         if ((V->aup2_nev == 1) && (V->aup2_kplusp >= 6)) {
             V->aup2_nev = V->aup2_kplusp / 2;
@@ -935,15 +935,15 @@ LINE100:
 
 
 static void
-cnaitr(struct ARNAUD_state_s *V, int k, int np, ARNAUD_CPLXF_TYPE* resid,
-       float* rnorm, ARNAUD_CPLXF_TYPE* v, int ldv, ARNAUD_CPLXF_TYPE* h, int ldh,
-       int* ipntr, ARNAUD_CPLXF_TYPE* workd)
+cnaitr(struct ARNAUD_state_s *V, CBLAS_INT k, CBLAS_INT np, ARNAUD_CPLXF_TYPE* resid,
+       float* rnorm, ARNAUD_CPLXF_TYPE* v, CBLAS_INT ldv, ARNAUD_CPLXF_TYPE* h, CBLAS_INT ldh,
+       CBLAS_INT* ipntr, ARNAUD_CPLXF_TYPE* workd)
 {
-    int i, infol, ipj, irj, ivj, jj, n, tmp_int;
+    CBLAS_INT i, infol, ipj, irj, ivj, jj, n, tmp_int;
     float smlnum = unfl * ( V->n / ulp);
     const float sq2o2 = sqrt(2.0) / 2.0;
 
-    int int1 = 1;
+    CBLAS_INT int1 = 1;
     float dbl1 = 1.0f, temp1, tst1;
     ARNAUD_CPLXF_TYPE cdbl1 = ARNAUD_cplxf(1.0f, 0.0f);
     ARNAUD_CPLXF_TYPE cdblm1 = ARNAUD_cplxf(-1.0f, 0.0f);
@@ -1305,12 +1305,12 @@ LINE100:
 
 
 static void
-cnapps(int n, int* kev, int np, ARNAUD_CPLXF_TYPE* shift, ARNAUD_CPLXF_TYPE* v,
-       int ldv, ARNAUD_CPLXF_TYPE* h, int ldh, ARNAUD_CPLXF_TYPE* resid,
-       ARNAUD_CPLXF_TYPE* q, int ldq, ARNAUD_CPLXF_TYPE* workl,
+cnapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, ARNAUD_CPLXF_TYPE* shift, ARNAUD_CPLXF_TYPE* v,
+       CBLAS_INT ldv, ARNAUD_CPLXF_TYPE* h, CBLAS_INT ldh, ARNAUD_CPLXF_TYPE* resid,
+       ARNAUD_CPLXF_TYPE* q, CBLAS_INT ldq, ARNAUD_CPLXF_TYPE* workl,
        ARNAUD_CPLXF_TYPE* workd)
 {
-    int i, j, jj, int1 = 1, istart, iend = 0, tmp_int;
+    CBLAS_INT i, j, jj; CBLAS_INT int1 = 1; CBLAS_INT  istart, iend = 0, tmp_int;
     float smlnum = unfl * ( n / ulp);
     float c, tst1;
     float tmp_dbl;
@@ -1319,7 +1319,7 @@ cnapps(int n, int* kev, int np, ARNAUD_CPLXF_TYPE* shift, ARNAUD_CPLXF_TYPE* v,
     ARNAUD_CPLXF_TYPE cdbl1 = ARNAUD_cplxf(1.0f, 0.0f);
     ARNAUD_CPLXF_TYPE cdbl0 = ARNAUD_cplxf(0.0f, 0.0f);
 
-    int kplusp = *kev + np;
+    CBLAS_INT kplusp = *kev + np;
 
     //  Initialize Q to the identity to accumulate
     //  the rotations and reflections
@@ -1506,12 +1506,12 @@ cnapps(int n, int* kev, int np, ARNAUD_CPLXF_TYPE* shift, ARNAUD_CPLXF_TYPE* v,
 
 
 static void
-cneigh(float* rnorm, int n, ARNAUD_CPLXF_TYPE* h, int ldh, ARNAUD_CPLXF_TYPE* ritz,
-       ARNAUD_CPLXF_TYPE* bounds, ARNAUD_CPLXF_TYPE* q, int ldq, ARNAUD_CPLXF_TYPE* workl,
-       float* rwork, int* ierr)
+cneigh(float* rnorm, CBLAS_INT n, ARNAUD_CPLXF_TYPE* h, CBLAS_INT ldh, ARNAUD_CPLXF_TYPE* ritz,
+       ARNAUD_CPLXF_TYPE* bounds, ARNAUD_CPLXF_TYPE* q, CBLAS_INT ldq, ARNAUD_CPLXF_TYPE* workl,
+       float* rwork, CBLAS_INT* ierr)
 {
-    int select[1] = { 0 };
-    int int1 = 1, j;
+    CBLAS_INT select[1] = { 0 };
+    CBLAS_INT int1 = 1, j;
     float temp;
     ARNAUD_CPLXF_TYPE vl[1];
     vl[0] = ARNAUD_cplxf(0.0f, 0.0f);
@@ -1562,7 +1562,7 @@ cneigh(float* rnorm, int n, ARNAUD_CPLXF_TYPE* h, int ldh, ARNAUD_CPLXF_TYPE* ri
 
 
 static void
-cngets(struct ARNAUD_state_s *V, int* kev, int* np,
+cngets(struct ARNAUD_state_s *V, CBLAS_INT* kev, CBLAS_INT* np,
        ARNAUD_CPLXF_TYPE* ritz, ARNAUD_CPLXF_TYPE* bounds)
 {
 
@@ -1586,11 +1586,11 @@ cngets(struct ARNAUD_state_s *V, int* kev, int* np,
 
 
 static void
-cgetv0(struct ARNAUD_state_s *V, int initv, int n, int j,
-       ARNAUD_CPLXF_TYPE* v, int ldv, ARNAUD_CPLXF_TYPE* resid, float* rnorm,
-       int* ipntr, ARNAUD_CPLXF_TYPE* workd)
+cgetv0(struct ARNAUD_state_s *V, CBLAS_INT initv, CBLAS_INT n, CBLAS_INT j,
+       ARNAUD_CPLXF_TYPE* v, CBLAS_INT ldv, ARNAUD_CPLXF_TYPE* resid, float* rnorm,
+       CBLAS_INT* ipntr, ARNAUD_CPLXF_TYPE* workd)
 {
-    int jj, int1 = 1;
+    CBLAS_INT jj; CBLAS_INT int1 = 1;
     const float sq2o2 = sqrt(2.0) / 2.0;
     ARNAUD_CPLXF_TYPE c0 = ARNAUD_cplxf(0.0f, 0.0f);
     ARNAUD_CPLXF_TYPE c1 = ARNAUD_cplxf(1.0f, 0.0f);
@@ -1753,9 +1753,9 @@ LINE40:
 
 
 static void
-csortc(const enum ARNAUD_which w, const int apply, const int n, ARNAUD_CPLXF_TYPE *x, ARNAUD_CPLXF_TYPE *y)
+csortc(const enum ARNAUD_which w, const CBLAS_INT apply, const CBLAS_INT n, ARNAUD_CPLXF_TYPE *x, ARNAUD_CPLXF_TYPE *y)
 {
-    int i, gap, pos;
+    CBLAS_INT i, gap, pos;
     ARNAUD_CPLXF_TYPE temp;
     ARNAUD_compare_cfunc *f;
 
@@ -1811,19 +1811,19 @@ csortc(const enum ARNAUD_which w, const int apply, const int n, ARNAUD_CPLXF_TYP
 }
 
 
-static int sortc_LM(const ARNAUD_CPLXF_TYPE x, const ARNAUD_CPLXF_TYPE y) { return (cabsf(x) > cabsf(y)); }
-static int sortc_SM(const ARNAUD_CPLXF_TYPE x, const ARNAUD_CPLXF_TYPE y) { return (cabsf(x) < cabsf(y)); }
-static int sortc_LR(const ARNAUD_CPLXF_TYPE x, const ARNAUD_CPLXF_TYPE y) { return (crealf(x) > crealf(y)); }
-static int sortc_SR(const ARNAUD_CPLXF_TYPE x, const ARNAUD_CPLXF_TYPE y) { return (crealf(x) < crealf(y)); }
-static int sortc_LI(const ARNAUD_CPLXF_TYPE x, const ARNAUD_CPLXF_TYPE y) { return (cimagf(x) > cimagf(y)); }
-static int sortc_SI(const ARNAUD_CPLXF_TYPE x, const ARNAUD_CPLXF_TYPE y) { return (cimagf(x) < cimagf(y)); }
+static CBLAS_INT sortc_LM(const ARNAUD_CPLXF_TYPE x, const ARNAUD_CPLXF_TYPE y) { return (cabsf(x) > cabsf(y)); }
+static CBLAS_INT sortc_SM(const ARNAUD_CPLXF_TYPE x, const ARNAUD_CPLXF_TYPE y) { return (cabsf(x) < cabsf(y)); }
+static CBLAS_INT sortc_LR(const ARNAUD_CPLXF_TYPE x, const ARNAUD_CPLXF_TYPE y) { return (crealf(x) > crealf(y)); }
+static CBLAS_INT sortc_SR(const ARNAUD_CPLXF_TYPE x, const ARNAUD_CPLXF_TYPE y) { return (crealf(x) < crealf(y)); }
+static CBLAS_INT sortc_LI(const ARNAUD_CPLXF_TYPE x, const ARNAUD_CPLXF_TYPE y) { return (cimagf(x) > cimagf(y)); }
+static CBLAS_INT sortc_SI(const ARNAUD_CPLXF_TYPE x, const ARNAUD_CPLXF_TYPE y) { return (cimagf(x) < cimagf(y)); }
 
 
 // cdotc is the complex conjugate dot product of two complex vectors.
 // Due some historical reasons, this function can cause segfaults on some
 // platforms. Hence implemented here instead of using the BLAS version.
 static ARNAUD_CPLXF_TYPE
-cdotc_(const int* n, const ARNAUD_CPLXF_TYPE* restrict x, const int* incx, const ARNAUD_CPLXF_TYPE* restrict y, const int* incy)
+cdotc_(const CBLAS_INT* n, const ARNAUD_CPLXF_TYPE* restrict x, const CBLAS_INT* incx, const ARNAUD_CPLXF_TYPE* restrict y, const CBLAS_INT* incy)
 {
     ARNAUD_CPLXF_TYPE result = ARNAUD_cplxf(0.0f, 0.0f);
 #ifdef _MSC_VER
@@ -1831,10 +1831,10 @@ cdotc_(const int* n, const ARNAUD_CPLXF_TYPE* restrict x, const int* incx, const
 #endif
     if (*n <= 0) { return result; }
 
-    int ix, iy;
+    CBLAS_INT ix, iy;
     if ((*incx == 1) && (*incy == 1))
     {
-        for (int i = 0; i < *n; i++)
+        for (CBLAS_INT i = 0; i < *n; i++)
         {
 #ifdef _MSC_VER
             temp = _FCmulcc(x[i], conjf(y[i]));
@@ -1849,7 +1849,7 @@ cdotc_(const int* n, const ARNAUD_CPLXF_TYPE* restrict x, const int* incx, const
         ix = (*incx >= 0) ? 0 : (-(*n-1) * (*incx));
         iy = (*incy >= 0) ? 0 : (-(*n-1) * (*incy));
 
-        for (int i = 0; i < *n; i++)
+        for (CBLAS_INT i = 0; i < *n; i++)
         {
 #ifdef _MSC_VER
             temp = _FCmulcc(x[ix], conjf(y[iy]));

@@ -1,27 +1,27 @@
 #include "arnaud_n_double.h"
 #include <float.h>
 
-typedef int ARNAUD_compare_cfunc(const double, const double, const double, const double);
+typedef CBLAS_INT ARNAUD_compare_cfunc(const double, const double, const double, const double);
 
-static int sortc_LM(const double, const double, const double, const double);
-static int sortc_SM(const double, const double, const double, const double);
-static int sortc_LR(const double, const double, const double, const double);
-static int sortc_SR(const double, const double, const double, const double);
-static int sortc_LI(const double, const double, const double, const double);
-static int sortc_SI(const double, const double, const double, const double);
+static CBLAS_INT sortc_LM(const double, const double, const double, const double);
+static CBLAS_INT sortc_SM(const double, const double, const double, const double);
+static CBLAS_INT sortc_LR(const double, const double, const double, const double);
+static CBLAS_INT sortc_SR(const double, const double, const double, const double);
+static CBLAS_INT sortc_LI(const double, const double, const double, const double);
+static CBLAS_INT sortc_SI(const double, const double, const double, const double);
 
 static const double unfl = DBL_MIN;    // 2.2250738585072014e-308
 // static const double ovfl = DBL_MAX; // 1.0 / 2.2250738585072014e-308;
 static const double ulp = DBL_EPSILON; // 2.220446049250313e-16;
 
-static void dnaup2(struct ARNAUD_state_d*, double*, double*, int, double*, int, double*, double*, double*, double*, int, double*, int*, double*);
-static void dnconv(int n, double* ritzr, double* ritzi, double* bounds, const double tol, int* nconv);
-static void dneigh(double*,int,double*,int,double*,double*,double*,double*,int,double*,int*);
-static void dnaitr(struct ARNAUD_state_d*,int,int,double*,double*,double*,int,double*,int,int*,double*);
-static void dnapps(int,int*,int,double*,double*,double*,int,double*,int,double*,double*,int,double*,double*);
-static void dngets(struct ARNAUD_state_d*,int*,int*,double*,double*,double*);
-static void dsortc(const enum ARNAUD_which w, const int apply, const int n, double* xreal, double* ximag, double* y);
-static void dgetv0(struct ARNAUD_state_d *V, int initv, int n, int j, double* v, int ldv, double* resid, double* rnorm, int* ipntr, double* workd);
+static void dnaup2(struct ARNAUD_state_d*, double*, double*, CBLAS_INT, double*, CBLAS_INT, double*, double*, double*, double*, CBLAS_INT, double*, CBLAS_INT*, double*);
+static void dnconv(CBLAS_INT n, double* ritzr, double* ritzi, double* bounds, const double tol, CBLAS_INT* nconv);
+static void dneigh(double*,CBLAS_INT,double*,CBLAS_INT,double*,double*,double*,double*,CBLAS_INT,double*,CBLAS_INT*);
+static void dnaitr(struct ARNAUD_state_d*,CBLAS_INT,CBLAS_INT,double*,double*,double*,CBLAS_INT,double*,CBLAS_INT,CBLAS_INT*,double*);
+static void dnapps(CBLAS_INT,CBLAS_INT*,CBLAS_INT,double*,double*,double*,CBLAS_INT,double*,CBLAS_INT,double*,double*,CBLAS_INT,double*,double*);
+static void dngets(struct ARNAUD_state_d*,CBLAS_INT*,CBLAS_INT*,double*,double*,double*);
+static void dsortc(const enum ARNAUD_which w, const CBLAS_INT apply, const CBLAS_INT n, double* xreal, double* ximag, double* y);
+static void dgetv0(struct ARNAUD_state_d *V, CBLAS_INT initv, CBLAS_INT n, CBLAS_INT j, double* v, CBLAS_INT ldv, double* resid, double* rnorm, CBLAS_INT* ipntr, double* workd);
 
 enum ARNAUD_neupd_type {
     REGULAR = 0,
@@ -32,16 +32,16 @@ enum ARNAUD_neupd_type {
 
 
 void
-ARNAUD_dneupd(struct ARNAUD_state_d *V, int rvec, int howmny, int* select,
-       double* dr, double* di, double* z, int ldz, double sigmar, double sigmai,
-       double* workev, double* resid, double* v, int ldv, int* ipntr, double* workd,
+ARNAUD_dneupd(struct ARNAUD_state_d *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_INT* select,
+       double* dr, double* di, double* z, CBLAS_INT ldz, double sigmar, double sigmai,
+       double* workev, double* resid, double* v, CBLAS_INT ldv, CBLAS_INT* ipntr, double* workd,
        double* workl)
 {
     const double eps23 = pow(ulp, 2.0 / 3.0);
-    int ibd, iconj, ih, iheigr, iheigi, ihbds, iuptri, invsub, iri, irr, j, jj;
-    int bounds, k, ldh, ldq, np, numcnv, reord, ritzr, ritzi;
-    int iwork[1] = { 0 };
-    int ierr = 0, int1 = 1, tmp_int = 0, nconv2 = 0, outncv;
+    CBLAS_INT ibd, iconj, ih, iheigr, iheigi, ihbds, iuptri, invsub, iri, irr, j, jj;
+    CBLAS_INT bounds, k, ldh, ldq, np, numcnv, reord, ritzr, ritzi;
+    CBLAS_INT iwork[1] = { 0 };
+    CBLAS_INT ierr = 0; CBLAS_INT int1 = 1; CBLAS_INT  tmp_int = 0, nconv2 = 0, outncv;
     double conds, rnorm, sep, temp, temp1, dbl0 = 0.0, dbl1 = 1.0, dblm1 = -1.0;
     double vl[1] = { 0.0 };
     enum ARNAUD_neupd_type TYP;
@@ -166,7 +166,7 @@ ARNAUD_dneupd(struct ARNAUD_state_d *V, int rvec, int howmny, int* select,
         {
             temp1 = fmax(eps23, hypot(workl[irr + V->ncv - j], workl[iri + V->ncv - j]));
 
-            jj = (int)workl[bounds + V->ncv - j];
+            jj = (CBLAS_INT)workl[bounds + V->ncv - j];
 
             if ((numcnv < V->nconv) && (workl[ibd + jj] <= V->tol*temp1))
             {
@@ -508,9 +508,9 @@ ARNAUD_dneupd(struct ARNAUD_state_d *V, int rvec, int howmny, int* select,
 
 void
 ARNAUD_dnaupd(struct ARNAUD_state_d *V, double* resid, double* v,
-              int ldv, int* ipntr, double* workd, double* workl)
+              CBLAS_INT ldv, CBLAS_INT* ipntr, double* workd, double* workl)
 {
-    int bounds, ih, iq, iw, j, ldh, ldq, next, iritzi, iritzr;
+    CBLAS_INT bounds, ih, iq, iw, j, ldh, ldq, next, iritzi, iritzr;
 
     if (V->ido == ido_FIRST)
     {
@@ -606,12 +606,12 @@ ARNAUD_dnaupd(struct ARNAUD_state_d *V, double* resid, double* v,
 }
 
 void
-dnaup2(struct ARNAUD_state_d *V, double* resid, double* v, int ldv,
-       double* h, int ldh, double* ritzr, double* ritzi, double* bounds,
-       double* q, int ldq, double* workl, int* ipntr, double* workd)
+dnaup2(struct ARNAUD_state_d *V, double* resid, double* v, CBLAS_INT ldv,
+       double* h, CBLAS_INT ldh, double* ritzr, double* ritzi, double* bounds,
+       double* q, CBLAS_INT ldq, double* workl, CBLAS_INT* ipntr, double* workd)
 {
     enum ARNAUD_which temp_which;
-    int int1 = 1, j, tmp_int;
+    CBLAS_INT int1 = 1, j, tmp_int;
     const double eps23 = pow(ulp, 2.0 / 3.0);
     double temp = 0.0;
 
@@ -795,7 +795,7 @@ LINE20:
     //  no shifts may be applied, then prepare to exit
 
     // We are modifying V->np hence the temporary variable.
-    int nptemp = V->np;
+    CBLAS_INT nptemp = V->np;
 
     for (j = 0; j < nptemp; j++)
     {
@@ -909,7 +909,7 @@ LINE20:
         //  To prevent possible stagnation, adjust the size
         //  of NEV.
 
-        int nevbef = V->aup2_nev;
+        CBLAS_INT nevbef = V->aup2_nev;
         V->aup2_nev += (V->nconv > (V->np / 2) ? (V->np / 2) : V->nconv);
         if ((V->aup2_nev == 1) && (V->aup2_kplusp >= 6)) {
             V->aup2_nev = V->aup2_kplusp / 2;
@@ -1015,13 +1015,13 @@ LINE100:
 }
 
 void
-dnconv(int n, double* ritzr, double* ritzi, double* bounds, const double tol, int* nconv)
+dnconv(CBLAS_INT n, double* ritzr, double* ritzi, double* bounds, const double tol, CBLAS_INT* nconv)
 {
     const double eps23 = pow(ulp, 2.0 / 3.0);
     double temp;
 
     *nconv = 0;
-    for (int i = 0; i < n; i++)
+    for (CBLAS_INT i = 0; i < n; i++)
     {
         temp = fmax(eps23, hypot(ritzr[i], ritzi[i]));
         if (bounds[i] <= tol*temp)
@@ -1034,11 +1034,11 @@ dnconv(int n, double* ritzr, double* ritzi, double* bounds, const double tol, in
 }
 
 void
-dneigh(double* rnorm, int n, double* h, int ldh, double* ritzr, double* ritzi,
-       double* bounds, double* q, int ldq, double* workl, int* ierr)
+dneigh(double* rnorm, CBLAS_INT n, double* h, CBLAS_INT ldh, double* ritzr, double* ritzi,
+       double* bounds, double* q, CBLAS_INT ldq, double* workl, CBLAS_INT* ierr)
 {
-    int select[1] = { 0 };
-    int i, iconj, int1 = 1, j;
+    CBLAS_INT select[1] = { 0 };
+    CBLAS_INT i, iconj; CBLAS_INT int1 = 1; CBLAS_INT  j;
     double dbl1 = 1.0, dbl0 = 0.0, temp, tmp_dbl, vl[1] = { 0.0 };
 
     //  1. Compute the eigenvalues, the last components of the
@@ -1148,14 +1148,14 @@ dneigh(double* rnorm, int n, double* h, int ldh, double* ritzr, double* ritzi,
 }
 
 void
-dnaitr(struct ARNAUD_state_d *V, int k, int np, double* resid, double* rnorm,
-       double* v, int ldv, double* h, int ldh, int* ipntr, double* workd)
+dnaitr(struct ARNAUD_state_d *V, CBLAS_INT k, CBLAS_INT np, double* resid, double* rnorm,
+       double* v, CBLAS_INT ldv, double* h, CBLAS_INT ldh, CBLAS_INT* ipntr, double* workd)
 {
-    int i = 0, infol, ipj, irj, ivj, jj, n, tmp_int;
+    CBLAS_INT i = 0, infol, ipj, irj, ivj, jj, n, tmp_int;
     double smlnum = unfl * ( V->n / ulp);
     const double sq2o2 = sqrt(2.0) / 2.0;
 
-    int int1 = 1;
+    CBLAS_INT int1 = 1;
     double dbl1 = 1.0, dbl0 = 0.0, dblm1 = -1.0, temp1, tst1;
 
     n = V->n;  // n is constant, this is just for typing convenience
@@ -1518,13 +1518,13 @@ LINE100:
 
 
 void
-dnapps(int n, int* kev, int np, double* shiftr, double* shifti, double* v,
-       int ldv, double* h, int ldh, double* resid, double* q, int ldq, double* workl,
+dnapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, double* shiftr, double* shifti, double* v,
+       CBLAS_INT ldv, double* h, CBLAS_INT ldh, double* resid, double* q, CBLAS_INT ldq, double* workl,
        double* workd)
 {
-    int cconj;
-    int i, ir, j, jj, int1 = 1, istart, iend = 0, nr, tmp_int;
-    int kplusp = *kev + np;
+    CBLAS_INT cconj;
+    CBLAS_INT i, ir, j, jj; CBLAS_INT int1 = 1; CBLAS_INT  istart, iend = 0, nr, tmp_int;
+    CBLAS_INT kplusp = *kev + np;
     double smlnum = unfl * ( n / ulp);
     double c, f, g, h11, h21, h12, h22, h32, s, sigmar, sigmai, r, t, tau, tst1;
     double dbl1 = 1.0, dbl0 = 0.0, dblm1 = -1.0;
@@ -1771,7 +1771,7 @@ dnapps(int n, int* kev, int np, double* shiftr, double* shifti, double* v,
 
 
 void
-dngets(struct ARNAUD_state_d *V, int* kev, int* np,
+dngets(struct ARNAUD_state_d *V, CBLAS_INT* kev, CBLAS_INT* np,
        double* ritzr, double* ritzi, double* bounds)
 {
 
@@ -1837,10 +1837,10 @@ dngets(struct ARNAUD_state_d *V, int* kev, int* np,
 }
 
 void
-dgetv0(struct ARNAUD_state_d *V, int initv, int n, int j,
-       double* v, int ldv, double* resid, double* rnorm, int* ipntr, double* workd)
+dgetv0(struct ARNAUD_state_d *V, CBLAS_INT initv, CBLAS_INT n, CBLAS_INT j,
+       double* v, CBLAS_INT ldv, double* resid, double* rnorm, CBLAS_INT* ipntr, double* workd)
 {
-    int jj, int1 = 1;
+    CBLAS_INT jj; CBLAS_INT int1 = 1;
     const double sq2o2 = sqrt(2.0) / 2.0;
     double dbl1 = 1.0, dbl0 = 0.0, dblm1 = -1.0;
 
@@ -2000,9 +2000,9 @@ LINE40:
 
 
 static void
-dsortc(const enum ARNAUD_which w, const int apply, const int n, double* xreal, double* ximag, double* y)
+dsortc(const enum ARNAUD_which w, const CBLAS_INT apply, const CBLAS_INT n, double* xreal, double* ximag, double* y)
 {
-    int i, gap, pos;
+    CBLAS_INT i, gap, pos;
     double temp;
     ARNAUD_compare_cfunc *f;
 
@@ -2062,40 +2062,40 @@ dsortc(const enum ARNAUD_which w, const int apply, const int n, double* xreal, d
 
 
 // The void casts are to avoid compiler warnings for unused parameters
-int
+CBLAS_INT
 sortc_LM(const double xre, const double xim, const double xreigap, const double ximigap)
 {
     return (hypot(xre, xim) > hypot(xreigap, ximigap));
 }
 
-int
+CBLAS_INT
 sortc_SM(const double xre, const double xim, const double xreigap, const double ximigap)
 {
     return (hypot(xre, xim) < hypot(xreigap, ximigap));
 }
 
-int
+CBLAS_INT
 sortc_LR(const double xre, const double xim, const double xreigap, const double ximigap)
 {
     (void)xim; (void)ximigap;
     return (xre > xreigap);
 }
 
-int
+CBLAS_INT
 sortc_SR(const double xre, const double xim, const double xreigap, const double ximigap)
 {
     (void)xim; (void)ximigap;
     return (xre < xreigap);
 }
 
-int
+CBLAS_INT
 sortc_LI(const double xre, const double xim, const double xreigap, const double ximigap)
 {
     (void)xre; (void)xreigap;
     return (fabs(xim) > fabs(ximigap));
 }
 
-int
+CBLAS_INT
 sortc_SI(const double xre, const double xim, const double xreigap, const double ximigap)
 {
     (void)xre; (void)xreigap;

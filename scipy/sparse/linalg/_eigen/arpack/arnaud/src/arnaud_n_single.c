@@ -1,27 +1,27 @@
 #include "arnaud_n_single.h"
 #include <float.h>
 
-typedef int ARNAUD_compare_cfunc(const float, const float, const float, const float);
+typedef CBLAS_INT ARNAUD_compare_cfunc(const float, const float, const float, const float);
 
-static int sortc_LM(const float, const float, const float, const float);
-static int sortc_SM(const float, const float, const float, const float);
-static int sortc_LR(const float, const float, const float, const float);
-static int sortc_SR(const float, const float, const float, const float);
-static int sortc_LI(const float, const float, const float, const float);
-static int sortc_SI(const float, const float, const float, const float);
+static CBLAS_INT sortc_LM(const float, const float, const float, const float);
+static CBLAS_INT sortc_SM(const float, const float, const float, const float);
+static CBLAS_INT sortc_LR(const float, const float, const float, const float);
+static CBLAS_INT sortc_SR(const float, const float, const float, const float);
+static CBLAS_INT sortc_LI(const float, const float, const float, const float);
+static CBLAS_INT sortc_SI(const float, const float, const float, const float);
 
 static const float unfl = FLT_MIN;    // 1.1754943508222875e-38;
 // static const float ovfl = FLT_MAX; // 1.0 / 1.1754943508222875e-38;
 static const float ulp = FLT_EPSILON; // 1.1920928955078125e-07;
 
-static void snaup2(struct ARNAUD_state_s*, float*, float*, int, float*, int, float*, float*, float*, float*, int, float*, int*, float*);
-static void snconv(int n, float* ritzr, float* ritzi, float* bounds, const float tol, int* nconv);
-static void sneigh(float*,int,float*,int,float*,float*,float*,float*,int,float*,int*);
-static void snaitr(struct ARNAUD_state_s*,int,int,float*,float*,float*,int,float*,int,int*,float*);
-static void snapps(int,int*,int,float*,float*,float*,int,float*,int,float*,float*,int,float*,float*);
-static void sngets(struct ARNAUD_state_s*,int*,int*,float*,float*,float*);
-static void ssortc(const enum ARNAUD_which w, const int apply, const int n, float* xreal, float* ximag, float* y);
-static void sgetv0(struct ARNAUD_state_s *V, int initv, int n, int j, float* v, int ldv, float* resid, float* rnorm, int* ipntr, float* workd);
+static void snaup2(struct ARNAUD_state_s*, float*, float*, CBLAS_INT, float*, CBLAS_INT, float*, float*, float*, float*, CBLAS_INT, float*, CBLAS_INT*, float*);
+static void snconv(CBLAS_INT n, float* ritzr, float* ritzi, float* bounds, const float tol, CBLAS_INT* nconv);
+static void sneigh(float*,CBLAS_INT,float*,CBLAS_INT,float*,float*,float*,float*,CBLAS_INT,float*,CBLAS_INT*);
+static void snaitr(struct ARNAUD_state_s*,CBLAS_INT,CBLAS_INT,float*,float*,float*,CBLAS_INT,float*,CBLAS_INT,CBLAS_INT*,float*);
+static void snapps(CBLAS_INT,CBLAS_INT*,CBLAS_INT,float*,float*,float*,CBLAS_INT,float*,CBLAS_INT,float*,float*,CBLAS_INT,float*,float*);
+static void sngets(struct ARNAUD_state_s*,CBLAS_INT*,CBLAS_INT*,float*,float*,float*);
+static void ssortc(const enum ARNAUD_which w, const CBLAS_INT apply, const CBLAS_INT n, float* xreal, float* ximag, float* y);
+static void sgetv0(struct ARNAUD_state_s *V, CBLAS_INT initv, CBLAS_INT n, CBLAS_INT j, float* v, CBLAS_INT ldv, float* resid, float* rnorm, CBLAS_INT* ipntr, float* workd);
 
 enum ARNAUD_neupd_type {
     REGULAR = 0,
@@ -32,16 +32,16 @@ enum ARNAUD_neupd_type {
 
 
 void
-ARNAUD_sneupd(struct ARNAUD_state_s *V, int rvec, int howmny, int* select,
-       float* dr, float* di, float* z, int ldz, float sigmar, float sigmai,
-       float* workev, float* resid, float* v, int ldv, int* ipntr, float* workd,
+ARNAUD_sneupd(struct ARNAUD_state_s *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_INT* select,
+       float* dr, float* di, float* z, CBLAS_INT ldz, float sigmar, float sigmai,
+       float* workev, float* resid, float* v, CBLAS_INT ldv, CBLAS_INT* ipntr, float* workd,
        float* workl)
 {
     const float eps23 = powf(ulp, 2.0f / 3.0f);
-    int ibd, iconj, ih, iheigr, iheigi, ihbds, iuptri, invsub, iri, irr, j, jj;
-    int bounds, k, ldh, ldq, np, numcnv, reord, ritzr, ritzi;
-    int iwork[1] = { 0 };
-    int ierr = 0, int1 = 1, tmp_int = 0, nconv2 = 0, outncv;
+    CBLAS_INT ibd, iconj, ih, iheigr, iheigi, ihbds, iuptri, invsub, iri, irr, j, jj;
+    CBLAS_INT bounds, k, ldh, ldq, np, numcnv, reord, ritzr, ritzi;
+    CBLAS_INT iwork[1] = { 0 };
+    CBLAS_INT ierr = 0; CBLAS_INT int1 = 1; CBLAS_INT  tmp_int = 0, nconv2 = 0, outncv;
     float conds, rnorm, sep, temp, temp1, dbl0 = 0.0f, dbl1 = 1.0f, dblm1 = -1.0f;
     float vl[1] = { 0.0f };
     enum ARNAUD_neupd_type TYP;
@@ -166,7 +166,7 @@ ARNAUD_sneupd(struct ARNAUD_state_s *V, int rvec, int howmny, int* select,
         {
             temp1 = fmaxf(eps23, hypotf(workl[irr + V->ncv - j], workl[iri + V->ncv - j]));
 
-            jj = (int)workl[bounds + V->ncv - j];
+            jj = (CBLAS_INT)workl[bounds + V->ncv - j];
 
             if ((numcnv < V->nconv) && (workl[ibd + jj] <= V->tol*temp1))
             {
@@ -508,9 +508,9 @@ ARNAUD_sneupd(struct ARNAUD_state_s *V, int rvec, int howmny, int* select,
 
 void
 ARNAUD_snaupd(struct ARNAUD_state_s *V, float* resid, float* v,
-              int ldv, int* ipntr, float* workd, float* workl)
+              CBLAS_INT ldv, CBLAS_INT* ipntr, float* workd, float* workl)
 {
-    int bounds, ih, iq, iw, j, ldh, ldq, next, iritzi, iritzr;
+    CBLAS_INT bounds, ih, iq, iw, j, ldh, ldq, next, iritzi, iritzr;
 
     if (V->ido == ido_FIRST)
     {
@@ -606,12 +606,12 @@ ARNAUD_snaupd(struct ARNAUD_state_s *V, float* resid, float* v,
 }
 
 void
-snaup2(struct ARNAUD_state_s *V, float* resid, float* v, int ldv,
-       float* h, int ldh, float* ritzr, float* ritzi, float* bounds,
-       float* q, int ldq, float* workl, int* ipntr, float* workd)
+snaup2(struct ARNAUD_state_s *V, float* resid, float* v, CBLAS_INT ldv,
+       float* h, CBLAS_INT ldh, float* ritzr, float* ritzi, float* bounds,
+       float* q, CBLAS_INT ldq, float* workl, CBLAS_INT* ipntr, float* workd)
 {
     enum ARNAUD_which temp_which;
-    int int1 = 1, j, tmp_int;
+    CBLAS_INT int1 = 1, j, tmp_int;
     const float eps23 = powf(ulp, 2.0f / 3.0f);
     float temp = 0.0f;
 
@@ -795,7 +795,7 @@ LINE20:
     //  no shifts may be applied, then prepare to exit
 
     // We are modifying V->np hence the temporary variable.
-    int nptemp = V->np;
+    CBLAS_INT nptemp = V->np;
 
     for (j = 0; j < nptemp; j++)
     {
@@ -909,7 +909,7 @@ LINE20:
         //  To prevent possible stagnation, adjust the size
         //  of NEV.
 
-        int nevbef = V->aup2_nev;
+        CBLAS_INT nevbef = V->aup2_nev;
         V->aup2_nev += (V->nconv > (V->np / 2) ? (V->np / 2) : V->nconv);
         if ((V->aup2_nev == 1) && (V->aup2_kplusp >= 6)) {
             V->aup2_nev = V->aup2_kplusp / 2;
@@ -1015,13 +1015,13 @@ LINE100:
 }
 
 void
-snconv(int n, float* ritzr, float* ritzi, float* bounds, const float tol, int* nconv)
+snconv(CBLAS_INT n, float* ritzr, float* ritzi, float* bounds, const float tol, CBLAS_INT* nconv)
 {
     const float eps23 = powf(ulp, 2.0f / 3.0f);
     float temp;
 
     *nconv = 0;
-    for (int i = 0; i < n; i++)
+    for (CBLAS_INT i = 0; i < n; i++)
     {
         temp = fmaxf(eps23, hypotf(ritzr[i], ritzi[i]));
         if (bounds[i] <= tol*temp)
@@ -1034,11 +1034,11 @@ snconv(int n, float* ritzr, float* ritzi, float* bounds, const float tol, int* n
 }
 
 void
-sneigh(float* rnorm, int n, float* h, int ldh, float* ritzr, float* ritzi,
-       float* bounds, float* q, int ldq, float* workl, int* ierr)
+sneigh(float* rnorm, CBLAS_INT n, float* h, CBLAS_INT ldh, float* ritzr, float* ritzi,
+       float* bounds, float* q, CBLAS_INT ldq, float* workl, CBLAS_INT* ierr)
 {
-    int select[1] = { 0 };
-    int i, iconj, int1 = 1, j;
+    CBLAS_INT select[1] = { 0 };
+    CBLAS_INT i, iconj; CBLAS_INT int1 = 1; CBLAS_INT  j;
     float dbl1 = 1.0f, dbl0 = 0.0f, temp, tmp_dbl, vl[1] = { 0.0f };
 
     //  1. Compute the eigenvalues, the last components of the
@@ -1148,14 +1148,14 @@ sneigh(float* rnorm, int n, float* h, int ldh, float* ritzr, float* ritzi,
 }
 
 void
-snaitr(struct ARNAUD_state_s *V, int k, int np, float* resid, float* rnorm,
-       float* v, int ldv, float* h, int ldh, int* ipntr, float* workd)
+snaitr(struct ARNAUD_state_s *V, CBLAS_INT k, CBLAS_INT np, float* resid, float* rnorm,
+       float* v, CBLAS_INT ldv, float* h, CBLAS_INT ldh, CBLAS_INT* ipntr, float* workd)
 {
-    int i = 0, infol, ipj, irj, ivj, jj, n, tmp_int;
+    CBLAS_INT i = 0, infol, ipj, irj, ivj, jj, n, tmp_int;
     float smlnum = unfl * ( V->n / ulp);
     const float sq2o2 = sqrtf(2.0) / 2.0;
 
-    int int1 = 1;
+    CBLAS_INT int1 = 1;
     float dbl1 = 1.0f, dbl0 = 0.0f, dblm1 = -1.0f, temp1, tst1;
 
     n = V->n;  // n is constant, this is just for typing convenience
@@ -1518,13 +1518,13 @@ LINE100:
 
 
 void
-snapps(int n, int* kev, int np, float* shiftr, float* shifti, float* v,
-       int ldv, float* h, int ldh, float* resid, float* q, int ldq, float* workl,
+snapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, float* shiftr, float* shifti, float* v,
+       CBLAS_INT ldv, float* h, CBLAS_INT ldh, float* resid, float* q, CBLAS_INT ldq, float* workl,
        float* workd)
 {
-    int cconj;
-    int i, ir, j, jj, int1 = 1, istart, iend = 0, nr, tmp_int;
-    int kplusp = *kev + np;
+    CBLAS_INT cconj;
+    CBLAS_INT i, ir, j, jj; CBLAS_INT int1 = 1; CBLAS_INT  istart, iend = 0, nr, tmp_int;
+    CBLAS_INT kplusp = *kev + np;
     float smlnum = unfl * ( n / ulp);
     float c, f, g, h11, h21, h12, h22, h32, s, sigmar, sigmai, r, t, tau, tst1;
     float dbl1 = 1.0f, dbl0 = 0.0f, dblm1 = -1.0f;
@@ -1771,7 +1771,7 @@ snapps(int n, int* kev, int np, float* shiftr, float* shifti, float* v,
 
 
 void
-sngets(struct ARNAUD_state_s *V, int* kev, int* np,
+sngets(struct ARNAUD_state_s *V, CBLAS_INT* kev, CBLAS_INT* np,
        float* ritzr, float* ritzi, float* bounds)
 {
 
@@ -1837,10 +1837,10 @@ sngets(struct ARNAUD_state_s *V, int* kev, int* np,
 }
 
 void
-sgetv0(struct ARNAUD_state_s *V, int initv, int n, int j,
-       float* v, int ldv, float* resid, float* rnorm, int* ipntr, float* workd)
+sgetv0(struct ARNAUD_state_s *V, CBLAS_INT initv, CBLAS_INT n, CBLAS_INT j,
+       float* v, CBLAS_INT ldv, float* resid, float* rnorm, CBLAS_INT* ipntr, float* workd)
 {
-    int jj, int1 = 1;
+    CBLAS_INT jj; CBLAS_INT int1 = 1;
     const float sq2o2 = sqrtf(2.0) / 2.0;
     float dbl1 = 1.0f, dbl0 = 0.0f, dblm1 = -1.0f;;
 
@@ -2000,9 +2000,9 @@ LINE40:
 
 
 static void
-ssortc(const enum ARNAUD_which w, const int apply, const int n, float* xreal, float* ximag, float* y)
+ssortc(const enum ARNAUD_which w, const CBLAS_INT apply, const CBLAS_INT n, float* xreal, float* ximag, float* y)
 {
-    int i, gap, pos;
+    CBLAS_INT i, gap, pos;
     float temp;
     ARNAUD_compare_cfunc *f;
 
@@ -2062,40 +2062,40 @@ ssortc(const enum ARNAUD_which w, const int apply, const int n, float* xreal, fl
 
 
 // The void casts are to avoid compiler warnings for unused parameters
-int
+CBLAS_INT
 sortc_LM(const float xre, const float xim, const float xreigap, const float ximigap)
 {
     return (hypotf(xre, xim) > hypotf(xreigap, ximigap));
 }
 
-int
+CBLAS_INT
 sortc_SM(const float xre, const float xim, const float xreigap, const float ximigap)
 {
     return (hypotf(xre, xim) < hypotf(xreigap, ximigap));
 }
 
-int
+CBLAS_INT
 sortc_LR(const float xre, const float xim, const float xreigap, const float ximigap)
 {
     (void)xim; (void)ximigap;
     return (xre > xreigap);
 }
 
-int
+CBLAS_INT
 sortc_SR(const float xre, const float xim, const float xreigap, const float ximigap)
 {
     (void)xim; (void)ximigap;
     return (xre < xreigap);
 }
 
-int
+CBLAS_INT
 sortc_LI(const float xre, const float xim, const float xreigap, const float ximigap)
 {
     (void)xre; (void)xreigap;
     return (fabsf(xim) > fabsf(ximigap));
 }
 
-int
+CBLAS_INT
 sortc_SI(const float xre, const float xim, const float xreigap, const float ximigap)
 {
     (void)xre; (void)xreigap;

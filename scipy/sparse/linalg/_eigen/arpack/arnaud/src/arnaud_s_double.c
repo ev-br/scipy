@@ -1,26 +1,26 @@
 #include "arnaud_s_double.h"
 #include <float.h>
 
-typedef int ARNAUD_compare_rfunc(const double, const double);
+typedef CBLAS_INT ARNAUD_compare_rfunc(const double, const double);
 
-static int sortr_LM(const double, const double);
-static int sortr_SM(const double, const double);
-static int sortr_LA(const double, const double);
-static int sortr_SA(const double, const double);
+static CBLAS_INT sortr_LM(const double, const double);
+static CBLAS_INT sortr_SM(const double, const double);
+static CBLAS_INT sortr_LA(const double, const double);
+static CBLAS_INT sortr_SA(const double, const double);
 
 static const double unfl = DBL_MIN;    // 2.2250738585072014e-308;
 static const double ulp = DBL_EPSILON; // 2.220446049250313e-16;
 
-static void dsaup2(struct ARNAUD_state_d*, double*, double*, int, double*, int, double*, double*, double*, int, double*, int*, double*);
-static void dsconv(int, double*, double*, double, int*);
-static void dseigt(double, int, double*, int, double*, double*, double*, int*);
-static void dsaitr(struct ARNAUD_state_d*, int, int, double*, double*, double*, int, double*, int, int*, double*);
-static void dsapps(int, int*, int, double*, double*, int, double*, int, double*, double* , int, double*);
-static void dsgets(struct ARNAUD_state_d*, int*, int*, double*, double*, double*);
-static void dgetv0(struct ARNAUD_state_d *, int, int, int, double*, int, double*, double*, int*, double*);
-static void dsortr(const enum ARNAUD_which w, const int apply, const int n, double* x1, double* x2);
-static void dsesrt(const enum ARNAUD_which w, const int apply, const int n, double* x, int na, double* a, const int lda);
-static void dstqrb(int n, double* d, double* e, double* z, double* work, int* info);
+static void dsaup2(struct ARNAUD_state_d*, double*, double*, CBLAS_INT, double*, CBLAS_INT, double*, double*, double*, CBLAS_INT, double*, CBLAS_INT*, double*);
+static void dsconv(CBLAS_INT, double*, double*, double, CBLAS_INT*);
+static void dseigt(double, CBLAS_INT, double*, CBLAS_INT, double*, double*, double*, CBLAS_INT*);
+static void dsaitr(struct ARNAUD_state_d*, CBLAS_INT, CBLAS_INT, double*, double*, double*, CBLAS_INT, double*, CBLAS_INT, CBLAS_INT*, double*);
+static void dsapps(CBLAS_INT, CBLAS_INT*, CBLAS_INT, double*, double*, CBLAS_INT, double*, CBLAS_INT, double*, double* , CBLAS_INT, double*);
+static void dsgets(struct ARNAUD_state_d*, CBLAS_INT*, CBLAS_INT*, double*, double*, double*);
+static void dgetv0(struct ARNAUD_state_d *, CBLAS_INT, CBLAS_INT, CBLAS_INT, double*, CBLAS_INT, double*, double*, CBLAS_INT*, double*);
+static void dsortr(const enum ARNAUD_which w, const CBLAS_INT apply, const CBLAS_INT n, double* x1, double* x2);
+static void dsesrt(const enum ARNAUD_which w, const CBLAS_INT apply, const CBLAS_INT n, double* x, CBLAS_INT na, double* a, const CBLAS_INT lda);
+static void dstqrb(CBLAS_INT n, double* d, double* e, double* z, double* work, CBLAS_INT* info);
 
 enum ARNAUD_seupd_type {
     REGULAR,
@@ -31,14 +31,14 @@ enum ARNAUD_seupd_type {
 
 
 void
-ARNAUD_dseupd(struct ARNAUD_state_d *V, int rvec, int howmny, int* select,
-       double* d, double* z, int ldz, double sigma, double* resid, double* v,
-       int ldv, int* ipntr, double* workd, double* workl)
+ARNAUD_dseupd(struct ARNAUD_state_d *V, CBLAS_INT rvec, CBLAS_INT howmny, CBLAS_INT* select,
+       double* d, double* z, CBLAS_INT ldz, double sigma, double* resid, double* v,
+       CBLAS_INT ldv, CBLAS_INT* ipntr, double* workd, double* workl)
 {
     const double eps23 = pow(ulp, 2.0 / 3.0);
-    int j, jj, k;
-    int ibd, ih, ihb, ihd, iq, irz, iw, ldh, ldq, ritz, bounds, next, np;
-    int ierr = 0, int1 = 1, tmp_int = 0, numcnv, reord;
+    CBLAS_INT j, jj, k;
+    CBLAS_INT ibd, ih, ihb, ihd, iq, irz, iw, ldh, ldq, ritz, bounds, next, np;
+    CBLAS_INT ierr = 0; CBLAS_INT int1 = 1; CBLAS_INT  tmp_int = 0, numcnv, reord;
     double bnorm2, rnorm, temp, temp1, dbl1 = 1.0;
 
     if (V->nconv == 0) { return; }
@@ -197,7 +197,7 @@ ARNAUD_dseupd(struct ARNAUD_state_d *V, int rvec, int howmny, int* select,
         {
             temp1 = fmax(eps23, fabs(workl[irz + V->ncv - j]));
 
-            jj = (int)workl[bounds + V->ncv - j];
+            jj = (CBLAS_INT)workl[bounds + V->ncv - j];
 
             if ((numcnv < V->nconv) && (workl[ibd + jj] <= V->tol*temp1))
             {
@@ -245,8 +245,8 @@ ARNAUD_dseupd(struct ARNAUD_state_d *V, int rvec, int howmny, int* select,
             // eigenvectors appear in the first NCONV
             // columns.
 
-            int leftptr = 0;
-            int rightptr = V->ncv - 1;
+            CBLAS_INT leftptr = 0;
+            CBLAS_INT rightptr = V->ncv - 1;
 
             if (V->ncv > 1)
             {
@@ -334,16 +334,16 @@ ARNAUD_dseupd(struct ARNAUD_state_d *V, int rvec, int howmny, int* select,
         dcopy_(&V->ncv, &workl[ihd], &int1, &workl[iw], &int1);
         if (TYP == SHIFTI)
         {
-            for (int k = 0; k < V->ncv; k++)
+            for (CBLAS_INT k = 0; k < V->ncv; k++)
             {
                 workl[ihd + k] = 1.0 / workl[ihd + k] + sigma;
             }
         } else if (TYP == BUCKLE) {
-            for (int k = 0; k < V->ncv; k++) {
+            for (CBLAS_INT k = 0; k < V->ncv; k++) {
                 workl[ihd + k] = sigma * workl[ihd + k] / (workl[ihd + k] - 1.0);
             }
         } else if (TYP == CAYLEY) {
-            for (int k = 0; k < V->ncv; k++) {
+            for (CBLAS_INT k = 0; k < V->ncv; k++) {
                 workl[ihd + k] = sigma * (workl[ihd + k] + 1.0) / (workl[ihd + k] - 1.0);
             }
         }
@@ -399,7 +399,7 @@ ARNAUD_dseupd(struct ARNAUD_state_d *V, int rvec, int howmny, int* select,
         // values in both systems, need the last row of the
         // eigenvector matrix. Remember, it's in factored form.
 
-        for (int j = 0; j < V->ncv - 1; j++)
+        for (CBLAS_INT j = 0; j < V->ncv - 1; j++)
         {
             workl[ihb + j] = 0.0;
         }
@@ -410,7 +410,7 @@ ARNAUD_dseupd(struct ARNAUD_state_d *V, int rvec, int howmny, int* select,
         //  workl(iw+ncv:iw+2*ncv), as it is needed again in
         //  the Ritz vector purification step below
 
-        for (int j = 0; j < V->nconv; j++)
+        for (CBLAS_INT j = 0; j < V->nconv; j++)
         {
             workl[iw + V->ncv + j] = workl[ihb + j];
         }
@@ -484,11 +484,11 @@ ARNAUD_dseupd(struct ARNAUD_state_d *V, int rvec, int howmny, int* select,
 
 
 void
-ARNAUD_dsaupd(struct ARNAUD_state_d *V, double* resid, double* v, int ldv,
-       int* ipntr, double* workd, double* workl)
+ARNAUD_dsaupd(struct ARNAUD_state_d *V, double* resid, double* v, CBLAS_INT ldv,
+       CBLAS_INT* ipntr, double* workd, double* workl)
 {
 
-    int bounds = 0, ih = 0, iq = 0, iw = 0, j = 0, ldh = 0, ldq = 0, next = 0, ritz = 0;
+    CBLAS_INT bounds = 0, ih = 0, iq = 0, iw = 0, j = 0, ldh = 0, ldq = 0, next = 0, ritz = 0;
 
     if (V->ido == ido_FIRST)
     {
@@ -578,11 +578,11 @@ ARNAUD_dsaupd(struct ARNAUD_state_d *V, double* resid, double* v, int ldv,
 
 
 void
-dsaup2(struct ARNAUD_state_d *V, double* resid, double* v, int ldv,
-       double* h, int ldh, double* ritz, double* bounds,
-       double* q, int ldq, double* workl, int* ipntr, double* workd)
+dsaup2(struct ARNAUD_state_d *V, double* resid, double* v, CBLAS_INT ldv,
+       double* h, CBLAS_INT ldh, double* ritz, double* bounds,
+       double* q, CBLAS_INT ldq, double* workl, CBLAS_INT* ipntr, double* workd)
 {
-    int int1 = 1, j, tmp_int, nevd2, nevm2;
+    CBLAS_INT int1 = 1, j, tmp_int, nevd2, nevm2;
     const double eps23 = pow(ulp, 2.0 / 3.0);
     double temp = 0.0;
     // Initialize to silence the compiler warning
@@ -786,7 +786,7 @@ LINE20:
                 V->np = V->aup2_kplusp - V->aup2_nev0;
 
                 tmp_int = (nevd2 < V->np ? nevd2 : V->np);
-                int tmp_int2 = V->aup2_kplusp - tmp_int;
+                CBLAS_INT tmp_int2 = V->aup2_kplusp - tmp_int;
 
                 dswap_(&tmp_int, &ritz[nevm2], &int1, &ritz[tmp_int2], &int1);
                 dswap_(&tmp_int, &bounds[nevm2], &int1, &bounds[tmp_int2], &int1);
@@ -890,7 +890,7 @@ LINE20:
         // To prevent possible stagnation, adjust the number
         // of Ritz values and the shifts.
 
-        int nevbef = V->aup2_nev;
+        CBLAS_INT nevbef = V->aup2_nev;
         V->aup2_nev += (V->nconv > (V->np / 2) ? (V->np / 2) : V->nconv);
         if ((V->aup2_nev == 1) && (V->aup2_kplusp >= 6))
         {
@@ -990,14 +990,14 @@ LINE100:
 
 
 void
-dsconv(int n, double *ritz, double *bounds, double tol, int* nconv)
+dsconv(CBLAS_INT n, double *ritz, double *bounds, double tol, CBLAS_INT* nconv)
 {
     const double eps23 = pow(ulp, 2.0 / 3.0);
     double temp = 0.0;
 
     *nconv = 0;
     // Convergence test
-    for (int i = 0; i < n; i++)
+    for (CBLAS_INT i = 0; i < n; i++)
     {
         temp = fmax(eps23, fabs(ritz[i]));
         if (fabs(bounds[i]) <= tol * temp) { *nconv += 1; }
@@ -1008,28 +1008,28 @@ dsconv(int n, double *ritz, double *bounds, double tol, int* nconv)
 
 
 void
-dseigt(double rnorm, int n, double* h, int ldh, double* eig, double* bounds,
-       double* workl, int* ierr)
+dseigt(double rnorm, CBLAS_INT n, double* h, CBLAS_INT ldh, double* eig, double* bounds,
+       double* workl, CBLAS_INT* ierr)
 {
-    int int1 = 1, tmp_int;
+    CBLAS_INT int1 = 1, tmp_int;
     dcopy_(&n, &h[ldh], &int1, eig, &int1);
     tmp_int = n - 1;
     dcopy_(&tmp_int, &h[1], &int1, workl, &int1);
     dstqrb(n, eig, workl, bounds, &workl[n], ierr);
     if (*ierr != 0) { return; }
-    for (int k = 0; k < n; k++) { bounds[k] = rnorm * fabs(bounds[k]); }
+    for (CBLAS_INT k = 0; k < n; k++) { bounds[k] = rnorm * fabs(bounds[k]); }
     return;
 }
 
 
 void
-dsaitr(struct ARNAUD_state_d *V, int k, int np, double* resid, double* rnorm,
-       double* v, int ldv, double* h, int ldh, int* ipntr, double* workd)
+dsaitr(struct ARNAUD_state_d *V, CBLAS_INT k, CBLAS_INT np, double* resid, double* rnorm,
+       double* v, CBLAS_INT ldv, double* h, CBLAS_INT ldh, CBLAS_INT* ipntr, double* workd)
 {
-    int i, infol, ipj, irj, ivj, jj, n, tmp_int;
+    CBLAS_INT i, infol, ipj, irj, ivj, jj, n, tmp_int;
     const double sq2o2 = sqrt(2.0) / 2.0;
 
-    int int1 = 1;
+    CBLAS_INT int1 = 1;
     double dbl1 = 1.0, dbl0 = 0.0, dblm1 = -1.0, temp1;
 
     n = V->n;  // n is constant, this is just for typing convenience
@@ -1411,10 +1411,10 @@ LINE100:
 
 
 void
-dsapps(int n, int* kev, int np, double* shift, double* v, int ldv, double* h, int ldh,
-       double* resid, double* q, int ldq, double* workd)
+dsapps(CBLAS_INT n, CBLAS_INT* kev, CBLAS_INT np, double* shift, double* v, CBLAS_INT ldv, double* h, CBLAS_INT ldh,
+       double* resid, double* q, CBLAS_INT ldq, double* workd)
 {
-    int i, iend, istart, jj, kplusp, tmp_int, int1 = 1;
+    CBLAS_INT i, iend, istart, jj, kplusp, tmp_int; CBLAS_INT int1 = 1;
     double a1, a2, a3, a4, c, f, g, r, s, sigma, tst1;
     double dbl0 = 0.0, dbl1 = 1.0, dblm1 = -1.0;
 
@@ -1591,10 +1591,10 @@ dsapps(int n, int* kev, int np, double* shift, double* v, int ldv, double* h, in
 
 
 void
-dsgets(struct ARNAUD_state_d *V, int* kev, int* np, double* ritz,
+dsgets(struct ARNAUD_state_d *V, CBLAS_INT* kev, CBLAS_INT* np, double* ritz,
        double* bounds, double* shifts)
 {
-    int kevd2, tmp1, tmp2, int1 = 1;
+    CBLAS_INT kevd2, tmp1, tmp2; CBLAS_INT int1 = 1;
     if (V->which == which_BE)
     {
         // Both ends of the spectrum are requested.
@@ -1640,10 +1640,10 @@ dsgets(struct ARNAUD_state_d *V, int* kev, int* np, double* ritz,
 
 
 void
-dgetv0(struct ARNAUD_state_d *V, int initv, int n, int j,
-       double* v, int ldv, double* resid, double* rnorm, int* ipntr, double* workd)
+dgetv0(struct ARNAUD_state_d *V, CBLAS_INT initv, CBLAS_INT n, CBLAS_INT j,
+       double* v, CBLAS_INT ldv, double* resid, double* rnorm, CBLAS_INT* ipntr, double* workd)
 {
-    int jj, int1 = 1;
+    CBLAS_INT jj; CBLAS_INT int1 = 1;
     const double sq2o2 = sqrt(2.0) / 2.0;
     double dbl1 = 1.0, dbl0 = 0.0, dblm1 = -1.0;
 
@@ -1803,9 +1803,9 @@ LINE40:
 
 
 static void
-dsortr(const enum ARNAUD_which w, const int apply, const int n, double* x1, double* x2)
+dsortr(const enum ARNAUD_which w, const CBLAS_INT apply, const CBLAS_INT n, double* x1, double* x2)
 {
-    int i, gap, pos;
+    CBLAS_INT i, gap, pos;
     double temp;
     ARNAUD_compare_rfunc *f;
 
@@ -1856,9 +1856,9 @@ dsortr(const enum ARNAUD_which w, const int apply, const int n, double* x1, doub
 
 
 static void
-dsesrt(const enum ARNAUD_which w, const int apply, const int n, double* x, int na, double* a, const int lda)
+dsesrt(const enum ARNAUD_which w, const CBLAS_INT apply, const CBLAS_INT n, double* x, CBLAS_INT na, double* a, const CBLAS_INT lda)
 {
-    int i, gap, pos, int1 = 1;
+    CBLAS_INT i, gap, pos; CBLAS_INT int1 = 1;
     double temp;
     ARNAUD_compare_rfunc *f;
 
@@ -1907,16 +1907,16 @@ dsesrt(const enum ARNAUD_which w, const int apply, const int n, double* x, int n
 
 
 void
-dstqrb(int n, double* d, double* e, double* z, double* work, int* info)
+dstqrb(CBLAS_INT n, double* d, double* e, double* z, double* work, CBLAS_INT* info)
 {
-    int int1 = 1, int0 = 0;
+    CBLAS_INT int1 = 1, int0 = 0;
     double eps2 = pow(ulp, 2.0);
     double safmin = unfl;
     double safmax = (1.0 / safmin);
     double ssfmax = sqrt(safmax) / 3.0;
     double ssfmin = sqrt(safmin) / eps2;
 
-    int nmaxit, jtot, i, ii, j, k, l1, m = 0, tmp_int = 0, l, lsv, lend, lendsv, iscale;
+    CBLAS_INT nmaxit, jtot, i, ii, j, k, l1, m = 0, tmp_int = 0, l, lsv, lend, lendsv, iscale;
     double anorm = 0.0, rt1 = 0.0, rt2 = 0.0, c = 0.0, s = 0.0, g = 0.0, r = 0.0, p = 0.0;
     double b, f, tst;
 
@@ -2229,7 +2229,7 @@ dstqrb(int n, double* d, double* e, double* z, double* work, int* info)
 }
 
 
-int sortr_LM(const double x1, const double x2) { return (fabs(x1) > fabs(x2)); }
-int sortr_SM(const double x1, const double x2) { return (fabs(x1) < fabs(x2)); }
-int sortr_LA(const double x1, const double x2) { return (x1 > x2); }
-int sortr_SA(const double x1, const double x2) { return (x1 < x2); }
+CBLAS_INT sortr_LM(const double x1, const double x2) { return (fabs(x1) > fabs(x2)); }
+CBLAS_INT sortr_SM(const double x1, const double x2) { return (fabs(x1) < fabs(x2)); }
+CBLAS_INT sortr_LA(const double x1, const double x2) { return (x1 > x2); }
+CBLAS_INT sortr_SA(const double x1, const double x2) { return (x1 < x2); }
