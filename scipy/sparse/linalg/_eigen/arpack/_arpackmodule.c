@@ -20,15 +20,15 @@ static PyObject* arpack_error_obj;
 
 // The following macros are used to define the field names in the ARPACK struct.
 #define STRUCT_INEXACT_FIELD_NAMES X(tol) X(getv0_rnorm0) X(aitr_betaj) X(aitr_rnorm1) X(aitr_wnorm) X(aup2_rnorm)
-#define STRUCT_CBLAS_INT_FIELD_NAMES X(info) X(n) X(nconv) X(ncv) X(nev) X(np) \
+#define STRUCT_INT_FIELD_NAMES X(info) X(n) X(nconv) X(ncv) X(nev) X(np) \
                                X(aitr_iter) X(aitr_j) X(aup2_kplusp) X(aup2_nev) X(aup2_nev0) X(aup2_np0) \
                                X(aup2_numcnv)
-#define STRUCT_INT_FIELD_NAMES X(ido) X(which) X(bmat) X(iter) X(maxiter) X(mode) X(shift) \
+#define STRUCT_PLAIN_INT_FIELD_NAMES X(ido) X(which) X(bmat) X(iter) X(maxiter) X(mode) X(shift) \
                                X(getv0_first) X(getv0_iter) X(getv0_itry) X(getv0_orth) \
                                X(aitr_orth1) X(aitr_orth2) X(aitr_restart) X(aitr_step3) X(aitr_step4) \
                                X(aitr_ierr) X(aup2_initv) X(aup2_iter) X(aup2_getv0) X(aup2_cnorm) \
                                X(aup2_update) X(aup2_ushift)
-#define STRUCT_FIELD_NAMES STRUCT_CBLAS_INT_FIELD_NAMES STRUCT_INT_FIELD_NAMES STRUCT_INEXACT_FIELD_NAMES
+#define STRUCT_FIELD_NAMES STRUCT_INT_FIELD_NAMES STRUCT_PLAIN_INT_FIELD_NAMES STRUCT_INEXACT_FIELD_NAMES
 
 // Error reporting macro
 #define ARPACK_ERROR(func_name, field_name, operation) \
@@ -66,7 +66,7 @@ pack_dict_to_state_s(PyObject* dict, struct ARNAUD_state_s* vars, const char* fu
             vars->name = (CBLAS_INT)PyLong_AsSsize_t(field_obj); \
             if (PyErr_Occurred()) { ARPACK_ERROR(func_name, #name, "Failed to convert"); return -1; } \
         } while(0);
-    STRUCT_CBLAS_INT_FIELD_NAMES
+    STRUCT_INT_FIELD_NAMES
     #undef X
 
     // Pack integer fields
@@ -77,7 +77,7 @@ pack_dict_to_state_s(PyObject* dict, struct ARNAUD_state_s* vars, const char* fu
             vars->name = (int)PyLong_AsLong(field_obj); \
             if (PyErr_Occurred()) { ARPACK_ERROR(func_name, #name, "Failed to convert"); return -1; } \
         } while(0);
-    STRUCT_INT_FIELD_NAMES
+    STRUCT_PLAIN_INT_FIELD_NAMES
     #undef X
 
     return 0;
@@ -111,7 +111,7 @@ pack_dict_to_state_d(PyObject* dict, struct ARNAUD_state_d* vars, const char* fu
             vars->name = (CBLAS_INT)PyLong_AsSsize_t(field_obj); \
             if (PyErr_Occurred()) { ARPACK_ERROR(func_name, #name, "Failed to convert"); return -1; } \
         } while(0);
-    STRUCT_CBLAS_INT_FIELD_NAMES
+    STRUCT_INT_FIELD_NAMES
     #undef X
 
     // Pack integer fields
@@ -122,7 +122,7 @@ pack_dict_to_state_d(PyObject* dict, struct ARNAUD_state_d* vars, const char* fu
             vars->name = (int)PyLong_AsLong(field_obj); \
             if (PyErr_Occurred()) { ARPACK_ERROR(func_name, #name, "Failed to convert"); return -1; } \
         } while(0);
-    STRUCT_INT_FIELD_NAMES
+    STRUCT_PLAIN_INT_FIELD_NAMES
     #undef X
 
     return 0;
@@ -162,7 +162,7 @@ unpack_state_s_to_dict(const struct ARNAUD_state_s* vars, PyObject* dict, const 
             } \
             Py_DECREF(tmp_obj); \
         } while(0);
-    STRUCT_CBLAS_INT_FIELD_NAMES
+    STRUCT_INT_FIELD_NAMES
     #undef X
 
     // Unpack integer fields
@@ -176,7 +176,7 @@ unpack_state_s_to_dict(const struct ARNAUD_state_s* vars, PyObject* dict, const 
             } \
             Py_DECREF(tmp_obj); \
         } while(0);
-    STRUCT_INT_FIELD_NAMES
+    STRUCT_PLAIN_INT_FIELD_NAMES
     #undef X
 
     return 0;
@@ -216,7 +216,7 @@ unpack_state_d_to_dict(const struct ARNAUD_state_d* vars, PyObject* dict, const 
             } \
             Py_DECREF(tmp_obj); \
         } while(0);
-    STRUCT_CBLAS_INT_FIELD_NAMES
+    STRUCT_INT_FIELD_NAMES
     #undef X
 
     // Unpack integer fields
@@ -230,7 +230,7 @@ unpack_state_d_to_dict(const struct ARNAUD_state_d* vars, PyObject* dict, const 
             } \
             Py_DECREF(tmp_obj); \
         } while(0);
-    STRUCT_INT_FIELD_NAMES
+    STRUCT_PLAIN_INT_FIELD_NAMES
     #undef X
 
     return 0;
@@ -1134,5 +1134,6 @@ PyInit__arpacklib(void)
 
 
 #undef STRUCT_FIELD_NAMES
+#undef STRUCT_PLAIN_INT_FIELD_NAMES
 #undef STRUCT_INT_FIELD_NAMES
 #undef STRUCT_INEXACT_FIELD_NAMES
