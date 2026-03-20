@@ -24,13 +24,6 @@
 #include "src/vode.h"
 #include "src/zvode.h"
 
-#ifdef HAVE_BLAS_ILP64
-#define F_INT npy_int64
-#define F_INT_NPY NPY_INT64
-#else
-#define F_INT int
-#define F_INT_NPY NPY_INT
-#endif
 
 // Error handling macros
 #define PYERR(errobj, message) { \
@@ -713,7 +706,7 @@ dvode_wrapper(PyObject* Py_UNUSED(dummy), PyObject* args, PyObject* kwdict)
     double *y, t, *rtol, *atol, *rwork;
     double *state_doubles = NULL;
     int *state_ints = NULL;
-    F_INT *iwork;
+    CBLAS_INT *iwork;
     dvode_callback_t callback = {0};
     vode_common_struct_t solver_state = {0};
 
@@ -776,9 +769,9 @@ dvode_wrapper(PyObject* Py_UNUSED(dummy), PyObject* args, PyObject* kwdict)
     rwork = (double*)PyArray_DATA(ap_rwork);
     lrw = (int)PyArray_SIZE(ap_rwork);
 
-    ap_iwork = (PyArrayObject*)PyArray_ContiguousFromObject(iwork_obj, F_INT_NPY, 1, 1);
+    ap_iwork = (PyArrayObject*)PyArray_ContiguousFromObject(iwork_obj, CBLAS_INT_NPY, 1, 1);
     if (!ap_iwork) { PYERR(PyExc_ValueError, "iwork must be a 1-D int array"); }
-    iwork = (F_INT*)PyArray_DATA(ap_iwork);
+    iwork = (CBLAS_INT*)PyArray_DATA(ap_iwork);
     liw = (int)PyArray_SIZE(ap_iwork);
 
     // Setup callback for DVODE
@@ -945,7 +938,7 @@ zvode_wrapper(PyObject* Py_UNUSED(dummy), PyObject* args, PyObject* kwdict)
     double t, *rtol, *atol, *rwork;
     double *state_doubles = NULL;
     int *state_ints = NULL;
-    F_INT *iwork;
+    CBLAS_INT *iwork;
     dvode_callback_t callback = {0};
     zvode_common_struct_t solver_state = {0};
 
@@ -1014,9 +1007,9 @@ zvode_wrapper(PyObject* Py_UNUSED(dummy), PyObject* args, PyObject* kwdict)
     rwork = (double*)PyArray_DATA(ap_rwork);
     lrw = (int)PyArray_SIZE(ap_rwork);
 
-    ap_iwork = (PyArrayObject*)PyArray_ContiguousFromObject(iwork_obj, F_INT_NPY, 1, 1);
+    ap_iwork = (PyArrayObject*)PyArray_ContiguousFromObject(iwork_obj, CBLAS_INT_NPY, 1, 1);
     if (!ap_iwork) { PYERR(PyExc_ValueError, "iwork must be a 1-D int array"); }
-    iwork = (F_INT*)PyArray_DATA(ap_iwork);
+    iwork = (CBLAS_INT*)PyArray_DATA(ap_iwork);
     liw = (int)PyArray_SIZE(ap_iwork);
 
     // Setup callback for ZVODE

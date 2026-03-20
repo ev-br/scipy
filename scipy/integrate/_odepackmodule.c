@@ -8,14 +8,6 @@
 #include <string.h>
 #define PyArray_MAX(a,b) (((a)>(b))?(a):(b))
 
-#ifdef HAVE_BLAS_ILP64
-#define F_INT npy_int64
-#define F_INT_NPY NPY_INT64
-#else
-#define F_INT int
-#define F_INT_NPY NPY_INT
-#endif
-
 
 #define PYERR(errobj,message) {\
     PyErr_SetString(errobj,message); \
@@ -588,7 +580,7 @@ odepack_odeint(PyObject *dummy, PyObject *args, PyObject *kwdict)
     PyObject *extra_args = NULL;
     PyObject *Dfun = Py_None;
     int neq, itol = 1, itask = 1, istate = 1, iopt = 0, lrw, liw, jt = 4;
-    F_INT *iwork;
+    CBLAS_INT *iwork;
     double *y, t, *tout, *rtol, *atol, *rwork;
     double h0 = 0.0, hmax = 0.0, hmin = 0.0;
     long ixpr = 0, mxstep = 0, mxhnil = 0, mxordn = 12, mxords = 5, ml = -1, mu = -1;
@@ -714,13 +706,13 @@ odepack_odeint(PyObject *dummy, PyObject *args, PyObject *kwdict)
         goto fail;
     }
 
-    if ((wa = (double *)calloc(lrw*sizeof(double) + liw*sizeof(F_INT), 1))==NULL) {
+    if ((wa = (double *)calloc(lrw*sizeof(double) + liw*sizeof(CBLAS_INT), 1))==NULL) {
         PyErr_NoMemory();
         goto fail;
     }
     allocated = 1;
     rwork = wa;
-    iwork = (F_INT *)((char *)(wa + lrw));
+    iwork = (CBLAS_INT *)((char *)(wa + lrw));
 
     iwork[0] = ml;
     iwork[1] = mu;
@@ -906,7 +898,7 @@ odepack_lsoda_step(PyObject *dummy, PyObject *args, PyObject *kwdict)
     double *y, t, tout, *rtol, *atol, *rwork;
     double *state_doubles = NULL;
     int *state_ints = NULL;
-    F_INT *iwork;
+    CBLAS_INT *iwork;
     int neq, itol, itask, istate, iopt, lrw, liw, jt;
     long tfirst = 0;
 
@@ -1024,12 +1016,12 @@ odepack_lsoda_step(PyObject *dummy, PyObject *args, PyObject *kwdict)
     rwork = (double *) PyArray_DATA(ap_rwork);
 
     // Get iwork array
-    ap_iwork = (PyArrayObject *) PyArray_ContiguousFromObject((PyObject*)ap_iwork, F_INT_NPY, 1, 1);
+    ap_iwork = (PyArrayObject *) PyArray_ContiguousFromObject((PyObject*)ap_iwork, CBLAS_INT_NPY, 1, 1);
     if (ap_iwork == NULL) {
         goto fail;
     }
     liw = PyArray_DIM(ap_iwork, 0);
-    iwork = (F_INT *) PyArray_DATA(ap_iwork);
+    iwork = (CBLAS_INT *) PyArray_DATA(ap_iwork);
 
     // Get state arrays if provided (optional for backward compatibility)
     if (ap_state_doubles != NULL) {
