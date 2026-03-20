@@ -84,11 +84,9 @@ enum CBLAS_SIDE {CblasLeft=141, CblasRight=142};
 #ifdef HAVE_BLAS_ILP64
 #define CBLAS_INT npy_int64
 #define CBLAS_INT_MAX NPY_MAX_INT64
-#define CBLAS_INT_NPY NPY_INT64
 #else
 #define CBLAS_INT int
 #define CBLAS_INT_MAX INT_MAX
-#define CBLAS_INT_NPY NPY_INT
 #endif
 
 #define BLASNAME(name) CBLAS_FUNC(name)

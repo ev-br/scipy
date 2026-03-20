@@ -8,6 +8,9 @@
 #include <string.h>
 #define PyArray_MAX(a,b) (((a)>(b))?(a):(b))
 
+/* NPY type code matching CBLAS_INT (int or npy_int64 depending on ILP64) */
+#define CBLAS_INT_NPY (sizeof(CBLAS_INT) == 8 ? NPY_INT64 : NPY_INT)
+
 
 #define PYERR(errobj,message) {\
     PyErr_SetString(errobj,message); \
