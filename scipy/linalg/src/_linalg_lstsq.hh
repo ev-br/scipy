@@ -8,7 +8,7 @@ template<typename T>
 int
 _lstsq_gelss(PyArrayObject *ap_Am, PyArrayObject *ap_b, PyArrayObject *ap_S, PyArrayObject *ap_x, PyArrayObject *ap_rank, double rcond, SliceStatusVec& vec_status)
 {
-    using real_type = typename detail::sp_type_traits<T>::real_type; // float if T==npy_cfloat etc
+    using real_type = typename detail::type_traits<T>::real_type; // float if T==npy_cfloat etc
     SliceStatus slice_status;
 
     // --------------------------------------------------------------------
@@ -58,7 +58,7 @@ _lstsq_gelss(PyArrayObject *ap_Am, PyArrayObject *ap_b, PyArrayObject *ap_S, PyA
     CBLAS_INT rank = min_mn;
 
     // query LWORK
-    T tmp = detail::sp_numeric_limits<T>::zero;
+    T tmp = detail::numeric_limits<T>::zero;
     call_gelss(&intm, &intn, &int_nrhs, NULL, &lda, NULL, &ldb, NULL, &r_rcond, &rank, &tmp, &lwork, NULL, &info);
     if(info != 0) { return -100; }
 
@@ -77,7 +77,7 @@ _lstsq_gelss(PyArrayObject *ap_Am, PyArrayObject *ap_b, PyArrayObject *ap_S, PyA
     T *work = &buffer[m*n + ldb*nrhs];
 
     real_type *rwork = NULL;
-    if constexpr (detail::sp_type_traits<T>::is_complex) {
+    if constexpr (detail::type_traits<T>::is_complex) {
         rwork = (real_type *)malloc(5*min_mn*sizeof(real_type));
 
         if (rwork == NULL) {
@@ -134,7 +134,7 @@ template<typename T>
 int
 _lstsq_gelsd(PyArrayObject *ap_Am, PyArrayObject *ap_b, PyArrayObject *ap_S, PyArrayObject *ap_x, PyArrayObject *ap_rank, double rcond, SliceStatusVec& vec_status)
 {
-    using real_type = typename detail::sp_type_traits<T>::real_type; // float if T==npy_cfloat etc
+    using real_type = typename detail::type_traits<T>::real_type; // float if T==npy_cfloat etc
     SliceStatus slice_status;
 
     // --------------------------------------------------------------------
@@ -179,14 +179,14 @@ _lstsq_gelsd(PyArrayObject *ap_Am, PyArrayObject *ap_b, PyArrayObject *ap_S, PyA
 
     // query LWORK, LRWORK and LIWORK
     // XXX: bump LRWORK and LIWORK up to improve perf? lwork=-1 query returns the *minimum* values
-    T tmp = detail::sp_numeric_limits<T>::zero;
+    T tmp = detail::numeric_limits<T>::zero;
     real_type tmp_lrwork = 0;
     CBLAS_INT liwork = 0, lrwork = 0;
     call_gelsd(&intm, &intn, &int_nrhs, NULL, &lda, NULL, &ldb, NULL, &r_rcond, &rank, &tmp, &lwork, &tmp_lrwork, &liwork, &info);
 
     if(info != 0) { return -100; }
     lwork = _calc_lwork(tmp);
-    lrwork = detail::sp_type_traits<T>::is_complex ? _calc_lwork(tmp_lrwork) : 0 ; 
+    lrwork = detail::type_traits<T>::is_complex ? _calc_lwork(tmp_lrwork) : 0 ; 
 
     if ((lwork < 0) || (lrwork < 0) || (liwork < 0)) {return -111;}
 
@@ -202,7 +202,7 @@ _lstsq_gelsd(PyArrayObject *ap_Am, PyArrayObject *ap_b, PyArrayObject *ap_S, PyA
     T *work = &buffer[m*n + ldb*nrhs];
 
     real_type *rwork = NULL;
-    if constexpr (detail::sp_type_traits<T>::is_complex) {
+    if constexpr (detail::type_traits<T>::is_complex) {
         rwork = (real_type *)malloc(lrwork*sizeof(real_type));
 
         if (rwork == NULL) {
@@ -265,7 +265,7 @@ template<typename T>
 int
 _lstsq_gelsy(PyArrayObject *ap_Am, PyArrayObject *ap_b, PyArrayObject *ap_x, PyArrayObject *ap_rank, double rcond, SliceStatusVec& vec_status)
 {
-    using real_type = typename detail::sp_type_traits<T>::real_type; // float if T==npy_cfloat etc
+    using real_type = typename detail::type_traits<T>::real_type; // float if T==npy_cfloat etc
     SliceStatus slice_status;
 
     // --------------------------------------------------------------------
@@ -308,7 +308,7 @@ _lstsq_gelsy(PyArrayObject *ap_Am, PyArrayObject *ap_b, PyArrayObject *ap_x, PyA
     CBLAS_INT rank = min_mn;
 
     // query LWORK
-    T tmp = detail::sp_numeric_limits<T>::zero;
+    T tmp = detail::numeric_limits<T>::zero;
     call_gelsy(&intm, &intn, &int_nrhs, NULL, &lda, NULL, &ldb, NULL, &r_rcond, &rank, &tmp, &lwork, NULL, &info);
     if(info != 0) { return -100; }
 
@@ -327,7 +327,7 @@ _lstsq_gelsy(PyArrayObject *ap_Am, PyArrayObject *ap_b, PyArrayObject *ap_x, PyA
     T *work = &buffer[m*n + ldb*nrhs];
 
     real_type *rwork = NULL;
-    if constexpr (detail::sp_type_traits<T>::is_complex) {
+    if constexpr (detail::type_traits<T>::is_complex) {
         rwork = (real_type *)malloc(2*n*sizeof(real_type));
 
         if (rwork == NULL) {
