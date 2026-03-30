@@ -4,6 +4,8 @@
  */
 
 
+namespace sp_linalg {
+
 /*
  * Copy eigenvectors from F-ordered real `v` (ldv, n)-shaped array in the ?GEEV convention
  * into an (n, n)-shaped C-ordered complex array `dst`.
@@ -15,7 +17,7 @@ transform_eigvecs(cmplx_type dst, real_type *v, CBLAS_INT ldv, CBLAS_INT n, real
         if(wi[j] == 0.) {
             // If the j-th eigenvalue is real, then u(j) = VL(:,j), the j-th column of VL.
             for (CBLAS_INT i=0; i<n; i++) {
-                dst[i*n + j] = cpack(v[i + j*ldv], real_type(0.));
+                dst[i*n + j] = detail::cpack(v[i + j*ldv], real_type(0.));
             }
             j += 1;
         }
@@ -24,8 +26,8 @@ transform_eigvecs(cmplx_type dst, real_type *v, CBLAS_INT ldv, CBLAS_INT n, real
             // then u(j) = VL(:,j) + i*VL(:,j+1) and u(j+1) = VL(:,j) - i*VL(:,j+1).
             for (CBLAS_INT i=0; i<n; i++) {
                 real_type re = v[i + j*ldv], im = v[i + (j+1)*ldv];
-                dst[i*n + j] = cpack(re, im);     // VL(i, j)
-                dst[i*n + j + 1] = cpack(re, -im);  // VL(i, j+1)
+                dst[i*n + j] = detail::cpack(re, im);     // VL(i, j)
+                dst[i*n + j + 1] = detail::cpack(re, -im);  // VL(i, j+1)
             }
             j += 2;
         }
@@ -37,8 +39,8 @@ template<typename T>
 int
 _reg_eig(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_vl, PyArrayObject *ap_vr, SliceStatusVec& vec_status)
 {
-    using real_type = typename sp_type_traits<T>::real_type; // float if T==npy_cfloat etc
-    using npy_complex_type = typename sp_type_traits<T>::npy_complex_type;
+    using real_type = typename detail::sp_type_traits<T>::real_type; // float if T==npy_cfloat etc
+    using npy_complex_type = typename detail::sp_type_traits<T>::npy_complex_type;
     SliceStatus slice_status;
 
     // --------------------------------------------------------------------
@@ -69,7 +71,7 @@ _reg_eig(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_vl, PyArra
     // Workspace computation and allocation
     // --------------------------------------------------------------------
     CBLAS_INT intn = (CBLAS_INT)n, lwork = -1, info;
-    T tmp = sp_numeric_limits<T>::zero;
+    T tmp = detail::sp_numeric_limits<T>::zero;
 
     char jobvl = compute_vl ? 'V': 'N', jobvr = compute_vr ? 'V' : 'N';
     CBLAS_INT lda = n;
@@ -78,7 +80,7 @@ _reg_eig(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_vl, PyArra
 
     // c- and z variants: lwork query segfaults with rwork=NULL, allocate it straight away
     real_type *rwork = NULL;
-    if constexpr (sp_type_traits<T>::is_complex) {
+    if constexpr (detail::sp_type_traits<T>::is_complex) {
         rwork = (real_type *)malloc(2*n*sizeof(real_type));
         if (rwork == NULL) {
             return -100;
@@ -94,7 +96,7 @@ _reg_eig(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_vl, PyArra
 
     // allocate
     npy_intp bufsize = n*n + lwork + n;
-    npy_intp wi_size = sp_type_traits<T>::is_complex ? 0 : n ;
+    npy_intp wi_size = detail::sp_type_traits<T>::is_complex ? 0 : n ;
     bufsize += wi_size;
 
     npy_intp vl_size = compute_vl ? ldvl*n : 0;
@@ -140,7 +142,7 @@ _reg_eig(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_vl, PyArra
         }
 
         // copy-and-tranpose W, VR and VL slices from temp buffers to the output;
-        if constexpr (sp_type_traits<T>::is_complex) {
+        if constexpr (detail::sp_type_traits<T>::is_complex) {
             memcpy(ptr_W, wr, n*sizeof(T));
             ptr_W += n;
 
@@ -156,7 +158,7 @@ _reg_eig(PyArrayObject* ap_Am, PyArrayObject *ap_w, PyArrayObject *ap_vl, PyArra
         else {
             // convert wr,wi into w
             for(npy_intp i=0; i<n; i++) {
-                ptr_W[i] = cpack(wr[i], wi[i]);
+                ptr_W[i] = detail::cpack(wr[i], wi[i]);
             }
             ptr_W += n;
 
@@ -183,8 +185,8 @@ template<typename T>
 int
 _gen_eig(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArrayObject *ap_beta, PyArrayObject *ap_vl, PyArrayObject *ap_vr, SliceStatusVec& vec_status)
 {
-    using real_type = typename sp_type_traits<T>::real_type; // float if T==npy_cfloat etc
-    using npy_complex_type = typename sp_type_traits<T>::npy_complex_type;
+    using real_type = typename detail::sp_type_traits<T>::real_type; // float if T==npy_cfloat etc
+    using npy_complex_type = typename detail::sp_type_traits<T>::npy_complex_type;
     SliceStatus slice_status;
 
     // --------------------------------------------------------------------
@@ -220,7 +222,7 @@ _gen_eig(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArra
     // Workspace computation and allocation
     // --------------------------------------------------------------------
     CBLAS_INT intn = (CBLAS_INT)n, lwork = -1, info;
-    T tmp = sp_numeric_limits<T>::zero;
+    T tmp = detail::sp_numeric_limits<T>::zero;
 
     char jobvl = compute_vl ? 'V': 'N', jobvr = compute_vr ? 'V' : 'N';
     CBLAS_INT lda = n;
@@ -230,7 +232,7 @@ _gen_eig(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArra
 
     // similar to geev, allocate rwork right away (not sure if ?ggev segfaults otherwise, too)
     real_type *rwork = NULL;
-    if constexpr (sp_type_traits<T>::is_complex) {
+    if constexpr (detail::sp_type_traits<T>::is_complex) {
         rwork = (real_type *)malloc(8*n*sizeof(real_type));
         if (rwork == NULL) {
             return -100;
@@ -246,7 +248,7 @@ _gen_eig(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArra
 
     // allocate
     npy_intp bufsize = n*n + n*n + lwork + n + n;
-    npy_intp alphai_size = sp_type_traits<T>::is_complex ? 0 : n ;
+    npy_intp alphai_size = detail::sp_type_traits<T>::is_complex ? 0 : n ;
     bufsize += alphai_size;
 
     npy_intp vl_size = compute_vl ? ldvl*n : 0;
@@ -298,7 +300,7 @@ _gen_eig(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArra
         }
 
         // copy-and-tranpose W, VR and VL slices from temp buffers to the output;
-        if constexpr (sp_type_traits<T>::is_complex) {
+        if constexpr (detail::sp_type_traits<T>::is_complex) {
             // alphar and beta are complex and compatible with the W array 
             memcpy(ptr_W, alphar, n*sizeof(T));
             ptr_W += n;
@@ -318,7 +320,7 @@ _gen_eig(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArra
         else {
             // convert alphar,alphai,beta into w
             for(npy_intp i=0; i<n; i++) {
-                ptr_W[i] = cpack(alphar[i], alphai[i]);
+                ptr_W[i] = detail::cpack(alphar[i], alphai[i]);
             }
             ptr_W += n;
 
@@ -363,3 +365,4 @@ _eig(PyArrayObject* ap_Am, PyArrayObject *ap_Bm, PyArrayObject *ap_w, PyArrayObj
     return info;
 }
 
+} // namespace sp_linalg
