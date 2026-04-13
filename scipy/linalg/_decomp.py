@@ -597,7 +597,7 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
         _check_format_errors_warnings(pfx + driver, err_lst)
 
     if subset_kind == "value":
-        m = int(np.asarray(m))
+        m = int(m)
         w = w[:m]
         if not eigvals_only:
             v = v[:, :m]

@@ -1,4 +1,5 @@
 #include <cstring>
+#include <limits>
 #include "_linalg_inv.hh"
 #include "_linalg_solve.hh"
 #include "_linalg_svd.hh"
@@ -19,6 +20,21 @@ convert_vec_status(SliceStatusVec& vec_status);
 
 std::string
 get_err_mesg(const std::string routine, const std::string func_name, int info);
+
+
+template<typename T>
+static int
+_checked_cast_py_ssize_t(Py_ssize_t value, T *out, const char *name)
+{
+    if (value < static_cast<Py_ssize_t>(std::numeric_limits<T>::min())
+            || value > static_cast<Py_ssize_t>(std::numeric_limits<T>::max())) {
+        PyErr_Format(PyExc_OverflowError,
+                     "`%s` is too large for the target integer type.", name);
+        return 0;
+    }
+    *out = static_cast<T>(value);
+    return 1;
+}
 
 
 /*
@@ -831,11 +847,16 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
     int overwrite_b = 0;
     int itype = 1;
     int subset_kind = 0;
-    int il = 1;
-    int iu = 0;
+    Py_ssize_t itype_in = 1;
+    Py_ssize_t subset_kind_in = 0;
+    Py_ssize_t il_in = 1;
+    Py_ssize_t iu_in = 0;
+    CBLAS_INT il = 1;
+    CBLAS_INT iu = 0;
     double vl = 0.0;
     double vu = 0.0;
     int driver = 0;
+    Py_ssize_t driver_in = 0;
 
     int info = 0;
     SliceStatusVec vec_status;
@@ -847,10 +868,10 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
     npy_intp shape_m[NPY_MAXDIMS];
     int w_typenum = 0;
 
-    if (!PyArg_ParseTuple(args, "O!ppppiiiiddi|O!",
+    if (!PyArg_ParseTuple(args, "O!ppppnnnnddn|O!",
             &PyArray_Type, (PyObject **)&ap_Am,
             &lower, &eigvals_only, &overwrite_a, &overwrite_b,
-            &itype, &subset_kind, &il, &iu, &vl, &vu, &driver,
+            &itype_in, &subset_kind_in, &il_in, &iu_in, &vl, &vu, &driver_in,
             &PyArray_Type, (PyObject **)&ap_Bm)
     ) {
         return NULL;
@@ -869,15 +890,25 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
         return NULL;
     }
 
+    if (!_checked_cast_py_ssize_t(itype_in, &itype, "itype")
+            || !_checked_cast_py_ssize_t(subset_kind_in, &subset_kind, "subset_kind")
+            || !_checked_cast_py_ssize_t(driver_in, &driver, "driver")
+            || !_checked_cast_py_ssize_t((Py_ssize_t)n, &iu, "n")) {
+        return NULL;
+    }
+
     if (subset_kind == SUBSET_INDEX) {
-        if (il < 1 || iu < il || iu > n) {
+        if (il_in < 1 || iu_in < il_in || iu_in > n) {
             PyErr_SetString(PyExc_ValueError, "Requested eigenvalue indices are not valid.");
+            return NULL;
+        }
+        if (!_checked_cast_py_ssize_t(il_in, &il, "il")
+                || !_checked_cast_py_ssize_t(iu_in, &iu, "iu")) {
             return NULL;
         }
     }
     else if (subset_kind == SUBSET_NONE) {
         il = 1;
-        iu = (int)n;
     }
     else if (subset_kind != SUBSET_VALUE) {
         PyErr_SetString(PyExc_ValueError, "Unknown subset kind.");
@@ -971,7 +1002,9 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
     }
 
     if (info < 0) {
-        PyErr_SetString(PyExc_RuntimeError, "Memory error in scipy.linalg.eigh.");
+        if (!PyErr_Occurred()) {
+            PyErr_SetString(PyExc_RuntimeError, "Memory error in scipy.linalg.eigh.");
+        }
         goto fail;
     }
 

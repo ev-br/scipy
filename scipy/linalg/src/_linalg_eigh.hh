@@ -1,4 +1,5 @@
 #pragma once
+#include <limits>
 /*
  * Templated loops for linalg.eigh
  */
@@ -18,6 +19,20 @@ enum EighSubsetKind : int {
     SUBSET_INDEX = 1,
     SUBSET_VALUE = 2
 };
+
+
+inline bool
+_checked_cast_cblas_int(npy_intp value, CBLAS_INT *out, const char *name)
+{
+    if (value < static_cast<npy_intp>(std::numeric_limits<CBLAS_INT>::min())
+            || value > static_cast<npy_intp>(std::numeric_limits<CBLAS_INT>::max())) {
+        PyErr_Format(PyExc_OverflowError,
+                     "`%s` is too large for the LAPACK integer type.", name);
+        return false;
+    }
+    *out = static_cast<CBLAS_INT>(value);
+    return true;
+}
 
 
 template<typename T>
@@ -45,7 +60,7 @@ _std_eigh_ev(
     real_type *ptr_w = (real_type *)PyArray_DATA(ap_w);
     T *ptr_v = ap_v == NULL ? NULL : (T *)PyArray_DATA(ap_v);
 
-    CBLAS_INT intn = (CBLAS_INT)n;
+    CBLAS_INT intn = 0, c_lwork = 0;
     CBLAS_INT info = 0;
     char jobz = eigvals_only ? 'N' : 'V';
     char uplo = lower ? 'L' : 'U';
@@ -54,6 +69,11 @@ _std_eigh_ev(
     npy_intp lwork = std::max<npy_intp>(sp_type_traits<T>::is_complex ? 2*n - 1 : 3*n - 1, 1);
     npy_intp rwork_size = sp_type_traits<T>::is_complex ? std::max<npy_intp>(3*n - 2, 1) : 0;
     npy_intp bufsize = data_size + lwork;
+
+    if (!_checked_cast_cblas_int(n, &intn, "n")
+            || !_checked_cast_cblas_int(lwork, &c_lwork, "lwork")) {
+        return -90;
+    }
 
     T *buf = (T *)malloc(bufsize*sizeof(T));
     real_type *rwork = NULL;
@@ -79,7 +99,7 @@ _std_eigh_ev(
             copy_slice_F(data, slice_ptr, n, n, strides[ndim-2], strides[ndim-1]);
         }
 
-        call_ev(&jobz, &uplo, &intn, data, &intn, ptr_w, work, (CBLAS_INT *)&lwork, rwork, &info);
+        call_ev(&jobz, &uplo, &intn, data, &intn, ptr_w, work, &c_lwork, rwork, &info);
 
         if (info != 0) {
             slice_status.lapack_info = (Py_ssize_t)info;
@@ -128,7 +148,7 @@ _std_eigh_evd(
     real_type *ptr_w = (real_type *)PyArray_DATA(ap_w);
     T *ptr_v = ap_v == NULL ? NULL : (T *)PyArray_DATA(ap_v);
 
-    CBLAS_INT intn = (CBLAS_INT)n;
+    CBLAS_INT intn = 0, c_lwork = 0, c_lrwork = 0, c_liwork = 0;
     CBLAS_INT info = 0;
     char jobz = eigvals_only ? 'N' : 'V';
     char uplo = lower ? 'L' : 'U';
@@ -145,6 +165,13 @@ _std_eigh_evd(
     }
 
     npy_intp bufsize = data_size + lwork;
+    if (!_checked_cast_cblas_int(n, &intn, "n")
+            || !_checked_cast_cblas_int(lwork, &c_lwork, "lwork")
+            || !_checked_cast_cblas_int(lrwork, &c_lrwork, "lrwork")
+            || !_checked_cast_cblas_int(liwork, &c_liwork, "liwork")) {
+        return -92;
+    }
+
     T *buf = (T *)malloc(bufsize*sizeof(T));
     if (buf == NULL) {
         return -92;
@@ -178,8 +205,8 @@ _std_eigh_evd(
         }
 
         call_evd(
-            &jobz, &uplo, &intn, data, &intn, ptr_w, work, (CBLAS_INT *)&lwork,
-            rwork, (CBLAS_INT *)&lrwork, iwork, (CBLAS_INT *)&liwork, &info
+            &jobz, &uplo, &intn, data, &intn, ptr_w, work, &c_lwork,
+            rwork, &c_lrwork, iwork, &c_liwork, &info
         );
 
         if (info != 0) {
@@ -233,9 +260,8 @@ _std_eigh_evr(
     real_type *ptr_w = (real_type *)PyArray_DATA(ap_w);
     T *ptr_v = ap_v == NULL ? NULL : (T *)PyArray_DATA(ap_v);
 
-    CBLAS_INT intn = (CBLAS_INT)n;
-    CBLAS_INT ldz = intn;
-    CBLAS_INT m_expected = subset_kind == SUBSET_INDEX ? iu - il + 1 : intn;
+    CBLAS_INT intn = 0, ldz = 0, c_lwork = 0, c_liwork = 0, c_lrwork = 0;
+    CBLAS_INT m_expected = 0;
     CBLAS_INT m_found = 0;
     CBLAS_INT info = 0;
     char jobz = eigvals_only ? 'N' : 'V';
@@ -244,12 +270,23 @@ _std_eigh_evr(
     real_type vl = vl_in, vu = vu_in, abstol = 0;
 
     npy_intp data_size = overwrite_a ? 0 : n*n;
-    npy_intp z_size = eigvals_only ? 0 : n*(subset_kind == SUBSET_INDEX ? m_expected : intn);
+    npy_intp z_size = 0;
     npy_intp lwork = std::max<npy_intp>(sp_type_traits<T>::is_complex ? 2*n : 26*n, 1);
     npy_intp liwork = std::max<npy_intp>(10*n, 1);
     npy_intp lrwork = sp_type_traits<T>::is_complex ? std::max<npy_intp>(24*n, 1) : 0;
     npy_intp isuppz_size = eigvals_only ? 0 : 2*std::max<npy_intp>(n, 1);
     npy_intp bufsize = data_size + z_size + lwork;
+
+    if (!_checked_cast_cblas_int(n, &intn, "n")
+            || !_checked_cast_cblas_int(n, &ldz, "ldz")
+            || !_checked_cast_cblas_int(lwork, &c_lwork, "lwork")
+            || !_checked_cast_cblas_int(liwork, &c_liwork, "liwork")
+            || !_checked_cast_cblas_int(lrwork, &c_lrwork, "lrwork")) {
+        return -100;
+    }
+    m_expected = subset_kind == SUBSET_INDEX ? iu - il + 1 : intn;
+    z_size = eigvals_only ? 0 : n*(subset_kind == SUBSET_INDEX ? m_expected : intn);
+    bufsize = data_size + z_size + lwork;
 
     T *buf = (T *)malloc(bufsize*sizeof(T));
     if (buf == NULL) {
@@ -293,8 +330,8 @@ _std_eigh_evr(
 
         call_evr(
             &jobz, &range, &uplo, &intn, data, &intn, &vl, &vu, &il, &iu,
-            &abstol, &m_found, w, z, &ldz, isuppz, work, (CBLAS_INT *)&lwork,
-            rwork, (CBLAS_INT *)&lrwork, iwork, (CBLAS_INT *)&liwork, &info
+            &abstol, &m_found, w, z, &ldz, isuppz, work, &c_lwork,
+            rwork, &c_lrwork, iwork, &c_liwork, &info
         );
 
         if (info != 0) {
@@ -356,8 +393,7 @@ _std_eigh_evx(
     real_type *ptr_w = (real_type *)PyArray_DATA(ap_w);
     T *ptr_v = ap_v == NULL ? NULL : (T *)PyArray_DATA(ap_v);
 
-    CBLAS_INT intn = (CBLAS_INT)n;
-    CBLAS_INT ldz = intn;
+    CBLAS_INT intn = 0, ldz = 0, c_lwork = 0;
     CBLAS_INT m_expected = subset_kind == SUBSET_INDEX ? iu - il + 1 : intn;
     CBLAS_INT m_found = 0;
     CBLAS_INT info = 0;
@@ -367,12 +403,21 @@ _std_eigh_evx(
     real_type vl = vl_in, vu = vu_in, abstol = 0;
 
     npy_intp data_size = overwrite_a ? 0 : n*n;
-    npy_intp z_size = eigvals_only ? 0 : n*(subset_kind == SUBSET_INDEX ? m_expected : intn);
+    npy_intp z_size = 0;
     npy_intp lwork = std::max<npy_intp>(sp_type_traits<T>::is_complex ? 2*n : 8*n, 1);
     npy_intp iwork_size = std::max<npy_intp>(5*n, 1);
     npy_intp rwork_size = sp_type_traits<T>::is_complex ? std::max<npy_intp>(7*n, 1) : 0;
     npy_intp ifail_size = eigvals_only ? 0 : n;
     npy_intp bufsize = data_size + z_size + lwork;
+
+    if (!_checked_cast_cblas_int(n, &intn, "n")
+            || !_checked_cast_cblas_int(n, &ldz, "ldz")
+            || !_checked_cast_cblas_int(lwork, &c_lwork, "lwork")) {
+        return -104;
+    }
+    m_expected = subset_kind == SUBSET_INDEX ? iu - il + 1 : intn;
+    z_size = eigvals_only ? 0 : n*(subset_kind == SUBSET_INDEX ? m_expected : intn);
+    bufsize = data_size + z_size + lwork;
 
     T *buf = (T *)malloc(bufsize*sizeof(T));
     if (buf == NULL) {
@@ -416,7 +461,7 @@ _std_eigh_evx(
 
         call_evx(
             &jobz, &range, &uplo, &intn, data, &intn, &vl, &vu, &il, &iu,
-            &abstol, &m_found, w, z, &ldz, work, (CBLAS_INT *)&lwork, rwork,
+            &abstol, &m_found, w, z, &ldz, work, &c_lwork, rwork,
             iwork, ifail, &info
         );
 
@@ -478,17 +523,22 @@ _gen_eigh_gv(
     real_type *ptr_w = (real_type *)PyArray_DATA(ap_w);
     T *ptr_v = ap_v == NULL ? NULL : (T *)PyArray_DATA(ap_v);
 
-    CBLAS_INT intn = (CBLAS_INT)n;
+    CBLAS_INT intn = 0, c_lwork = 0, c_itype = 0;
     CBLAS_INT info = 0;
     char jobz = eigvals_only ? 'N' : 'V';
     char uplo = lower ? 'L' : 'U';
-    CBLAS_INT c_itype = (CBLAS_INT)itype;
 
     npy_intp A_size = overwrite_a ? 0 : n*n;
     npy_intp B_size = overwrite_b ? 0 : n*n;
     npy_intp lwork = std::max<npy_intp>(sp_type_traits<T>::is_complex ? 2*n - 1 : 3*n - 1, 1);
     npy_intp rwork_size = sp_type_traits<T>::is_complex ? std::max<npy_intp>(3*n - 2, 1) : 0;
     npy_intp bufsize = A_size + B_size + lwork;
+
+    if (!_checked_cast_cblas_int(n, &intn, "n")
+            || !_checked_cast_cblas_int(lwork, &c_lwork, "lwork")
+            || !_checked_cast_cblas_int(static_cast<npy_intp>(itype), &c_itype, "itype")) {
+        return -104;
+    }
 
     T *buf = (T *)malloc(bufsize*sizeof(T));
     real_type *rwork = NULL;
@@ -520,7 +570,7 @@ _gen_eigh_gv(
         }
 
         call_gv(&c_itype, &jobz, &uplo, &intn, data_A, &intn, data_B, &intn,
-                ptr_w, work, (CBLAS_INT *)&lwork, rwork, &info);
+                ptr_w, work, &c_lwork, rwork, &info);
 
         if (info != 0) {
             slice_status.lapack_info = (Py_ssize_t)info;
@@ -571,11 +621,10 @@ _gen_eigh_gvd(
     real_type *ptr_w = (real_type *)PyArray_DATA(ap_w);
     T *ptr_v = ap_v == NULL ? NULL : (T *)PyArray_DATA(ap_v);
 
-    CBLAS_INT intn = (CBLAS_INT)n;
+    CBLAS_INT intn = 0, c_lwork = 0, c_lrwork = 0, c_liwork = 0, c_itype = 0;
     CBLAS_INT info = 0;
     char jobz = eigvals_only ? 'N' : 'V';
     char uplo = lower ? 'L' : 'U';
-    CBLAS_INT c_itype = (CBLAS_INT)itype;
 
     npy_intp A_size = overwrite_a ? 0 : n*n;
     npy_intp B_size = overwrite_b ? 0 : n*n;
@@ -590,6 +639,14 @@ _gen_eigh_gvd(
     }
 
     npy_intp bufsize = A_size + B_size + lwork;
+    if (!_checked_cast_cblas_int(n, &intn, "n")
+            || !_checked_cast_cblas_int(lwork, &c_lwork, "lwork")
+            || !_checked_cast_cblas_int(lrwork, &c_lrwork, "lrwork")
+            || !_checked_cast_cblas_int(liwork, &c_liwork, "liwork")
+            || !_checked_cast_cblas_int(static_cast<npy_intp>(itype), &c_itype, "itype")) {
+        return -110;
+    }
+
     T *buf = (T *)malloc(bufsize*sizeof(T));
     if (buf == NULL) {
         return -110;
@@ -629,8 +686,8 @@ _gen_eigh_gvd(
 
         call_gvd(
             &c_itype, &jobz, &uplo, &intn, data_A, &intn, data_B, &intn,
-            ptr_w, work, (CBLAS_INT *)&lwork, rwork, (CBLAS_INT *)&lrwork,
-            iwork, (CBLAS_INT *)&liwork, &info
+            ptr_w, work, &c_lwork, rwork, &c_lrwork,
+            iwork, &c_liwork, &info
         );
 
         if (info != 0) {
@@ -686,12 +743,10 @@ _gen_eigh_gvx(
     real_type *ptr_w = (real_type *)PyArray_DATA(ap_w);
     T *ptr_v = ap_v == NULL ? NULL : (T *)PyArray_DATA(ap_v);
 
-    CBLAS_INT intn = (CBLAS_INT)n;
-    CBLAS_INT ldz = intn;
-    CBLAS_INT m_expected = subset_kind == SUBSET_INDEX ? iu - il + 1 : intn;
+    CBLAS_INT intn = 0, ldz = 0, c_lwork = 0, c_itype = 0;
+    CBLAS_INT m_expected = 0;
     CBLAS_INT m_found = 0;
     CBLAS_INT info = 0;
-    CBLAS_INT c_itype = (CBLAS_INT)itype;
     char jobz = eigvals_only ? 'N' : 'V';
     char range = subset_kind == SUBSET_INDEX ? 'I' : (subset_kind == SUBSET_VALUE ? 'V' : 'A');
     char uplo = lower ? 'L' : 'U';
@@ -699,12 +754,22 @@ _gen_eigh_gvx(
 
     npy_intp A_size = overwrite_a ? 0 : n*n;
     npy_intp B_size = overwrite_b ? 0 : n*n;
-    npy_intp z_size = eigvals_only ? 0 : n*(subset_kind == SUBSET_INDEX ? m_expected : intn);
+    npy_intp z_size = 0;
     npy_intp lwork = std::max<npy_intp>(sp_type_traits<T>::is_complex ? 2*n : 8*n, 1);
     npy_intp iwork_size = 5*n;
     npy_intp rwork_size = sp_type_traits<T>::is_complex ? 7*n : 0;
     npy_intp ifail_size = eigvals_only ? 0 : n;
     npy_intp bufsize = A_size + B_size + z_size + lwork;
+
+    if (!_checked_cast_cblas_int(n, &intn, "n")
+            || !_checked_cast_cblas_int(n, &ldz, "ldz")
+            || !_checked_cast_cblas_int(lwork, &c_lwork, "lwork")
+            || !_checked_cast_cblas_int(static_cast<npy_intp>(itype), &c_itype, "itype")) {
+        return -120;
+    }
+    m_expected = subset_kind == SUBSET_INDEX ? iu - il + 1 : intn;
+    z_size = eigvals_only ? 0 : n*(subset_kind == SUBSET_INDEX ? m_expected : intn);
+    bufsize = A_size + B_size + z_size + lwork;
 
     T *buf = (T *)malloc(bufsize*sizeof(T));
     if (buf == NULL) {
@@ -754,7 +819,7 @@ _gen_eigh_gvx(
         call_gvx(
             &c_itype, &jobz, &range, &uplo, &intn, data_A, &intn, data_B, &intn,
             &vl, &vu, &il, &iu, &abstol, &m_found, w, z, &ldz, work,
-            (CBLAS_INT *)&lwork, rwork, iwork, ifail, &info
+            &c_lwork, rwork, iwork, ifail, &info
         );
 
         if (info != 0) {
