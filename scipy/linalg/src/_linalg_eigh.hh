@@ -56,7 +56,7 @@ _std_eigh_ev(
         outer_size *= shape[i];
     }
 
-    npy_intp *ptr_m = (npy_intp *)PyArray_DATA(ap_m);
+    CBLAS_INT *ptr_m = (CBLAS_INT *)PyArray_DATA(ap_m);
     real_type *ptr_w = (real_type *)PyArray_DATA(ap_w);
     T *ptr_v = ap_v == NULL ? NULL : (T *)PyArray_DATA(ap_v);
 
@@ -108,7 +108,7 @@ _std_eigh_ev(
         }
 
         ptr_w += n;
-        *ptr_m++ = n;
+        *ptr_m++ = intn;
 
         if (!eigvals_only) {
             copy_slice_F_to_C(ptr_v, data, n, n, intn);
@@ -144,7 +144,7 @@ _std_eigh_evd(
         outer_size *= shape[i];
     }
 
-    npy_intp *ptr_m = (npy_intp *)PyArray_DATA(ap_m);
+    CBLAS_INT *ptr_m = (CBLAS_INT *)PyArray_DATA(ap_m);
     real_type *ptr_w = (real_type *)PyArray_DATA(ap_w);
     T *ptr_v = ap_v == NULL ? NULL : (T *)PyArray_DATA(ap_v);
 
@@ -216,7 +216,7 @@ _std_eigh_evd(
         }
 
         ptr_w += n;
-        *ptr_m++ = n;
+        *ptr_m++ = intn;
 
         if (!eigvals_only) {
             copy_slice_F_to_C(ptr_v, data, n, n, intn);
@@ -256,7 +256,7 @@ _std_eigh_evr(
         outer_size *= shape[i];
     }
 
-    npy_intp *ptr_m = (npy_intp *)PyArray_DATA(ap_m);
+    CBLAS_INT *ptr_m = (CBLAS_INT *)PyArray_DATA(ap_m);
     real_type *ptr_w = (real_type *)PyArray_DATA(ap_w);
     T *ptr_v = ap_v == NULL ? NULL : (T *)PyArray_DATA(ap_v);
 
@@ -389,7 +389,7 @@ _std_eigh_evx(
         outer_size *= shape[i];
     }
 
-    npy_intp *ptr_m = (npy_intp *)PyArray_DATA(ap_m);
+    CBLAS_INT *ptr_m = (CBLAS_INT *)PyArray_DATA(ap_m);
     real_type *ptr_w = (real_type *)PyArray_DATA(ap_w);
     T *ptr_v = ap_v == NULL ? NULL : (T *)PyArray_DATA(ap_v);
 
@@ -519,7 +519,7 @@ _gen_eigh_gv(
         outer_size *= shape[i];
     }
 
-    npy_intp *ptr_m = (npy_intp *)PyArray_DATA(ap_m);
+    CBLAS_INT *ptr_m = (CBLAS_INT *)PyArray_DATA(ap_m);
     real_type *ptr_w = (real_type *)PyArray_DATA(ap_w);
     T *ptr_v = ap_v == NULL ? NULL : (T *)PyArray_DATA(ap_v);
 
@@ -579,7 +579,7 @@ _gen_eigh_gv(
         }
 
         ptr_w += n;
-        *ptr_m++ = n;
+        *ptr_m++ = intn;
 
         if (!eigvals_only) {
             copy_slice_F_to_C(ptr_v, data_A, n, n, intn);
@@ -617,7 +617,7 @@ _gen_eigh_gvd(
         outer_size *= shape[i];
     }
 
-    npy_intp *ptr_m = (npy_intp *)PyArray_DATA(ap_m);
+    CBLAS_INT *ptr_m = (CBLAS_INT *)PyArray_DATA(ap_m);
     real_type *ptr_w = (real_type *)PyArray_DATA(ap_w);
     T *ptr_v = ap_v == NULL ? NULL : (T *)PyArray_DATA(ap_v);
 
@@ -697,7 +697,7 @@ _gen_eigh_gvd(
         }
 
         ptr_w += n;
-        *ptr_m++ = n;
+        *ptr_m++ = intn;
 
         if (!eigvals_only) {
             copy_slice_F_to_C(ptr_v, data_A, n, n, intn);
@@ -739,7 +739,7 @@ _gen_eigh_gvx(
         outer_size *= shape[i];
     }
 
-    npy_intp *ptr_m = (npy_intp *)PyArray_DATA(ap_m);
+    CBLAS_INT *ptr_m = (CBLAS_INT *)PyArray_DATA(ap_m);
     real_type *ptr_w = (real_type *)PyArray_DATA(ap_w);
     T *ptr_v = ap_v == NULL ? NULL : (T *)PyArray_DATA(ap_v);
 

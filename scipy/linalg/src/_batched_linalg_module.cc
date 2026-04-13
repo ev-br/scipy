@@ -1,4 +1,5 @@
 #include <cstring>
+#include <cmath>
 #include <limits>
 #include "_linalg_inv.hh"
 #include "_linalg_solve.hh"
@@ -33,6 +34,29 @@ _checked_cast_py_ssize_t(Py_ssize_t value, T *out, const char *name)
         return 0;
     }
     *out = static_cast<T>(value);
+    return 1;
+}
+
+
+static int
+_check_eigh_dimension_bound(npy_intp n)
+{
+    /*
+     * The batched eigh kernels allocate buffers with worst-case size scaling
+     * like 3*n*n + O(n). Guard n up front so all subsequent npy_intp-based
+     * size arithmetic remains in range.
+     */
+    if (n < 0) {
+        PyErr_SetString(PyExc_ValueError, "Matrix dimension must be nonnegative.");
+        return 0;
+    }
+    long double max_npy_intp = static_cast<long double>(std::numeric_limits<npy_intp>::max());
+    npy_intp safe_n = static_cast<npy_intp>(std::floor(std::sqrt(max_npy_intp / 4.0L)));
+    if (n > safe_n) {
+        PyErr_SetString(PyExc_OverflowError,
+                        "Matrix dimension is too large for internal eigh workspace allocation.");
+        return 0;
+    }
     return 1;
 }
 
@@ -860,13 +884,17 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
 
     int info = 0;
     SliceStatusVec vec_status;
+    PyObject *result = NULL;
     PyObject *ret_lst = NULL;
     PyObject *v_ret = NULL;
+    PyObject *w_ret = NULL;
+    PyObject *m_ret = NULL;
     npy_intp m_out = 0;
     npy_intp shape_w[NPY_MAXDIMS];
     npy_intp shape_v[NPY_MAXDIMS];
     npy_intp shape_m[NPY_MAXDIMS];
     int w_typenum = 0;
+    int m_typenum = 0;
 
     if (!PyArg_ParseTuple(args, "O!ppppnnnnddn|O!",
             &PyArray_Type, (PyObject **)&ap_Am,
@@ -915,6 +943,17 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
         return NULL;
     }
 
+    if (sizeof(CBLAS_INT) == sizeof(npy_int32)) {
+        m_typenum = NPY_INT32;
+    }
+    else if (sizeof(CBLAS_INT) == sizeof(npy_int64)) {
+        m_typenum = NPY_INT64;
+    }
+    else {
+        PyErr_SetString(PyExc_RuntimeError, "Unsupported CBLAS_INT size.");
+        return NULL;
+    }
+
     if (ap_Bm != NULL) {
         if (!_check_dtype_and_flags(ap_Bm, "eigh")) {
             goto fail;
@@ -931,7 +970,7 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
         }
     }
 
-    m_out = subset_kind == SUBSET_INDEX ? (iu - il + 1) : n;
+    m_out = subset_kind == SUBSET_INDEX ? (npy_intp)(iu_in - il_in + 1) : n;
     for (int i = 0; i < ndim - 1; i++) {
         shape_w[i] = shape[i];
         shape_v[i] = shape[i];
@@ -958,7 +997,7 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
         }
     }
 
-    ap_m = (PyArrayObject *)PyArray_SimpleNew(ndim - 2, shape_m, NPY_INTP);
+    ap_m = (PyArrayObject *)PyArray_SimpleNew(ndim - 2, shape_m, m_typenum);
     if (ap_m == NULL) {
         PyErr_NoMemory();
         goto fail;
@@ -967,8 +1006,35 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
     if (n == 0) {
         PyArray_FILLWBYTE(ap_m, 0);
         ret_lst = convert_vec_status(vec_status);
-        v_ret = (ap_v == NULL) ? Py_None : PyArray_Return(ap_v);
-        return Py_BuildValue("NNNN", PyArray_Return(ap_w), v_ret, ret_lst, PyArray_Return(ap_m));
+        if (ret_lst == NULL) {
+            goto fail;
+        }
+        v_ret = (ap_v == NULL) ? Py_NewRef(Py_None) : PyArray_Return(ap_v);
+        if (v_ret == NULL) {
+            goto fail;
+        }
+        if (ap_v != NULL) {
+            ap_v = NULL;
+        }
+        w_ret = PyArray_Return(ap_w);
+        if (w_ret == NULL) {
+            goto fail;
+        }
+        ap_w = NULL;
+        m_ret = PyArray_Return(ap_m);
+        if (m_ret == NULL) {
+            goto fail;
+        }
+        ap_m = NULL;
+        result = PyTuple_New(4);
+        if (result == NULL) {
+            goto fail;
+        }
+        PyTuple_SET_ITEM(result, 0, w_ret);
+        PyTuple_SET_ITEM(result, 1, v_ret);
+        PyTuple_SET_ITEM(result, 2, ret_lst);
+        PyTuple_SET_ITEM(result, 3, m_ret);
+        return result;
     }
 
     switch (typenum) {
@@ -1009,10 +1075,41 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
     }
 
     ret_lst = convert_vec_status(vec_status);
-    v_ret = (ap_v == NULL) ? Py_None : PyArray_Return(ap_v);
-    return Py_BuildValue("NNNN", PyArray_Return(ap_w), v_ret, ret_lst, PyArray_Return(ap_m));
+    if (ret_lst == NULL) {
+        goto fail;
+    }
+    v_ret = (ap_v == NULL) ? Py_NewRef(Py_None) : PyArray_Return(ap_v);
+    if (v_ret == NULL) {
+        goto fail;
+    }
+    if (ap_v != NULL) {
+        ap_v = NULL;
+    }
+    w_ret = PyArray_Return(ap_w);
+    if (w_ret == NULL) {
+        goto fail;
+    }
+    ap_w = NULL;
+    m_ret = PyArray_Return(ap_m);
+    if (m_ret == NULL) {
+        goto fail;
+    }
+    ap_m = NULL;
+    result = PyTuple_New(4);
+    if (result == NULL) {
+        goto fail;
+    }
+    PyTuple_SET_ITEM(result, 0, w_ret);
+    PyTuple_SET_ITEM(result, 1, v_ret);
+    PyTuple_SET_ITEM(result, 2, ret_lst);
+    PyTuple_SET_ITEM(result, 3, m_ret);
+    return result;
 
 fail:
+    Py_XDECREF(ret_lst);
+    Py_XDECREF(v_ret);
+    Py_XDECREF(w_ret);
+    Py_XDECREF(m_ret);
     Py_XDECREF(ap_w);
     Py_XDECREF(ap_v);
     Py_XDECREF(ap_m);
