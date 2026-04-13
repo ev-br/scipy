@@ -4,6 +4,7 @@
 #include "_linalg_svd.hh"
 #include "_linalg_lstsq.hh"
 #include "_linalg_eig.hh"
+#include "_linalg_eigh.hh"
 #include "_linalg_cholesky.hh"
 #include "_linalg_qr.hh"
 #include "_common_array_utils.hh"
@@ -817,6 +818,174 @@ fail:
 }
 
 
+static PyObject*
+_linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
+    PyArrayObject *ap_Am = NULL;
+    PyArrayObject *ap_Bm = NULL;
+    PyArrayObject *ap_w = NULL;
+    PyArrayObject *ap_v = NULL;
+    PyArrayObject *ap_m = NULL;
+    int lower = 1;
+    int eigvals_only = 0;
+    int overwrite_a = 0;
+    int overwrite_b = 0;
+    int itype = 1;
+    int subset_kind = 0;
+    int il = 1;
+    int iu = 0;
+    double vl = 0.0;
+    double vu = 0.0;
+    int driver = 0;
+
+    int info = 0;
+    SliceStatusVec vec_status;
+    PyObject *ret_lst = NULL;
+    PyObject *v_ret = NULL;
+    npy_intp m_out = 0;
+    npy_intp shape_w[NPY_MAXDIMS];
+    npy_intp shape_v[NPY_MAXDIMS];
+    npy_intp shape_m[NPY_MAXDIMS];
+    int w_typenum = 0;
+
+    if (!PyArg_ParseTuple(args, "O!ppppiiiiddi|O!",
+            &PyArray_Type, (PyObject **)&ap_Am,
+            &lower, &eigvals_only, &overwrite_a, &overwrite_b,
+            &itype, &subset_kind, &il, &iu, &vl, &vu, &driver,
+            &PyArray_Type, (PyObject **)&ap_Bm)
+    ) {
+        return NULL;
+    }
+
+    if (!_check_dtype_and_flags(ap_Am, "eigh")) {
+        return NULL;
+    }
+
+    int typenum = PyArray_TYPE(ap_Am);
+    int ndim = PyArray_NDIM(ap_Am);
+    npy_intp *shape = PyArray_SHAPE(ap_Am);
+    npy_intp n = shape[ndim - 1];
+    if (PyArray_DIM(ap_Am, ndim - 2) != n) {
+        PyErr_SetString(PyExc_ValueError, "Expected a square matrix");
+        return NULL;
+    }
+
+    if (subset_kind == SUBSET_INDEX) {
+        if (il < 1 || iu < il || iu > n) {
+            PyErr_SetString(PyExc_ValueError, "Requested eigenvalue indices are not valid.");
+            return NULL;
+        }
+    }
+    else if (subset_kind == SUBSET_NONE) {
+        il = 1;
+        iu = (int)n;
+    }
+    else if (subset_kind != SUBSET_VALUE) {
+        PyErr_SetString(PyExc_ValueError, "Unknown subset kind.");
+        return NULL;
+    }
+
+    if (ap_Bm != NULL) {
+        if (!_check_dtype_and_flags(ap_Bm, "eigh")) {
+            goto fail;
+        }
+        if (PyArray_NDIM(ap_Bm) != ndim) {
+            PyErr_SetString(PyExc_ValueError, "a and b must have the same shape");
+            goto fail;
+        }
+        for (int i = 0; i < ndim; i++) {
+            if (PyArray_DIM(ap_Bm, i) != shape[i]) {
+                PyErr_SetString(PyExc_ValueError, "a and b must have the same shape");
+                goto fail;
+            }
+        }
+    }
+
+    m_out = subset_kind == SUBSET_INDEX ? (iu - il + 1) : n;
+    for (int i = 0; i < ndim - 1; i++) {
+        shape_w[i] = shape[i];
+        shape_v[i] = shape[i];
+    }
+    for (int i = 0; i < ndim - 2; i++) {
+        shape_m[i] = shape[i];
+    }
+    shape_w[ndim - 2] = m_out;
+    shape_v[ndim - 1] = m_out;
+
+    w_typenum = (typenum == NPY_FLOAT32 || typenum == NPY_COMPLEX64)
+        ? NPY_FLOAT32 : NPY_FLOAT64;
+    ap_w = (PyArrayObject *)PyArray_SimpleNew(ndim - 1, shape_w, w_typenum);
+    if (ap_w == NULL) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    if (!eigvals_only) {
+        ap_v = (PyArrayObject *)PyArray_SimpleNew(ndim, shape_v, typenum);
+        if (ap_v == NULL) {
+            PyErr_NoMemory();
+            goto fail;
+        }
+    }
+
+    ap_m = (PyArrayObject *)PyArray_SimpleNew(ndim - 2, shape_m, NPY_INTP);
+    if (ap_m == NULL) {
+        PyErr_NoMemory();
+        goto fail;
+    }
+
+    if (n == 0) {
+        PyArray_FILLWBYTE(ap_m, 0);
+        ret_lst = convert_vec_status(vec_status);
+        v_ret = (ap_v == NULL) ? Py_None : PyArray_Return(ap_v);
+        return Py_BuildValue("NNNN", PyArray_Return(ap_w), v_ret, ret_lst, PyArray_Return(ap_m));
+    }
+
+    switch (typenum) {
+        case(NPY_FLOAT32):
+            info = _eigh<float>(ap_Am, ap_Bm, ap_w, ap_v, ap_m, lower, eigvals_only,
+                                overwrite_a, overwrite_b, itype, subset_kind, il, iu,
+                                (float)vl, (float)vu,
+                                driver, vec_status);
+            break;
+        case(NPY_FLOAT64):
+            info = _eigh<double>(ap_Am, ap_Bm, ap_w, ap_v, ap_m, lower, eigvals_only,
+                                 overwrite_a, overwrite_b, itype, subset_kind, il, iu,
+                                 vl, vu,
+                                 driver, vec_status);
+            break;
+        case(NPY_COMPLEX64):
+            info = _eigh<npy_complex64>(ap_Am, ap_Bm, ap_w, ap_v, ap_m, lower, eigvals_only,
+                                        overwrite_a, overwrite_b, itype, subset_kind, il, iu,
+                                        (float)vl, (float)vu,
+                                        driver, vec_status);
+            break;
+        case(NPY_COMPLEX128):
+            info = _eigh<npy_complex128>(ap_Am, ap_Bm, ap_w, ap_v, ap_m, lower, eigvals_only,
+                                         overwrite_a, overwrite_b, itype, subset_kind, il, iu,
+                                         vl, vu,
+                                         driver, vec_status);
+            break;
+        default:
+            PyErr_SetString(PyExc_RuntimeError, "Unknown array type.");
+            goto fail;
+    }
+
+    if (info < 0) {
+        PyErr_SetString(PyExc_RuntimeError, "Memory error in scipy.linalg.eigh.");
+        goto fail;
+    }
+
+    ret_lst = convert_vec_status(vec_status);
+    v_ret = (ap_v == NULL) ? Py_None : PyArray_Return(ap_v);
+    return Py_BuildValue("NNNN", PyArray_Return(ap_w), v_ret, ret_lst, PyArray_Return(ap_m));
+
+fail:
+    Py_XDECREF(ap_w);
+    Py_XDECREF(ap_v);
+    Py_XDECREF(ap_m);
+    return NULL;
+}
+
 
 static PyObject*
 _linalg_cholesky(PyObject* Py_UNUSED(dummy), PyObject* args) {
@@ -1488,6 +1657,7 @@ static char doc_solve[] = ("Solve the linear system of equations.");
 static char doc_svd[] = ("SVD factorization.");
 static char doc_lstsq[] = ("linear least squares.");
 static char doc_eig[] = ("eigenvalue solver.");
+static char doc_eigh[] = ("Hermitian eigenvalue solver.");
 static char doc_cholesky[] = ("Cholesky factorization.");
 static char doc_qr[] = ("Compute the qr decomposition.");
 
@@ -1500,6 +1670,7 @@ static struct PyMethodDef module_methods[] = {
   {"_svd", _linalg_svd, METH_VARARGS, doc_svd},
   {"_lstsq", _linalg_lstsq, METH_VARARGS, doc_lstsq},
   {"_eig", _linalg_eig, METH_VARARGS, doc_eig},
+  {"_eigh", _linalg_eigh, METH_VARARGS, doc_eigh},
   {"_cholesky", _linalg_cholesky, METH_VARARGS, doc_cholesky},
   {"_qr", _linalg_qr, METH_VARARGS, doc_qr},
   {NULL, NULL, 0, NULL}

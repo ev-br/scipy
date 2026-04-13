@@ -1050,6 +1050,109 @@ class TestEigh:
         w, z = eigh(a)
         w, z = eigh(a, b)
 
+    @pytest.mark.parametrize("include_B", [False, True])
+    @pytest.mark.parametrize("eigvals_only", [False, True])
+    @pytest.mark.parametrize("subset_by_index", [None, [1, 2]])
+    @pytest.mark.parametrize("dtype", [np.float32, np.complex128])
+    def test_nd_input(self, include_B, eigvals_only, subset_by_index, dtype):
+        batch_shape = (3, 2)
+        core_shape = (4, 4)
+        rng = np.random.default_rng(3808755624091555870)
+
+        A = rng.random(batch_shape + core_shape)
+        B = rng.random(batch_shape + core_shape)
+        if np.issubdtype(dtype, np.complexfloating):
+            A = A + 1j*rng.random(batch_shape + core_shape)
+            B = B + 1j*rng.random(batch_shape + core_shape)
+
+        A = ((A + A.swapaxes(-1, -2).conj()) / 2).astype(dtype)
+        B = ((B + B.swapaxes(-1, -2).conj()) / 2).astype(dtype)
+        B = B + 4*np.eye(core_shape[0], dtype=dtype)
+
+        kwargs = dict(eigvals_only=eigvals_only, subset_by_index=subset_by_index)
+        if include_B:
+            res = eigh(A, b=B, **kwargs)
+        else:
+            res = eigh(A, **kwargs)
+
+        for i in range(batch_shape[0]):
+            for j in range(batch_shape[1]):
+                if include_B:
+                    ref = eigh(A[i, j], b=B[i, j], **kwargs)
+                else:
+                    ref = eigh(A[i, j], **kwargs)
+
+                if eigvals_only:
+                    assert_allclose(res[i, j], ref)
+                else:
+                    for k in range(len(ref)):
+                        assert_allclose(res[k][i, j], ref[k])
+
+    def test_nd_input_subset_by_value_error(self):
+        rng = np.random.default_rng(4380347348600760940)
+        A = rng.random((2, 4, 4))
+        A = (A + A.swapaxes(-1, -2)) / 2
+
+        with pytest.raises(ValueError, match="subset_by_value is only supported"):
+            eigh(A, subset_by_value=[-1, 1])
+
+    @pytest.mark.parametrize("include_B", [False, True])
+    @pytest.mark.parametrize("dtype", [np.float32, np.complex128])
+    def test_nd_zero_size_batch_input(self, include_B, dtype):
+        A = np.empty((0, 4, 4), dtype=dtype)
+        kwargs = {}
+        if include_B:
+            kwargs["b"] = np.empty((0, 4, 4), dtype=dtype)
+
+        w, v = eigh(A, **kwargs)
+        assert w.shape == (0, 4)
+        assert v.shape == (0, 4, 4)
+
+        w = eigh(A, eigvals_only=True, subset_by_index=[1, 2], **kwargs)
+        assert w.shape == (0, 2)
+
+    @pytest.mark.parametrize(
+        ("driver", "include_B", "kwargs"),
+        [
+            ("ev", False, {}),
+            ("evd", False, {}),
+            ("evx", False, {}),
+            ("evx", False, {"subset_by_index": [1, 2]}),
+            ("gv", True, {}),
+        ],
+    )
+    @pytest.mark.parametrize("dtype", [np.float32, np.complex128])
+    def test_nd_input_legacy_drivers(self, driver, include_B, kwargs, dtype):
+        batch_shape = (2, 3)
+        core_shape = (4, 4)
+        rng = np.random.default_rng(1473199886400816870)
+
+        A = rng.random(batch_shape + core_shape)
+        B = rng.random(batch_shape + core_shape)
+        if np.issubdtype(dtype, np.complexfloating):
+            A = A + 1j*rng.random(batch_shape + core_shape)
+            B = B + 1j*rng.random(batch_shape + core_shape)
+
+        A = ((A + A.swapaxes(-1, -2).conj()) / 2).astype(dtype)
+        B = ((B + B.swapaxes(-1, -2).conj()) / 2).astype(dtype)
+        B = B + 4*np.eye(core_shape[0], dtype=dtype)
+
+        kwargs = {"driver": driver, **kwargs}
+        if include_B:
+            res = eigh(A, b=B, **kwargs)
+        else:
+            res = eigh(A, **kwargs)
+
+        for i in range(batch_shape[0]):
+            for j in range(batch_shape[1]):
+                if include_B:
+                    ref = eigh(A[i, j], b=B[i, j], **kwargs)
+                else:
+                    ref = eigh(A[i, j], **kwargs)
+
+                for k in range(len(ref)):
+                    assert_allclose(res[k][i, j], ref[k])
+
     @skip_xp_invalid_arg
     def test_eigh_of_sparse(self):
         # This tests the rejection of inputs that eigh cannot currently handle.

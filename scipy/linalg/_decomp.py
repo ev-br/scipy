@@ -303,7 +303,6 @@ def eig(a, b=None, left=False, right=True, overwrite_a=False,
     return w, vr
 
 
-@_apply_over_batch(('a', 2), ('b', 2))
 def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
          overwrite_b=False, type=1, check_finite=True, subset_by_index=None,
          subset_by_value=None, driver=None):
@@ -324,10 +323,10 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
 
     Parameters
     ----------
-    a : (M, M) array_like
+    a : (..., M, M) array_like
         A complex Hermitian or real symmetric matrix whose eigenvalues and
         eigenvectors will be computed.
-    b : (M, M) array_like, optional
+    b : (..., M, M) array_like, optional
         A complex Hermitian or real symmetric definite positive matrix in.
         If omitted, identity matrix is assumed.
     lower : bool, optional
@@ -365,7 +364,8 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
         If provided, this two-element iterable defines the half-open interval
         ``(a, b]`` that, if any, only the eigenvalues between these values
         are returned. Only available with "evr", "evx", and "gvx" drivers. Use
-        ``np.inf`` for the unconstrained ends.
+        ``np.inf`` for the unconstrained ends. Batched inputs are not supported
+        with this argument.
     driver : str, optional
         Defines which LAPACK driver should be used. Valid options are "ev",
         "evd", "evr", "evx" for standard problems and "gv", "gvd", "gvx" for
@@ -375,10 +375,10 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
 
     Returns
     -------
-    w : (N,) ndarray
+    w : (..., N,) ndarray
         The N (N<=M) selected eigenvalues, in ascending order, each
         repeated according to its multiplicity.
-    v : (M, N) ndarray
+    v : (..., M, N) ndarray
         The normalized eigenvector corresponding to the eigenvalue ``w[i]`` is
         the column ``v[:,i]``. Only returned if ``eigvals_only=False``.
 
@@ -404,6 +404,11 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
     triangular parts. Also, note that even though not taken into account,
     finiteness check applies to the whole array and unaffected by "lower"
     keyword.
+
+    Array arguments of this function, `a` and `b`, may have additional
+    "batch" dimensions prepended to the core shape. In this case, the array is treated
+    as a batch of lower-dimensional slices; see :ref:`linalg_batch` for details.
+    Batched inputs are not supported with ``subset_by_value``.
 
     This function uses LAPACK drivers for computations in all possible keyword
     combinations, prefixed with ``sy`` if arrays are real and ``he`` if
@@ -467,50 +472,46 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
     (5, 1)
 
     """
-    # set lower
-    uplo = 'L' if lower else 'U'
-    # Set job for Fortran routines
-    _job = 'N' if eigvals_only else 'V'
+    a1 = _asarray_validated(a, check_finite=check_finite)
+    if len(a1.shape) < 2 or a1.shape[-1] != a1.shape[-2]:
+        raise ValueError(
+            f"Expected a square matrix or a batch of square matrices. Got {a.shape = }"
+        )
+
+    a1, overwrite_a = _normalize_lapack_dtype(a1, overwrite_a)
+    a1, overwrite_a = _ensure_aligned_and_native(a1, overwrite_a)
+    overwrite_a = overwrite_a or (_datacopied(a1, a))
+    overwrite_a = overwrite_a and (a1.ndim == 2) and (a1.flags["F_CONTIGUOUS"])
+
+    batch_shape = a1.shape[:-2]
+    b1 = None
+    if b is not None:
+        b1 = _asarray_validated(b, check_finite=check_finite)
+        if len(b1.shape) < 2 or b1.shape[-1] != b1.shape[-2]:
+            raise ValueError('expected square "b" matrix')
+        a1, b1 = _ensure_dtype_cdsz(a1, b1)
+        b1, overwrite_b = _ensure_aligned_and_native(b1, overwrite_b)
+        if b1.shape[-2:] != a1.shape[-2:]:
+            raise ValueError(
+                f'wrong b dimensions {b1.shape[-2:]}, should be {a1.shape[-2:]}'
+            )
+        batch_shape = np.broadcast_shapes(batch_shape, b1.shape[:-2])
+        overwrite_b = overwrite_b or _datacopied(b1, b)
+        overwrite_b = overwrite_b and (b1.ndim == 2) and (b1.flags["F_CONTIGUOUS"])
+
+    cplx = True if iscomplexobj(a1) else False
+    n = a1.shape[-1]
 
     drv_str = [None, "ev", "evd", "evr", "evx", "gv", "gvd", "gvx"]
     if driver not in drv_str:
         raise ValueError('"{}" is unknown. Possible values are "None", "{}".'
                          ''.format(driver, '", "'.join(drv_str[1:])))
 
-    a1 = _asarray_validated(a, check_finite=check_finite)
-    if len(a1.shape) != 2 or a1.shape[0] != a1.shape[1]:
-        raise ValueError('expected square "a" matrix')
-
-    # accommodate square empty matrices
-    if a1.size == 0:
-        w_n, v_n = eigh(np.eye(2, dtype=a1.dtype))
-
-        w = np.empty_like(a1, shape=(0,), dtype=w_n.dtype)
-        v = np.empty_like(a1, shape=(0, 0), dtype=v_n.dtype)
-        if eigvals_only:
-            return w
-        else:
-            return w, v
-
-    overwrite_a = overwrite_a or (_datacopied(a1, a))
-    cplx = True if iscomplexobj(a1) else False
-    n = a1.shape[0]
-    drv_args = {'overwrite_a': overwrite_a}
-
-    if b is not None:
-        b1 = _asarray_validated(b, check_finite=check_finite)
-        overwrite_b = overwrite_b or _datacopied(b1, b)
-        if len(b1.shape) != 2 or b1.shape[0] != b1.shape[1]:
-            raise ValueError('expected square "b" matrix')
-
-        if b1.shape != a1.shape:
-            raise ValueError(f"wrong b dimensions {b1.shape}, should be {a1.shape}")
-
+    if b1 is not None:
         if type not in [1, 2, 3]:
             raise ValueError('"type" keyword only accepts 1, 2, and 3.')
 
         cplx = True if iscomplexobj(b1) else (cplx or False)
-        drv_args.update({'overwrite_b': overwrite_b, 'itype': type})
 
     subset = (subset_by_index is not None) or (subset_by_value is not None)
 
@@ -518,6 +519,9 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
     if subset_by_index and subset_by_value:
         raise ValueError('Either index or value subset can be requested.')
 
+    lo = hi = None
+    subset_kind = None
+    vl = vu = 0.0
     # Check indices if given
     if subset_by_index:
         lo, hi = (int(x) for x in subset_by_index)
@@ -525,8 +529,7 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
             raise ValueError('Requested eigenvalue indices are not valid. '
                              f'Valid range is [0, {n-1}] and start <= end, but '
                              f'start={lo}, end={hi} is given')
-        # fortran is 1-indexed
-        drv_args.update({'range': 'I', 'il': lo + 1, 'iu': hi + 1})
+        subset_kind = "index"
 
     if subset_by_value:
         lo, hi = subset_by_value
@@ -534,8 +537,8 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
             raise ValueError('Requested eigenvalue bounds are not valid. '
                              'Valid range is (-inf, inf) and low < high, but '
                              f'low={lo}, high={hi} is given')
-
-        drv_args.update({'range': 'V', 'vl': lo, 'vu': hi})
+        subset_kind = "value"
+        vl, vu = lo, hi
 
     # fix prefix for lapack routines
     pfx = 'he' if cplx else 'sy'
@@ -543,10 +546,10 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
     # decide on the driver if not given
     # first early exit on incompatible choice
     if driver:
-        if b is None and (driver in ["gv", "gvd", "gvx"]):
+        if b1 is None and (driver in ["gv", "gvd", "gvx"]):
             raise ValueError(f'{driver} requires input b array to be supplied '
                              'for generalized eigenvalue problems.')
-        if (b is not None) and (driver in ['ev', 'evd', 'evr', 'evx']):
+        if (b1 is not None) and (driver in ['ev', 'evd', 'evr', 'evx']):
             raise ValueError(f'"{driver}" does not accept input b array '
                              'for standard eigenvalue problems.')
         if subset and (driver in ["ev", "evd", "gv", "gvd"]):
@@ -554,90 +557,54 @@ def eigh(a, b=None, *, lower=True, eigvals_only=False, overwrite_a=False,
 
     # Default driver is evr and gvd
     else:
-        driver = "evr" if b is None else ("gvx" if subset else "gvd")
+        driver = "evr" if b1 is None else ("gvx" if subset else "gvd")
 
-    lwork_spec = {
-                  'syevd': ['lwork', 'liwork'],
-                  'syevr': ['lwork', 'liwork'],
-                  'heevd': ['lwork', 'liwork', 'lrwork'],
-                  'heevr': ['lwork', 'lrwork', 'liwork'],
-                  }
+    if subset_kind == "value" and batch_shape:
+        raise ValueError("subset_by_value is only supported for 2D inputs.")
 
-    if b is None:  # Standard problem
-        drv, drvlw = get_lapack_funcs((pfx + driver, pfx+driver+'_lwork'),
-                                      [a1])
-        clw_args = {'n': n, 'lower': lower}
-        if driver == 'evd':
-            clw_args.update({'compute_v': 0 if _job == "N" else 1})
-
-        lw = _compute_lwork(drvlw, **clw_args)
-        # Multiple lwork vars
-        if isinstance(lw, tuple):
-            lwork_args = dict(zip(lwork_spec[pfx+driver], lw))
-        else:
-            lwork_args = {'lwork': lw}
-
-        drv_args.update({'lower': lower, 'compute_v': 0 if _job == "N" else 1})
-        w, v, *other_args, info = drv(a=a1, **drv_args, **lwork_args)
-
-    else:  # Generalized problem
-        # 'gvd' doesn't have lwork query
-        if driver == "gvd":
-            drv = get_lapack_funcs(pfx + "gvd", [a1, b1])
-            lwork_args = {}
-        else:
-            drv, drvlw = get_lapack_funcs((pfx + driver, pfx+driver+'_lwork'),
-                                          [a1, b1])
-            # generalized drivers use uplo instead of lower
-            lw = _compute_lwork(drvlw, n, uplo=uplo)
-            lwork_args = {'lwork': lw}
-
-        drv_args.update({'uplo': uplo, 'jobz': _job})
-
-        w, v, *other_args, info = drv(a=a1, b=b1, **drv_args, **lwork_args)
-
-    # m is always the first extra argument
-    w = w[:other_args[0]] if subset else w
-    v = v[:, :other_args[0]] if (subset and not eigvals_only) else v
-
-    # Check if we had a  successful exit
-    if info == 0:
+    if n == 0:
+        w = np.empty(batch_shape + (0,), dtype=np.empty((), dtype=a1.dtype).real.dtype)
         if eigvals_only:
             return w
-        else:
-            return w, v
-    else:
-        if info < -1:
-            raise LinAlgError(f'Illegal value in argument {-info} of internal '
-                              f'{drv.typecode + pfx + driver}')
-        elif info > n:
-            raise LinAlgError(f'The leading minor of order {info-n} of B is not '
-                              'positive definite. The factorization of B '
-                              'could not be completed and no eigenvalues '
-                              'or eigenvectors were computed.')
-        else:
-            drv_err = {'ev': 'The algorithm failed to converge; {} '
-                             'off-diagonal elements of an intermediate '
-                             'tridiagonal form did not converge to zero.',
-                       'evx': '{} eigenvectors failed to converge.',
-                       'evd': 'The algorithm failed to compute an eigenvalue '
-                              'while working on the submatrix lying in rows '
-                              'and columns {0}/{1} through mod({0},{1}).',
-                       'evr': 'Internal Error.'
-                       }
-            if driver in ['ev', 'gv']:
-                msg = drv_err['ev'].format(info)
-            elif driver in ['evx', 'gvx']:
-                msg = drv_err['evx'].format(info)
-            elif driver in ['evd', 'gvd']:
-                if eigvals_only:
-                    msg = drv_err['ev'].format(info)
-                else:
-                    msg = drv_err['evd'].format(info, n+1)
-            else:
-                msg = drv_err['evr']
+        v = np.empty(batch_shape + (0, 0), dtype=a1.dtype)
+        return w, v
 
-            raise LinAlgError(msg)
+    a1 = np.broadcast_to(a1, batch_shape + a1.shape[-2:])
+    overwrite_a = overwrite_a and (a1.ndim == 2) and (a1.flags["F_CONTIGUOUS"])
+    if b1 is not None:
+        b1 = np.broadcast_to(b1, batch_shape + b1.shape[-2:])
+        overwrite_b = overwrite_b and (b1.ndim == 2) and (b1.flags["F_CONTIGUOUS"])
+
+    driver_code = {
+        "ev": 1, "evd": 2, "evr": 3, "evx": 4, "gv": 5, "gvd": 6, "gvx": 7
+    }[driver]
+    subset_kind_code = {None: 0, "index": 1, "value": 2}[subset_kind]
+    il = 1 if subset_kind != "index" else lo + 1
+    iu = n if subset_kind != "index" else hi + 1
+
+    if b1 is None:
+        w, v, err_lst, m = _batched_linalg._eigh(
+            a1, lower, eigvals_only, overwrite_a, False, type,
+            subset_kind_code, il, iu, vl, vu, driver_code
+        )
+    else:
+        w, v, err_lst, m = _batched_linalg._eigh(
+            a1, lower, eigvals_only, overwrite_a, overwrite_b, type,
+            subset_kind_code, il, iu, vl, vu, driver_code, b1
+        )
+
+    if err_lst:
+        _check_format_errors_warnings(pfx + driver, err_lst)
+
+    if subset_kind == "value":
+        m = int(np.asarray(m))
+        w = w[:m]
+        if not eigvals_only:
+            v = v[:, :m]
+
+    if eigvals_only:
+        return w
+    return w, v
 
 
 _conv_dict = {0: 0, 1: 1, 2: 2,
