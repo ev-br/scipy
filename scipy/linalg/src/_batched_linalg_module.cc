@@ -1003,40 +1003,6 @@ _linalg_eigh(PyObject* Py_UNUSED(dummy), PyObject* args) {
         goto fail;
     }
 
-    if (n == 0) {
-        PyArray_FILLWBYTE(ap_m, 0);
-        ret_lst = convert_vec_status(vec_status);
-        if (ret_lst == NULL) {
-            goto fail;
-        }
-        v_ret = (ap_v == NULL) ? Py_NewRef(Py_None) : PyArray_Return(ap_v);
-        if (v_ret == NULL) {
-            goto fail;
-        }
-        if (ap_v != NULL) {
-            ap_v = NULL;
-        }
-        w_ret = PyArray_Return(ap_w);
-        if (w_ret == NULL) {
-            goto fail;
-        }
-        ap_w = NULL;
-        m_ret = PyArray_Return(ap_m);
-        if (m_ret == NULL) {
-            goto fail;
-        }
-        ap_m = NULL;
-        result = PyTuple_New(4);
-        if (result == NULL) {
-            goto fail;
-        }
-        PyTuple_SET_ITEM(result, 0, w_ret);
-        PyTuple_SET_ITEM(result, 1, v_ret);
-        PyTuple_SET_ITEM(result, 2, ret_lst);
-        PyTuple_SET_ITEM(result, 3, m_ret);
-        return result;
-    }
-
     switch (typenum) {
         case(NPY_FLOAT32):
             info = _eigh<float>(ap_Am, ap_Bm, ap_w, ap_v, ap_m, lower, eigvals_only,
