@@ -48,7 +48,6 @@
 #include "scipy_blas_defines.h"
 #define F_FUNC(f, F) BLAS_FUNC(f)
 
-#include "_mkl_ilp64_fixes.h"
 
 /*
  * Define F_INT to match the type that the f2cmap selects for `integer`:

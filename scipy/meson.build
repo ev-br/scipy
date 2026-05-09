@@ -309,7 +309,6 @@ if 'openblas' in blas_name
 elif 'mkl' in blas_name
   _args_blas_ilp64 += [
     '-DBLAS_SYMBOL_SUFFIX=_64',
-    '-DFIX_MKL_2025_ILP64_MISSING_SYMBOL'
   ]
 elif uses_accelerate
   _args_blas_lp64 += ['-DACCELERATE_NEW_LAPACK']

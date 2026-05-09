@@ -41,7 +41,6 @@ C_PREAMBLE = """
 #include "scipy_blas_defines.h"
 #include "fortran_defs.h"
 
-#include "_mkl_ilp64_fixes.h"
 """
 
 LAPACK_DECLS = """
