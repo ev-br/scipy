@@ -1162,6 +1162,23 @@ class TestPPolyCommon:
 
             assert_raises(ValueError, p, np.array([[0.1, 0.2], [0.4]], dtype=object))
 
+    @pytest.mark.parametrize("cls", [PPoly, BPoly])
+    @pytest.mark.parametrize("tr_shp", [(), (5, 6, 7)])
+    def test_shape_complex(self, cls, tr_shp, xp):
+        rng = np.random.default_rng(1234)
+        c_shape = (8, 12) + tr_shp
+        c = xp.asarray(np.random.rand(*c_shape) + 1j*np.random.rand(*c_shape))
+        x = xp.asarray(np.sort(np.random.rand(13)))
+        x_p = xp.asarray(np.random.rand(3, 4))
+
+        p = cls(c, x)
+        y = p(x_p)
+        assert y.shape == (3, 4) + tr_shp
+
+        p_re = cls(xp.real(c), x)
+        p_im = cls(xp.imag(c), x)
+        xp_assert_close(p.c, p_re.c + 1j*p_im.c, atol=1e-15)
+
     def test_concurrency(self, xp):
         # Check that no segfaults appear with concurrent access to BPoly, PPoly
         c = np.random.rand(8, 12, 5, 6, 7)

@@ -779,8 +779,25 @@ class _PPoly(_PPolyBase):
     """NumPy backend for PPoly."""
 
     def _evaluate(self, x, nu, extrapolate, out):
-        _ppoly.evaluate(self.c.reshape(self.c.shape[0], self.c.shape[1], -1),
-                        self.x, x, nu, bool(extrapolate), out)
+        cc = self.c.reshape(self.c.shape[0], self.c.shape[1], -1)
+        is_complex = cc.dtype.kind == 'c'
+
+        if is_complex:
+            if cc.shape == 2:
+                cc = cc[:, None]
+            cc = cc.view(float)
+            out = out.view(float)
+
+        _ppoly.evaluate(cc, self.x, x, nu, bool(extrapolate), out)
+
+        # NB: if is_complex is True, `out` was constructed as complex array at the call
+        # site. Here we took a `view(float)` for _evaluate.
+        # This does not change the dtype of the array at the calling scope. IOW,
+        # when this function returns, the caller has `out` as a complex array.
+        # In still other words, it is as if the following commented-out code were
+        # executed automatically:
+        # if is_complex:
+        #     out = out.view(complex)
 
     def derivative(self, nu=1):
         if nu < 0:
