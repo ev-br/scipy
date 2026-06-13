@@ -10,7 +10,7 @@ from . import _rbfinterp_np
 from . import _rbfinterp_xp
 
 from scipy._lib._array_api import (
-    _asarray, array_namespace, xp_size, is_numpy, is_torch, is_jax, xp_capabilities
+    _asarray, array_namespace, xp_size, is_numpy, is_torch, is_jax, is_cupy, xp_capabilities
 )
 import scipy._external.array_api_extra as xpx
 
@@ -68,6 +68,12 @@ def _get_backend(xp):
         if USE_JIT:
             from . import _rbfinterp_jaxjit
             return  _rbfinterp_jaxjit
+        else:
+            return _rbfinterp_xp
+    elif is_cupy(xp):
+        if USE_JIT:
+            from . import _rbfinterp_cupyfuse
+            return _rbfinterp_cupyfuse
         else:
             return _rbfinterp_xp
     else:
