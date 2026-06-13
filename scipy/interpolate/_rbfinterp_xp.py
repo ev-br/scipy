@@ -148,6 +148,12 @@ def polynomial_matrix(x, powers, xp):
     return xp.prod(x[:, None, :] ** powers, axis=-1)
 
 
+def distance_matrix(x, y, xp):
+    return xp.linalg.vector_norm(
+               x[:, None, :] - y[None, :, :], axis=-1
+           )
+
+
 def _build_system(y, d, smoothing, kernel, epsilon, powers, xp):
     """Build the system used to solve for the RBF interpolant coefficients.
 
@@ -248,11 +254,14 @@ def _build_evaluation_coefficients(
     vec = xp.concat(
         [
             kernel_func(
-                xp.linalg.vector_norm(
-                    xeps[:, None, :] - yeps[None, :, :], axis=-1
-                ), xp
+                distance_matrix(xeps, yeps, xp),
+  #              xp.linalg.vector_norm(
+  #                  xeps[:, None, :] - yeps[None, :, :], axis=-1
+  #              ),
+                xp
             ),
-            xp.prod(xhat[:, None, :] ** powers, axis=-1)
+ #           xp.prod(xhat[:, None, :] ** powers, axis=-1)
+            polynomial_matrix(xhat, powers, xp)
         ], axis=-1
     )
 
