@@ -128,7 +128,9 @@ def kernel_matrix(x, kernel_func, xp):
     )
 
 
-# XXX: cupy mods
+
+
+# XXX: CuPy mods
 import cupy
 
 def polynomial_matrix(x, powers, xp):
@@ -136,17 +138,28 @@ def polynomial_matrix(x, powers, xp):
     return _polynomial_matrix_impl(x, powers)
 
 
-###@cupy.fuse
+@cupy.fuse
 def _polynomial_matrix_impl(x, powers):
     """Evaluate monomials, with exponents from `powers`, at `x`."""
     return cupy.prod(x[:, None, :] ** powers, axis=-1)
 
-# end cupy mods
+
+###@cupy.fuse
+def _norm(x):
+    s = (x * x)
+    return cupy.sqrt(cupy.sum(s, axis=-1))
+
 
 def distance_matrix(x, y, xp):
-    return xp.linalg.vector_norm(
-               x[:, None, :] - y[None, :, :], axis=-1
-           )
+    return _distance_matrix_impl(x, y)
+
+@cupy.fuse
+def _distance_matrix_impl(x, y):
+    return _norm(x[:, None, :] - y[None, :, :])
+
+
+# end cupy mods
+
 
 
 def _build_system(y, d, smoothing, kernel, epsilon, powers, xp):
