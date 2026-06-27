@@ -245,6 +245,17 @@ def _build_evaluation_coefficients(
     xeps = x*epsilon
     xhat = (x - shift)/scale
 
+    """
+    m1 = kernel_func(
+                 xp.linalg.vector_norm(
+                     xeps[:, None, :] - yeps[None, :, :], axis=-1
+                 ), xp
+             )
+    m2 = xp.prod(xhat[:, None, :] ** powers, axis=-1)
+
+    print("\n>>>>>>>", m1.shape, m2.shape)
+    """
+
     # NB: changed w.r.t. pythran
     vec = xp.concat(
         [

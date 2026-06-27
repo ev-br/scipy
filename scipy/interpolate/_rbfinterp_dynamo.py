@@ -1,19 +1,271 @@
-"""RBF backend with torch dynamo JIT compiled evaluations.
-"""
-from ._rbfinterp_xp import *
+from numpy.linalg import LinAlgError
+from ._rbfinterp_common import _monomial_powers_impl
 
-# bring the _undersored names, too
-from ._rbfinterp_xp import (
-    _build_and_solve_system, _build_evaluation_coefficients, _build_system, 
-    kernel_matrix, _monomial_powers, _monomial_powers_impl, polynomial_matrix
-)
+
+def _monomial_powers(ndim, degree, xp):
+    out = _monomial_powers_impl(ndim, degree)
+    out = xp.asarray(out)
+    if out.shape[0] == 0:
+        out = xp.reshape(out, (0, ndim))
+    return out
+
+
+def _build_and_solve_system(y, d, smoothing, kernel, epsilon, powers, xp):
+    """Build and solve the RBF interpolation system of equations.
+
+    Parameters
+    ----------
+    y : (P, N) float ndarray
+        Data point coordinates.
+    d : (P, S) float ndarray
+        Data values at `y`.
+    smoothing : (P,) float ndarray
+        Smoothing parameter for each data point.
+    kernel : str
+        Name of the RBF.
+    epsilon : float
+        Shape parameter.
+    powers : (R, N) int ndarray
+        The exponents for each monomial in the polynomial.
+
+    Returns
+    -------
+    coeffs : (P + R, S) float ndarray
+        Coefficients for each RBF and monomial.
+    shift : (N,) float ndarray
+        Domain shift used to create the polynomial matrix.
+    scale : (N,) float ndarray
+        Domain scaling used to create the polynomial matrix.
+
+    """
+    lhs, rhs, shift, scale = _build_system(
+        y, d, smoothing, kernel, epsilon, powers, xp
+        )
+    try:
+        coeffs = xp.linalg.solve(lhs, rhs)
+    except Exception:
+        # Best-effort attempt to emit a helpful message.
+        # `_rbfinterp_np` backend gives better diagnostics; it is hard to
+        # match it in a backend-agnostic way: e.g. jax emits no error at all,
+        # and instead returns an array of nans for a singular `lhs`.
+        msg = "Singular matrix"
+        nmonos = powers.shape[0]
+        if nmonos > 0:
+            pmat = polynomial_matrix((y - shift)/scale, powers, xp=xp)
+            rank = xp.linalg.matrix_rank(pmat)
+            if rank < nmonos:
+                msg = (
+                    "Singular matrix. The matrix of monomials evaluated at "
+                    "the data point coordinates does not have full column "
+                    f"rank ({rank}/{nmonos})."
+                    )
+        raise LinAlgError(msg)
+
+    return shift, scale, coeffs
+
+
+def linear(r, xp):
+    return -r
+
+
+def thin_plate_spline(r, xp):
+    # NB: changed w.r.t. pythran, vectorized
+    return xp.where(r == 0, 0, xp.square(r) * xp.log(r))
+
+
+def cubic(r, xp):
+    # CuPy 14.0.1: r**2 is much slower than square(r)
+    return xp.square(r) * r
+
+
+def quintic(r, xp):
+    return -xp.square(xp.square(r)) * r
+
+
+def multiquadric(r, xp):
+    return -xp.sqrt(xp.square(r) + 1)
+
+
+def inverse_multiquadric(r, xp):
+    return 1.0 / xp.sqrt(xp.square(r) + 1.0)
+
+
+def inverse_quadratic(r, xp):
+    return 1.0 / (xp.square(r) + 1.0)
+
+
+def gaussian(r, xp):
+    return xp.exp(-xp.square(r))
+
+
+NAME_TO_FUNC = {
+   "linear": linear,
+   "thin_plate_spline": thin_plate_spline,
+   "cubic": cubic,
+   "quintic": quintic,
+   "multiquadric": multiquadric,
+   "inverse_multiquadric": inverse_multiquadric,
+   "inverse_quadratic": inverse_quadratic,
+   "gaussian": gaussian
+   }
+
+
+def kernel_matrix(x, kernel_func, xp):
+    """Evaluate RBFs, with centers at `x`, at `x`."""
+    return kernel_func(
+        xp.linalg.vector_norm(x[None, :, :] - x[:, None, :], axis=-1), xp
+    )
+
+
+def polynomial_matrix(x, powers, xp):
+    """Evaluate monomials, with exponents from `powers`, at `x`."""
+    return xp.prod(x[:, None, :] ** powers, axis=-1)
+
+
+def _build_system(y, d, smoothing, kernel, epsilon, powers, xp):
+    """Build the system used to solve for the RBF interpolant coefficients.
+
+    Parameters
+    ----------
+    y : (P, N) float ndarray
+        Data point coordinates.
+    d : (P, S) float ndarray
+        Data values at `y`.
+    smoothing : (P,) float ndarray
+        Smoothing parameter for each data point.
+    kernel : str
+        Name of the RBF.
+    epsilon : float
+        Shape parameter.
+    powers : (R, N) int ndarray
+        The exponents for each monomial in the polynomial.
+
+    Returns
+    -------
+    lhs : (P + R, P + R) float ndarray
+        Left-hand side matrix.
+    rhs : (P + R, S) float ndarray
+        Right-hand side matrix.
+    shift : (N,) float ndarray
+        Domain shift used to create the polynomial matrix.
+    scale : (N,) float ndarray
+        Domain scaling used to create the polynomial matrix.
+
+    """
+    s = d.shape[1]
+    r = powers.shape[0]
+    kernel_func = NAME_TO_FUNC[kernel]
+
+    # Shift and scale the polynomial domain to be between -1 and 1
+    mins = xp.min(y, axis=0)
+    maxs = xp.max(y, axis=0)
+    shift = (maxs + mins)/2
+    scale = (maxs - mins)/2
+    # The scale may be zero if there is a single point or all the points have
+    # the same value for some dimension. Avoid division by zero by replacing
+    # zeros with ones.
+    scale = xp.where(scale == 0.0, 1.0, scale)
+
+    yeps = y*epsilon
+    yhat = (y - shift)/scale
+
+    out_kernels  = kernel_matrix(yeps, kernel_func, xp)
+    out_poly = polynomial_matrix(yhat, powers, xp)
+
+    lhs = xp.concat(
+        [
+         xp.concat((out_kernels, out_poly), axis=1),
+         xp.concat((out_poly.T, xp.zeros((r, r))), axis=1)
+        ]
+    , axis=0) + xp.diag(xp.concat([smoothing, xp.zeros(r)]))
+
+    rhs = xp.concat([d, xp.zeros((r, s))], axis=0)
+
+    return lhs, rhs, shift, scale
+
 
 import torch
 
-# https://github.com/pytorch/pytorch/issues/160812
-compute_interpolation = torch.compile(fullgraph=True, dynamic=True)(compute_interpolation)
+def _build_evaluation_coefficients(
+    x, y, kernel, epsilon, powers, shift, scale, xp
+):
+    """Construct the coefficients needed to evaluate
+    the RBF.
 
-#_build_evaluation_coefficients = torch.compile(fullgraph=True, dynamic=True)(_build_evaluation_coefficients)
+    Parameters
+    ----------
+    x : (Q, N) float ndarray
+        Evaluation point coordinates.
+    y : (P, N) float ndarray
+        Data point coordinates.
+    kernel : str
+        Name of the RBF.
+    epsilon : float
+        Shape parameter.
+    powers : (R, N) int ndarray
+        The exponents for each monomial in the polynomial.
+    shift : (N,) float ndarray
+        Shifts the polynomial domain for numerical stability.
+    scale : (N,) float ndarray
+        Scales the polynomial domain for numerical stability.
 
-# needed for tests
-torch._dynamo.config.cache_size_limit = 160
+    Returns
+    -------
+    (Q, P + R) float ndarray
+
+    """
+    kernel_func = NAME_TO_FUNC[kernel]
+
+    yeps = y*epsilon
+    xeps = x*epsilon
+    xhat = (x - shift)/scale
+
+    m1 = kernel_func(
+                 xp.linalg.vector_norm(
+                     xeps[:, None, :] - yeps[None, :, :], axis=-1
+                 ), xp
+             )
+    m2 = xp.prod(xhat[:, None, :] ** powers, axis=-1)
+
+    print("\n>>>>>>>", m1.shape, m2.shape)
+
+    assert m1.ndim == m2.ndim
+    breakpoint()
+
+    return _build_evaluation_coefficients_impl_1(m1, m2, xp)
+#    return _build_evaluation_coefficients_impl(xeps, yeps, xhat, powers, kernel_func, xp)
+
+
+#@torch.compile(fullgraph=True, dynamic=True)
+def _build_evaluation_coefficients_impl_1(m1, m2, xp):
+    vec = torch.cat([m1, m2], dim=-1)
+
+    return vec
+
+
+
+####@torch.compile(fullgraph=True)
+def _build_evaluation_coefficients_impl(
+    xeps, yeps, xhat, powers, kernel_func, xp
+):
+    # NB: changed w.r.t. pythran
+    vec = xp.concat(
+        [
+            kernel_func(
+                xp.linalg.vector_norm(
+                    xeps[:, None, :] - yeps[None, :, :], axis=-1
+                ), xp
+            ),
+            xp.prod(xhat[:, None, :] ** powers, axis=-1)
+        ], axis=-1
+    )
+
+    return vec
+
+
+
+def compute_interpolation(x, y, kernel, epsilon, powers, shift, scale, coeffs, xp):
+    vec = _build_evaluation_coefficients(
+        x, y, kernel, epsilon, powers, shift, scale, xp
+    )
+    return vec @ coeffs
