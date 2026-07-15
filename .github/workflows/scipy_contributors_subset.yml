@@ -20,6 +20,8 @@ jobs:
 
       - name: Install Python dependencies
         run: python -m pip install requests beautifulsoup4
+        # Installed explicitly to match the issue requirements for this
+        # manual validation workflow.
 
       - name: Run contributor subset collector
         run: |
