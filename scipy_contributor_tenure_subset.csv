@@ -1,0 +1,499 @@
+release,year,person_raw,is_first_time_marker,first_seen_release,tenure_release_index
+1.0.0,2017,@arcady,1,1.0.0,0
+1.0.0,2017,@xoviat,1,1.0.0,0
+1.0.0,2017,Adam Cox,1,1.0.0,0
+1.0.0,2017,Adam Geitgey,1,1.0.0,0
+1.0.0,2017,Adam Kurkiewicz,1,1.0.0,0
+1.0.0,2017,Aditya Vijaykumar,0,1.0.0,0
+1.0.0,2017,Aleksandar Trifunovic,1,1.0.0,0
+1.0.0,2017,Alessandro Pietro Bardelli,0,1.0.0,0
+1.0.0,2017,Aman Pratik,0,1.0.0,0
+1.0.0,2017,Andras Deak,1,1.0.0,0
+1.0.0,2017,Andrew Nelson,0,1.0.0,0
+1.0.0,2017,Andrey Portnoy,1,1.0.0,0
+1.0.0,2017,Anne-Sylvie Deutsch,0,1.0.0,0
+1.0.0,2017,Anton Akhmerov,0,1.0.0,0
+1.0.0,2017,Antonio Horta Ribeiro,0,1.0.0,0
+1.0.0,2017,Arno Onken,1,1.0.0,0
+1.0.0,2017,Ashwin Pathak,1,1.0.0,0
+1.0.0,2017,Benoit Rostykus,1,1.0.0,0
+1.0.0,2017,Bruno Jiménez,1,1.0.0,0
+1.0.0,2017,Cathy Douglass,1,1.0.0,0
+1.0.0,2017,Charles Harris,0,1.0.0,0
+1.0.0,2017,Charles Masson,1,1.0.0,0
+1.0.0,2017,Christoph Gohlke,0,1.0.0,0
+1.0.0,2017,CJ Carey,0,1.0.0,0
+1.0.0,2017,David Freese,1,1.0.0,0
+1.0.0,2017,David Haberthür,1,1.0.0,0
+1.0.0,2017,David Hagen,1,1.0.0,0
+1.0.0,2017,Deep Tavker,1,1.0.0,0
+1.0.0,2017,Denis Laxalde,0,1.0.0,0
+1.0.0,2017,Dezmond Goff,1,1.0.0,0
+1.0.0,2017,Dima Pasechnik,1,1.0.0,0
+1.0.0,2017,Dirk Gorissen,1,1.0.0,0
+1.0.0,2017,Dominic Antonacci,1,1.0.0,0
+1.0.0,2017,Dominic Else,1,1.0.0,0
+1.0.0,2017,Eli Sadoff,1,1.0.0,0
+1.0.0,2017,Eric Larson,0,1.0.0,0
+1.0.0,2017,Eric Quintero,0,1.0.0,0
+1.0.0,2017,Eric Wieser,1,1.0.0,0
+1.0.0,2017,Evan Limanto,0,1.0.0,0
+1.0.0,2017,Evgeni Burovski,0,1.0.0,0
+1.0.0,2017,Evgeny Zhurko,0,1.0.0,0
+1.0.0,2017,Felix Berkenkamp,0,1.0.0,0
+1.0.0,2017,Felix Lenders,1,1.0.0,0
+1.0.0,2017,Franziska Horn,1,1.0.0,0
+1.0.0,2017,François Magimel,0,1.0.0,0
+1.0.0,2017,Gaute Hope,1,1.0.0,0
+1.0.0,2017,Gregory R. Lee,0,1.0.0,0
+1.0.0,2017,Guillaume Horel,1,1.0.0,0
+1.0.0,2017,Guo Fei,1,1.0.0,0
+1.0.0,2017,Ilhan Polat,0,1.0.0,0
+1.0.0,2017,J.L. Lanfranchi,1,1.0.0,0
+1.0.0,2017,Jacob Vanderplas,0,1.0.0,0
+1.0.0,2017,Jaime Fernandez del Rio,0,1.0.0,0
+1.0.0,2017,James Gerity,1,1.0.0,0
+1.0.0,2017,James Tocknell,1,1.0.0,0
+1.0.0,2017,James Webber,0,1.0.0,0
+1.0.0,2017,Jean Helie,1,1.0.0,0
+1.0.0,2017,Jonathan Bright,0,1.0.0,0
+1.0.0,2017,Jonathan Sutton,1,1.0.0,0
+1.0.0,2017,Jonathan Tammo Siebert,0,1.0.0,0
+1.0.0,2017,Jordi Montes,1,1.0.0,0
+1.0.0,2017,Joscha Reimer,0,1.0.0,0
+1.0.0,2017,Josh Wilson,0,1.0.0,0
+1.0.0,2017,Juan M. Bello-Rivas,1,1.0.0,0
+1.0.0,2017,Juan Nunez-Iglesias,0,1.0.0,0
+1.0.0,2017,Julian Lukwata,1,1.0.0,0
+1.0.0,2017,Jyotirmoy Bhattacharya,1,1.0.0,0
+1.0.0,2017,Kevin Rose,1,1.0.0,0
+1.0.0,2017,Klaus Sembritzki,1,1.0.0,0
+1.0.0,2017,Lam Yuen Hei,1,1.0.0,0
+1.0.0,2017,M.J. Nichol,0,1.0.0,0
+1.0.0,2017,Mandeep Singh,1,1.0.0,0
+1.0.0,2017,Mark Campanelli,1,1.0.0,0
+1.0.0,2017,Markus Meister,1,1.0.0,0
+1.0.0,2017,Martin Thoma,0,1.0.0,0
+1.0.0,2017,Marvin Kastner,1,1.0.0,0
+1.0.0,2017,Matt Haberland,1,1.0.0,0
+1.0.0,2017,Matt Ruffalo,1,1.0.0,0
+1.0.0,2017,Matthew Brett,0,1.0.0,0
+1.0.0,2017,Max Silbiger,1,1.0.0,0
+1.0.0,2017,Mher Kazandjian,0,1.0.0,0
+1.0.0,2017,Michael Danilov,1,1.0.0,0
+1.0.0,2017,Michael James Bedford,1,1.0.0,0
+1.0.0,2017,Michael Stewart,1,1.0.0,0
+1.0.0,2017,Nathan Musoke,1,1.0.0,0
+1.0.0,2017,Ned Richards,1,1.0.0,0
+1.0.0,2017,Nick Papior,1,1.0.0,0
+1.0.0,2017,Nico Schlömer,1,1.0.0,0
+1.0.0,2017,Nikolay Mayorov,0,1.0.0,0
+1.0.0,2017,Nikolay Shebanov,1,1.0.0,0
+1.0.0,2017,Nikolay Zinov,1,1.0.0,0
+1.0.0,2017,Oleksandr Pavlyk,1,1.0.0,0
+1.0.0,2017,Orestis Floros,1,1.0.0,0
+1.0.0,2017,Patrick Callier,0,1.0.0,0
+1.0.0,2017,Paul van Mulbregt,1,1.0.0,0
+1.0.0,2017,Pauli Virtanen,0,1.0.0,0
+1.0.0,2017,Philip DeBoer,0,1.0.0,0
+1.0.0,2017,Philipp Rentzsch,1,1.0.0,0
+1.0.0,2017,Pim Schellart,0,1.0.0,0
+1.0.0,2017,Ralf Gommers,0,1.0.0,0
+1.0.0,2017,Ravi Kumar Prasad,1,1.0.0,0
+1.0.0,2017,Ray Bell,1,1.0.0,0
+1.0.0,2017,Robert Cimrman,0,1.0.0,0
+1.0.0,2017,Roman Feldbauer,1,1.0.0,0
+1.0.0,2017,Roman Mirochnik,1,1.0.0,0
+1.0.0,2017,Ronan Lamy,1,1.0.0,0
+1.0.0,2017,Scott Sievert,0,1.0.0,0
+1.0.0,2017,Sebastian Berg,0,1.0.0,0
+1.0.0,2017,Stefan Peterson,0,1.0.0,0
+1.0.0,2017,Syrtis Major,1,1.0.0,0
+1.0.0,2017,Thomas Keck,0,1.0.0,0
+1.0.0,2017,Tobias Megies,0,1.0.0,0
+1.0.0,2017,Tyler Reddy,0,1.0.0,0
+1.0.0,2017,Ved Basu,1,1.0.0,0
+1.0.0,2017,Vedant Rathore,1,1.0.0,0
+1.0.0,2017,Vladislav Iakovlev,1,1.0.0,0
+1.0.0,2017,Warren Weckesser,0,1.0.0,0
+1.0.0,2017,Yevhenii Hyzyla,1,1.0.0,0
+1.0.0,2017,Yu Feng,0,1.0.0,0
+1.0.0,2017,Zhiqing Xiao,1,1.0.0,0
+1.0.0,2017,Zé Vinícius,1,1.0.0,0
+1.7.0,2021,@endolith,0,1.7.0,0
+1.7.0,2021,Adam,1,1.7.0,0
+1.7.0,2021,Adam J. Stewart,1,1.7.0,0
+1.7.0,2021,Aditya Vijaykumar,0,1.0.0,1
+1.7.0,2021,Albert Steppi,1,1.7.0,0
+1.7.0,2021,"Alex H. Wagner, PhD",1,1.7.0,0
+1.7.0,2021,Alex Henrie,0,1.7.0,0
+1.7.0,2021,Alex Loftus,1,1.7.0,0
+1.7.0,2021,Alexandre de Siqueira,1,1.7.0,0
+1.7.0,2021,Andrew Nelson,0,1.0.0,1
+1.7.0,2021,Anreas Weh,0,1.7.0,0
+1.7.0,2021,Anselm Hahn,1,1.7.0,0
+1.7.0,2021,Arthur Volant,1,1.7.0,0
+1.7.0,2021,Ashutosh Varma,1,1.7.0,0
+1.7.0,2021,Atsushi Sakai,0,1.7.0,0
+1.7.0,2021,Avanindra Kumar Pandeya,1,1.7.0,0
+1.7.0,2021,Bas van Beek,1,1.7.0,0
+1.7.0,2021,baumgarc,1,1.7.0,0
+1.7.0,2021,Benjamin Curtice Corbett,1,1.7.0,0
+1.7.0,2021,Benjamin Santos,0,1.7.0,0
+1.7.0,2021,Bharat Raghunathan,0,1.7.0,0
+1.7.0,2021,Blair Bonnett,1,1.7.0,0
+1.7.0,2021,Chachay,1,1.7.0,0
+1.7.0,2021,charlotte12l,1,1.7.0,0
+1.7.0,2021,Cheng H. Lee,1,1.7.0,0
+1.7.0,2021,Christian Lorentzen,1,1.7.0,0
+1.7.0,2021,Christoph Baumgarten,0,1.7.0,0
+1.7.0,2021,christos val,1,1.7.0,0
+1.7.0,2021,CJ Carey,0,1.0.0,1
+1.7.0,2021,Cong Ma,0,1.7.0,0
+1.7.0,2021,Dan Temkin,1,1.7.0,0
+1.7.0,2021,Daniel Scott,1,1.7.0,0
+1.7.0,2021,Diana Sukhoverkhova,0,1.7.0,0
+1.7.0,2021,Dominic C,0,1.7.0,0
+1.7.0,2021,droussea2001,1,1.7.0,0
+1.7.0,2021,DWesl,1,1.7.0,0
+1.7.0,2021,dwight200,1,1.7.0,0
+1.7.0,2021,Egor Zemlyanoy,0,1.7.0,0
+1.7.0,2021,Elisha Hollander,1,1.7.0,0
+1.7.0,2021,Eric Larson,0,1.0.0,1
+1.7.0,2021,Evan H,1,1.7.0,0
+1.7.0,2021,Evgeni Burovski,0,1.0.0,1
+1.7.0,2021,Falcon Dai,1,1.7.0,0
+1.7.0,2021,gbonomib,1,1.7.0,0
+1.7.0,2021,Gregor Robinson,1,1.7.0,0
+1.7.0,2021,Gregory R. Lee,0,1.0.0,1
+1.7.0,2021,h-vetinari,0,1.7.0,0
+1.7.0,2021,Harm Buisman,1,1.7.0,0
+1.7.0,2021,Ian Dall,1,1.7.0,0
+1.7.0,2021,Ilhan Polat,0,1.0.0,1
+1.7.0,2021,Jamie Morton,0,1.7.0,0
+1.7.0,2021,Jean-Benoist Leger,1,1.7.0,0
+1.7.0,2021,Jeff Plourde,1,1.7.0,0
+1.7.0,2021,Jelle Aalbers,1,1.7.0,0
+1.7.0,2021,Jordão Bragantini,0,1.7.0,0
+1.7.0,2021,Jose Vazquez,1,1.7.0,0
+1.7.0,2021,Joseph Fox-Rabinovitz,0,1.7.0,0
+1.7.0,2021,Josh Wilson,0,1.0.0,1
+1.7.0,2021,Julien Jerphanion,0,1.7.0,0
+1.7.0,2021,Kai Striega,0,1.7.0,0
+1.7.0,2021,Kei Ishikawa,1,1.7.0,0
+1.7.0,2021,Laura Gutierrez Funderburk,1,1.7.0,0
+1.7.0,2021,lgfunderburk,1,1.7.0,0
+1.7.0,2021,Liam Marsh,1,1.7.0,0
+1.7.0,2021,liam-o-marsh,1,1.7.0,0
+1.7.0,2021,Lilian Besson,0,1.7.0,0
+1.7.0,2021,Lucas Roberts,0,1.7.0,0
+1.7.0,2021,Marc,1,1.7.0,0
+1.7.0,2021,Marc Zoeller,1,1.7.0,0
+1.7.0,2021,MarkPundurs,1,1.7.0,0
+1.7.0,2021,Markus Löning,1,1.7.0,0
+1.7.0,2021,Martin K. Scherer,1,1.7.0,0
+1.7.0,2021,Masashi Shibata,1,1.7.0,0
+1.7.0,2021,Matt Haberland,0,1.0.0,1
+1.7.0,2021,Matthias Bussonnier,0,1.7.0,0
+1.7.0,2021,Matthias Geier,1,1.7.0,0
+1.7.0,2021,Max Balandat,1,1.7.0,0
+1.7.0,2021,Max Bolingbroke,0,1.7.0,0
+1.7.0,2021,Max Frei,1,1.7.0,0
+1.7.0,2021,melissawm,1,1.7.0,0
+1.7.0,2021,Mike Taves,0,1.7.0,0
+1.7.0,2021,Namami Shanker,1,1.7.0,0
+1.7.0,2021,Nicholas McKibben,0,1.7.0,0
+1.7.0,2021,Nicolas Tessore,1,1.7.0,0
+1.7.0,2021,Nikola Forró,0,1.7.0,0
+1.7.0,2021,Olivier Gauthé,1,1.7.0,0
+1.7.0,2021,Pamphile Roy,1,1.7.0,0
+1.7.0,2021,paugier,1,1.7.0,0
+1.7.0,2021,Peter Bell,0,1.7.0,0
+1.7.0,2021,Peter Mahler Larsen,0,1.7.0,0
+1.7.0,2021,Piet Hessenius,1,1.7.0,0
+1.7.0,2021,Pradipta Ghosh,1,1.7.0,0
+1.7.0,2021,pranavrajpal,1,1.7.0,0
+1.7.0,2021,Ralf Gommers,0,1.0.0,1
+1.7.0,2021,Ramón Casero,1,1.7.0,0
+1.7.0,2021,Recursing,1,1.7.0,0
+1.7.0,2021,Robert Kern,0,1.7.0,0
+1.7.0,2021,Robert Uhl,0,1.7.0,0
+1.7.0,2021,Robinson Besson,1,1.7.0,0
+1.7.0,2021,Rohit Pandey,1,1.7.0,0
+1.7.0,2021,Rory Yorke,0,1.7.0,0
+1.7.0,2021,Samuel Wallan,0,1.7.0,0
+1.7.0,2021,Sebastian Wallkötter,1,1.7.0,0
+1.7.0,2021,Sebastiano Vigna,0,1.7.0,0
+1.7.0,2021,serge-sans-paille,1,1.7.0,0
+1.7.0,2021,Shashank KS,1,1.7.0,0
+1.7.0,2021,Stefan van der Walt,0,1.7.0,0
+1.7.0,2021,Stephan Hoyer,0,1.7.0,0
+1.7.0,2021,Sven Baars,1,1.7.0,0
+1.7.0,2021,Søren Fuglede Jørgensen,0,1.7.0,0
+1.7.0,2021,Tania Allard,1,1.7.0,0
+1.7.0,2021,Terry Davis,0,1.7.0,0
+1.7.0,2021,Thomas J. Fan,1,1.7.0,0
+1.7.0,2021,Thomas Schmelzer,1,1.7.0,0
+1.7.0,2021,Tirth Patel,0,1.7.0,0
+1.7.0,2021,Tom Hu,1,1.7.0,0
+1.7.0,2021,Tor Nordam,1,1.7.0,0
+1.7.0,2021,Trever Hines,1,1.7.0,0
+1.7.0,2021,tsubota20,1,1.7.0,0
+1.7.0,2021,Tyler Reddy,0,1.0.0,1
+1.7.0,2021,Vladyslav Rachek,0,1.7.0,0
+1.7.0,2021,VNMabus,0,1.7.0,0
+1.7.0,2021,Warren Weckesser,0,1.0.0,1
+1.7.0,2021,Xingyu Liu,1,1.7.0,0
+1.7.0,2021,zoj613,1,1.7.0,0
+1.7.0,2021,秋纫,1,1.7.0,0
+1.11.0,2023,Adam Lugowski,1,1.11.0,0
+1.11.0,2023,Albert Steppi,0,1.7.0,1
+1.11.0,2023,Alberto Defendi,1,1.11.0,0
+1.11.0,2023,Alex Herbert,1,1.11.0,0
+1.11.0,2023,Alex Zverianskii,1,1.11.0,0
+1.11.0,2023,Alfredo Carella,1,1.11.0,0
+1.11.0,2023,alice,1,1.11.0,0
+1.11.0,2023,Andrew Knyazev,0,1.11.0,0
+1.11.0,2023,Andrew Nelson,0,1.0.0,2
+1.11.0,2023,Andrey Akinshin,1,1.11.0,0
+1.11.0,2023,Anirudh Dagar,0,1.11.0,0
+1.11.0,2023,Anton Akhmerov,0,1.0.0,2
+1.11.0,2023,Antony Lee,0,1.11.0,0
+1.11.0,2023,Atsushi Sakai,0,1.7.0,1
+1.11.0,2023,Benjamin Yeh,1,1.11.0,0
+1.11.0,2023,boeleman,1,1.11.0,0
+1.11.0,2023,Boris Martin,1,1.11.0,0
+1.11.0,2023,Brett Graham,1,1.11.0,0
+1.11.0,2023,Caden Gobat,1,1.11.0,0
+1.11.0,2023,Charlie Marsh,1,1.11.0,0
+1.11.0,2023,Christian Lorentzen,0,1.7.0,1
+1.11.0,2023,Christian Veenhuis,1,1.11.0,0
+1.11.0,2023,Christoph Baumgarten,0,1.7.0,1
+1.11.0,2023,CJ Carey,0,1.0.0,2
+1.11.0,2023,Dan Schult,1,1.11.0,0
+1.11.0,2023,Daniel Schmitz,0,1.11.0,0
+1.11.0,2023,Dawson Beatty,1,1.11.0,0
+1.11.0,2023,Dennis,1,1.11.0,0
+1.11.0,2023,Doron Behar,1,1.11.0,0
+1.11.0,2023,DWesl,0,1.7.0,1
+1.11.0,2023,Eli Schwartz,0,1.11.0,0
+1.11.0,2023,Eric Larson,0,1.0.0,2
+1.11.0,2023,Ethan Steinberg,1,1.11.0,0
+1.11.0,2023,Evandro,1,1.11.0,0
+1.11.0,2023,Evgeni Burovski,0,1.0.0,2
+1.11.0,2023,Franz Forstmayr,0,1.11.0,0
+1.11.0,2023,Gagandeep Singh,0,1.11.0,0
+1.11.0,2023,Ganesh Kathiresan,1,1.11.0,0
+1.11.0,2023,Geert-Jan Huizing,1,1.11.0,0
+1.11.0,2023,Geoffrey M. Oxberry,1,1.11.0,0
+1.11.0,2023,Geoffrey Oxberry,1,1.11.0,0
+1.11.0,2023,GonVas,1,1.11.0,0
+1.11.0,2023,Gregory R. Lee,0,1.0.0,2
+1.11.0,2023,Guillaume Horel,0,1.0.0,2
+1.11.0,2023,Guillaume Lemaitre,1,1.11.0,0
+1.11.0,2023,h-vetinari,0,1.7.0,1
+1.11.0,2023,Hans Dembinski,0,1.11.0,0
+1.11.0,2023,harshvardhan2707,1,1.11.0,0
+1.11.0,2023,Henry Schreiner,1,1.11.0,0
+1.11.0,2023,Hood Chatham,0,1.11.0,0
+1.11.0,2023,Ilhan Polat,0,1.0.0,2
+1.11.0,2023,Isaac Virshup,0,1.11.0,0
+1.11.0,2023,Isuru Fernando,0,1.11.0,0
+1.11.0,2023,Jack Borchanian,1,1.11.0,0
+1.11.0,2023,Jacob Vanderplas,0,1.0.0,2
+1.11.0,2023,Jacopo Tissino,1,1.11.0,0
+1.11.0,2023,Jake Bowhay,0,1.11.0,0
+1.11.0,2023,Jakob Jakobson,0,1.11.0,0
+1.11.0,2023,Jarrod Millman,0,1.11.0,0
+1.11.0,2023,John Belmonte,1,1.11.0,0
+1.11.0,2023,Jordan Rupprecht,1,1.11.0,0
+1.11.0,2023,Joseph Fox-Rabinovitz,0,1.7.0,1
+1.11.0,2023,Julien Jerphanion,0,1.7.0,1
+1.11.0,2023,jyuv,0,1.11.0,0
+1.11.0,2023,Kai Striega,0,1.7.0,1
+1.11.0,2023,Kyle Oman,0,1.11.0,0
+1.11.0,2023,Larry Bradley,1,1.11.0,0
+1.11.0,2023,Leo Sandler,1,1.11.0,0
+1.11.0,2023,Levi John Wolf,0,1.11.0,0
+1.11.0,2023,lilinjie,1,1.11.0,0
+1.11.0,2023,Logan Thomas,1,1.11.0,0
+1.11.0,2023,Loïc Estève,0,1.11.0,0
+1.11.0,2023,Lucas Roberts,0,1.7.0,1
+1.11.0,2023,Lysandros Nikolaou,1,1.11.0,0
+1.11.0,2023,Marco Gorelli,0,1.11.0,0
+1.11.0,2023,Maria Cann,1,1.11.0,0
+1.11.0,2023,Mark W. Mueller,1,1.11.0,0
+1.11.0,2023,Matt Borland,1,1.11.0,0
+1.11.0,2023,Matt Haberland,0,1.0.0,2
+1.11.0,2023,Matteo Raso,1,1.11.0,0
+1.11.0,2023,Matthew Brett,0,1.0.0,2
+1.11.0,2023,Matthias Bussonnier,0,1.7.0,1
+1.11.0,2023,Matus Valo,1,1.11.0,0
+1.11.0,2023,Melissa Weber Mendonça,0,1.11.0,0
+1.11.0,2023,Michał Górny,1,1.11.0,0
+1.11.0,2023,mustafacevik,1,1.11.0,0
+1.11.0,2023,nboudrie,0,1.11.0,0
+1.11.0,2023,Neil Girdhar,0,1.11.0,0
+1.11.0,2023,Nicholas McKibben,0,1.7.0,1
+1.11.0,2023,Nico Schlömer,0,1.0.0,2
+1.11.0,2023,Nobel Wong,1,1.11.0,0
+1.11.0,2023,Omar Salman,1,1.11.0,0
+1.11.0,2023,OmarManzoor,1,1.11.0,0
+1.11.0,2023,Oren Amsalem,0,1.11.0,0
+1.11.0,2023,Oriol Abril-Pla,1,1.11.0,0
+1.11.0,2023,Pamphile Roy,0,1.7.0,1
+1.11.0,2023,Peter Bell,0,1.7.0,1
+1.11.0,2023,Pol del Aguila,1,1.11.0,0
+1.11.0,2023,Quentin Barthélemy,0,1.11.0,0
+1.11.0,2023,Rajarshi Karmakar,1,1.11.0,0
+1.11.0,2023,Ralf Gommers,0,1.0.0,2
+1.11.0,2023,Rishi Kulkarni,1,1.11.0,0
+1.11.0,2023,Robert Kern,0,1.7.0,1
+1.11.0,2023,Rory Yorke,0,1.7.0,1
+1.11.0,2023,Ross Barnowski,0,1.11.0,0
+1.11.0,2023,Saumya,1,1.11.0,0
+1.11.0,2023,Scott Shambaugh,1,1.11.0,0
+1.11.0,2023,Sergey Koposov,0,1.11.0,0
+1.11.0,2023,Sienna Brent,1,1.11.0,0
+1.11.0,2023,Simon Ott,1,1.11.0,0
+1.11.0,2023,Sravya papaganti,1,1.11.0,0
+1.11.0,2023,Stefan Endres,0,1.11.0,0
+1.11.0,2023,Stefan van der Walt,0,1.7.0,1
+1.11.0,2023,Stefanie Molin,1,1.11.0,0
+1.11.0,2023,Stefano Frazzetto,1,1.11.0,0
+1.11.0,2023,stepeos,1,1.11.0,0
+1.11.0,2023,Strahinja Lukić,0,1.11.0,0
+1.11.0,2023,suen-bit,1,1.11.0,0
+1.11.0,2023,Takumasa N,1,1.11.0,0
+1.11.0,2023,Tartopohm,0,1.11.0,0
+1.11.0,2023,Thomas Duvernay,0,1.11.0,0
+1.11.0,2023,Tirth Patel,0,1.7.0,1
+1.11.0,2023,Tom Adamczewski,1,1.11.0,0
+1.11.0,2023,Tom Eversdijk,1,1.11.0,0
+1.11.0,2023,Tomer Sery,1,1.11.0,0
+1.11.0,2023,Tyler Reddy,0,1.0.0,2
+1.11.0,2023,Ujjwal Sarswat,1,1.11.0,0
+1.11.0,2023,Vinayak Dev,1,1.11.0,0
+1.11.0,2023,Warren Weckesser,0,1.0.0,2
+1.11.0,2023,windows-server-2003,0,1.11.0,0
+1.11.0,2023,Yannis Linardos,1,1.11.0,0
+1.11.0,2023,Younes,1,1.11.0,0
+1.11.0,2023,Zaikun ZHANG,1,1.11.0,0
+1.11.0,2023,Zoufiné Lauer-Bare,1,1.11.0,0
+1.17.0,2026,Abdullah Fayed,1,1.17.0,0
+1.17.0,2026,Abhishek Kumar,1,1.17.0,0
+1.17.0,2026,Adam Jones,0,1.17.0,0
+1.17.0,2026,Adrian Raso,1,1.17.0,0
+1.17.0,2026,Akshay Priyadarshi,1,1.17.0,0
+1.17.0,2026,Albert Steppi,0,1.7.0,2
+1.17.0,2026,Amit Aronovitch,1,1.17.0,0
+1.17.0,2026,Andrew Nelson,0,1.0.0,3
+1.17.0,2026,Antony Lee,0,1.11.0,1
+1.17.0,2026,Arthur Lacote,1,1.17.0,0
+1.17.0,2026,Ayush Baranwal,1,1.17.0,0
+1.17.0,2026,Bernard Roesler,1,1.17.0,0
+1.17.0,2026,Björn Ingvar Dahlgren,1,1.17.0,0
+1.17.0,2026,Christian Lorentzen,0,1.7.0,2
+1.17.0,2026,Christian Veenhuis,0,1.11.0,1
+1.17.0,2026,Christine P. Chai,0,1.17.0,0
+1.17.0,2026,Cristrian Batrin,1,1.17.0,0
+1.17.0,2026,Dan Raviv,1,1.17.0,0
+1.17.0,2026,Dan Schult,0,1.11.0,1
+1.17.0,2026,Daniel Fremont,1,1.17.0,0
+1.17.0,2026,Daniel Schmitz,0,1.11.0,1
+1.17.0,2026,Daniele Raimondi,1,1.17.0,0
+1.17.0,2026,Daniil Kiktenko,1,1.17.0,0
+1.17.0,2026,Dietrich Brunn,0,1.17.0,0
+1.17.0,2026,Dimitri Papadopoulos Orfanos,0,1.17.0,0
+1.17.0,2026,Drew Parsons,0,1.17.0,0
+1.17.0,2026,Dustin Kenefake,1,1.17.0,0
+1.17.0,2026,DWesl,0,1.7.0,2
+1.17.0,2026,Emmanuel Ferdman,1,1.17.0,0
+1.17.0,2026,Eric Larson,0,1.0.0,3
+1.17.0,2026,Eric Zitong Zhou,0,1.17.0,0
+1.17.0,2026,Evgeni Burovski,0,1.0.0,3
+1.17.0,2026,Filipe Laíns,1,1.17.0,0
+1.17.0,2026,Florian Bourgey,0,1.17.0,0
+1.17.0,2026,Gabryel Mason-Williams,1,1.17.0,0
+1.17.0,2026,Geoffrey Gunter,1,1.17.0,0
+1.17.0,2026,Gert-Ludwig Ingold,0,1.17.0,0
+1.17.0,2026,Gilles Peiffer,1,1.17.0,0
+1.17.0,2026,Gleb Khmyznikov,1,1.17.0,0
+1.17.0,2026,Guido Imperiale,0,1.17.0,0
+1.17.0,2026,h-vetinari,0,1.7.0,2
+1.17.0,2026,Hans Dembinski,0,1.11.0,1
+1.17.0,2026,Ilan Gold,0,1.17.0,0
+1.17.0,2026,Ilhan Polat,0,1.0.0,3
+1.17.0,2026,Jacob Hass,1,1.17.0,0
+1.17.0,2026,Jaime Rodríguez-Guerra,1,1.17.0,0
+1.17.0,2026,Jake Bowhay,0,1.11.0,1
+1.17.0,2026,Jan Möseritz-Schmidt,1,1.17.0,0
+1.17.0,2026,JBlitzar,1,1.17.0,0
+1.17.0,2026,Jesse Livezey,0,1.17.0,0
+1.17.0,2026,Johannes Buchner,1,1.17.0,0
+1.17.0,2026,John M Dusel,1,1.17.0,0
+1.17.0,2026,Jonas Pleyer,1,1.17.0,0
+1.17.0,2026,Joren Hammudoglu,0,1.17.0,0
+1.17.0,2026,Joshua Alexander,1,1.17.0,0
+1.17.0,2026,Joshua Markovic,1,1.17.0,0
+1.17.0,2026,Jost Migenda,1,1.17.0,0
+1.17.0,2026,Kartik Sirohi,1,1.17.0,0
+1.17.0,2026,Kian Eliasi,0,1.17.0,0
+1.17.0,2026,kleiter,1,1.17.0,0
+1.17.0,2026,Koven,1,1.17.0,0
+1.17.0,2026,Luca Cerina,1,1.17.0,0
+1.17.0,2026,Lucas Colley,0,1.17.0,0
+1.17.0,2026,Lucas Roberts,0,1.7.0,2
+1.17.0,2026,Marco Berzborn,1,1.17.0,0
+1.17.0,2026,Martin Schuck,0,1.17.0,0
+1.17.0,2026,Matt Haberland,0,1.0.0,3
+1.17.0,2026,Matteo Brivio,1,1.17.0,0
+1.17.0,2026,Matthias Straka,1,1.17.0,0
+1.17.0,2026,Matti Picus,0,1.17.0,0
+1.17.0,2026,mcdigman,1,1.17.0,0
+1.17.0,2026,Michał Górny,0,1.11.0,1
+1.17.0,2026,Mikhail Ryazanov,0,1.17.0,0
+1.17.0,2026,Mohammed Abdul Rahman,1,1.17.0,0
+1.17.0,2026,Mouad Leachouri,1,1.17.0,0
+1.17.0,2026,Mugunthan Selvanayagam,1,1.17.0,0
+1.17.0,2026,Nathan Goldbaum,1,1.17.0,0
+1.17.0,2026,Neil Girdhar,0,1.11.0,1
+1.17.0,2026,newyork_loki,1,1.17.0,0
+1.17.0,2026,Nicholas Carlini,1,1.17.0,0
+1.17.0,2026,Nick Hodgskin,1,1.17.0,0
+1.17.0,2026,Nick ODell,0,1.17.0,0
+1.17.0,2026,Nicolas Guidotti,1,1.17.0,0
+1.17.0,2026,Noam Teyssier,1,1.17.0,0
+1.17.0,2026,Ole Bialas,1,1.17.0,0
+1.17.0,2026,Oliver Kovacs,1,1.17.0,0
+1.17.0,2026,Om Biradar,1,1.17.0,0
+1.17.0,2026,Pascal Klein,1,1.17.0,0
+1.17.0,2026,Philip Loche,0,1.17.0,0
+1.17.0,2026,Pierre Veron,1,1.17.0,0
+1.17.0,2026,Pieter Eendebak,0,1.17.0,0
+1.17.0,2026,Rafael Menezes,1,1.17.0,0
+1.17.0,2026,Ralf Gommers,0,1.0.0,3
+1.17.0,2026,Ritesh Rana,1,1.17.0,0
+1.17.0,2026,Rob Falck,0,1.17.0,0
+1.17.0,2026,Robert Kern,0,1.7.0,2
+1.17.0,2026,Rodrigo Silva,1,1.17.0,0
+1.17.0,2026,Rory Yorke,0,1.7.0,2
+1.17.0,2026,Samaresh Kumar Singh,1,1.17.0,0
+1.17.0,2026,Saransh Chopra,0,1.17.0,0
+1.17.0,2026,Scott Shambaugh,0,1.11.0,1
+1.17.0,2026,Shuhei Watanabe,1,1.17.0,0
+1.17.0,2026,Stefano Miccoli,1,1.17.0,0
+1.17.0,2026,Stephen Huan,1,1.17.0,0
+1.17.0,2026,Sumit Das,1,1.17.0,0
+1.17.0,2026,Suriyaa MM,1,1.17.0,0
+1.17.0,2026,Theo Teske,1,1.17.0,0
+1.17.0,2026,Tingwei Zhu,1,1.17.0,0
+1.17.0,2026,tommie979,1,1.17.0,0
+1.17.0,2026,Tristan Leclercq,1,1.17.0,0
+1.17.0,2026,Tyler Reddy,0,1.0.0,3
+1.17.0,2026,Warren Weckesser,0,1.0.0,3
+1.17.0,2026,WhimsyHippo,1,1.17.0,0
+1.17.0,2026,Will Zhang,1,1.17.0,0
+1.17.0,2026,Yuxi Long,1,1.17.0,0
+1.17.0,2026,Zhenyu Zhu,1,1.17.0,0
+1.17.0,2026,ਗਗਨਦੀਪ ਸਿੰਘ (Gagandeep Singh),0,1.17.0,0
