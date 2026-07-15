@@ -5,9 +5,6 @@ import csv
 import re
 from pathlib import Path
 
-import requests
-from bs4 import BeautifulSoup
-
 
 RELEASES = [
     "0.8.0",
@@ -38,14 +35,6 @@ SUMMARY_PREFIXES = (
     "This list",
     "NOTE:",
 )
-
-
-def release_urls(release: str) -> list[str]:
-    return [
-        f"https://docs.scipy.org/doc/scipy/release/{release}-notes.html",
-        f"https://scipy.github.io/devdocs/release/{release}-notes.html",
-    ]
-
 
 def normalize_name(name: str) -> str:
     return re.sub(r"\s+", " ", name.strip())
@@ -85,13 +74,7 @@ def load_release_text(release: str) -> tuple[str, str]:
     local_path = RELEASE_NOTES_DIR / f"{release}-notes.rst"
     if local_path.exists():
         return str(local_path), local_path.read_text(encoding="utf-8")
-
-    for url in release_urls(release):
-        response = requests.get(url, timeout=30)
-        if response.ok:
-            return url, BeautifulSoup(response.text, "html.parser").get_text("\n")
-
-    raise RuntimeError(f"Unable to load release notes for {release}")
+    raise RuntimeError(f"Missing local release notes file for {release}: {local_path}")
 
 
 def main() -> None:
