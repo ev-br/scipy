@@ -1,0 +1,36 @@
+name: SciPy contributors subset validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  collect-subset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout scipy
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: python -m pip install requests beautifulsoup4
+        # Installed explicitly to match the issue requirements for this
+        # manual validation workflow.
+
+      - name: Run contributor subset collector
+        run: |
+          python collect_scipy_contributors_subset.py | tee subset_run_output.txt
+
+      - name: Upload contributor subset artifacts
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: scipy-contributor-subset
+          path: |
+            scipy_contributor_tenure_subset.csv
+            subset_run_output.txt

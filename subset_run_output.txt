@@ -1,0 +1,28 @@
+[status] release=0.8.0 year=2010 count=0 status=missing-authors source=/home/runner/work/scipy/scipy/doc/source/release/0.8.0-notes.rst
+[status] release=1.0.0 year=2017 count=121 status=ok source=/home/runner/work/scipy/scipy/doc/source/release/1.0.0-notes.rst
+[status] release=1.7.0 year=2021 count=126 status=ok source=/home/runner/work/scipy/scipy/doc/source/release/1.7.0-notes.rst
+[status] release=1.11.0 year=2023 count=134 status=ok source=/home/runner/work/scipy/scipy/doc/source/release/1.11.0-notes.rst
+[status] release=1.17.0 year=2026 count=117 status=ok source=/home/runner/work/scipy/scipy/doc/source/release/1.17.0-notes.rst
+[status] release=1.18.0 year=2026 count=0 status=missing-authors source=/home/runner/work/scipy/scipy/doc/source/release/1.18.0-notes.rst
+[output] wrote 498 rows to scipy_contributor_tenure_subset.csv
+[summary] parsed counts by release:
+[summary] 0.8.0: 0 contributors (missing-authors)
+[summary] 1.0.0: 121 contributors (ok)
+[summary] 1.7.0: 126 contributors (ok)
+[summary] 1.11.0: 134 contributors (ok)
+[summary] 1.17.0: 117 contributors (ok)
+[summary] 1.18.0: 0 contributors (missing-authors)
+[sample] first rows:
+[sample] {'release': '1.0.0', 'year': 2017, 'person_raw': '@arcady', 'is_first_time_marker': 1, 'first_seen_release': '1.0.0', 'tenure_release_index': 0}
+[sample] {'release': '1.0.0', 'year': 2017, 'person_raw': '@xoviat', 'is_first_time_marker': 1, 'first_seen_release': '1.0.0', 'tenure_release_index': 0}
+[sample] {'release': '1.0.0', 'year': 2017, 'person_raw': 'Adam Cox', 'is_first_time_marker': 1, 'first_seen_release': '1.0.0', 'tenure_release_index': 0}
+[sample] {'release': '1.0.0', 'year': 2017, 'person_raw': 'Adam Geitgey', 'is_first_time_marker': 1, 'first_seen_release': '1.0.0', 'tenure_release_index': 0}
+[sample] {'release': '1.0.0', 'year': 2017, 'person_raw': 'Adam Kurkiewicz', 'is_first_time_marker': 1, 'first_seen_release': '1.0.0', 'tenure_release_index': 0}
+[sample] {'release': '1.0.0', 'year': 2017, 'person_raw': 'Aditya Vijaykumar', 'is_first_time_marker': 0, 'first_seen_release': '1.0.0', 'tenure_release_index': 0}
+[sample] {'release': '1.0.0', 'year': 2017, 'person_raw': 'Aleksandar Trifunovic', 'is_first_time_marker': 1, 'first_seen_release': '1.0.0', 'tenure_release_index': 0}
+[sample] {'release': '1.0.0', 'year': 2017, 'person_raw': 'Alessandro Pietro Bardelli', 'is_first_time_marker': 0, 'first_seen_release': '1.0.0', 'tenure_release_index': 0}
+[sample] {'release': '1.0.0', 'year': 2017, 'person_raw': 'Aman Pratik', 'is_first_time_marker': 0, 'first_seen_release': '1.0.0', 'tenure_release_index': 0}
+[sample] {'release': '1.0.0', 'year': 2017, 'person_raw': 'Andras Deak', 'is_first_time_marker': 1, 'first_seen_release': '1.0.0', 'tenure_release_index': 0}
+[failures] encountered:
+[failures] 0.8.0: no Authors section entries found in /home/runner/work/scipy/scipy/doc/source/release/0.8.0-notes.rst
+[failures] 1.18.0: no Authors section entries found in /home/runner/work/scipy/scipy/doc/source/release/1.18.0-notes.rst
