@@ -3,6 +3,7 @@ py3.install_sources([
     '_scipy_spectral_test_shim.py',
     'mpsig.py',
     'test_array_tools.py',
+    'test_aapi_smoke.py',
     'test_bsplines.py',
     'test_splines.py',
     'test_cont2discrete.py',
